@@ -6,9 +6,13 @@ test_data/
 # Environment files (active .env not tracked, templates ARE tracked)
 .env
 .env.local
+.env.*.local
 
 # Secrets
 secrets/
+*.key
+*_token
+*_secret
 
 # Python
 .venv/
