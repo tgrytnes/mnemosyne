@@ -1,0 +1,438 @@
+# Testing Guide for Mnemosyne
+
+Quick reference for adding tests to the Mnemosyne project.
+
+## Quick Start
+
+```bash
+# Install dependencies
+poetry install --with dev
+
+# Run all unit tests (fast, no Docker needed)
+poetry run pytest -m unit
+
+# Run all tests with coverage
+poetry run pytest --cov=.
+
+# Start services for integration tests
+docker-compose up weaviate postgres -d
+
+# Run integration tests
+poetry run pytest -m integration
+```
+
+## Adding New Tests
+
+### 1. Choose Test Type
+
+- **Unit Test**: Testing a single function/class in isolation → `tests/unit/`
+- **Integration Test**: Testing component interactions with real services → `tests/integration/`
+- **E2E Test**: Testing complete workflows → `tests/e2e/`
+
+### 2. Create Test File
+
+File naming convention: `test_<component>.py`
+
+```python
+# tests/unit/test_my_component.py
+"""
+Unit tests for MyComponent
+Tests Story XXX: Component Name
+"""
+import pytest
+from unittest.mock import Mock
+
+@pytest.mark.unit
+class TestMyComponent:
+    """Test suite for MyComponent"""
+
+    def test_basic_functionality(self):
+        """Test description"""
+        # Arrange
+        component = MyComponent()
+
+        # Act
+        result = component.do_something()
+
+        # Assert
+        assert result == expected_value
+```
+
+### 3. Use Fixtures
+
+Available fixtures from `conftest.py`:
+
+```python
+# Temporary file system
+def test_with_vault(temp_vault):
+    """temp_vault: Temporary Obsidian vault with sample notes"""
+    pass
+
+def test_with_shadow(temp_shadow_vault):
+    """temp_shadow_vault: Temporary shadow vault"""
+    pass
+
+# Mock services
+def test_with_ollama(mock_ollama_client):
+    """mock_ollama_client: Mocked Ollama for embeddings"""
+    pass
+
+def test_with_telegram(mock_telegram_bot):
+    """mock_telegram_bot: Mocked Telegram bot"""
+    pass
+
+# Real services (integration tests)
+def test_with_weaviate(weaviate_client, clean_weaviate_collection):
+    """weaviate_client: Real Weaviate connection"""
+    pass
+
+def test_with_postgres(ananke_test_db):
+    """ananke_test_db: PostgreSQL test database"""
+    pass
+
+# Test data
+def test_with_data(sample_chunks, sample_email):
+    """Pre-configured test data"""
+    pass
+```
+
+### 4. Add Test Markers
+
+```python
+@pytest.mark.unit          # Fast, isolated test
+@pytest.mark.integration   # Requires Docker services
+@pytest.mark.weaviate      # Needs Weaviate
+@pytest.mark.postgres      # Needs PostgreSQL
+@pytest.mark.slow          # Takes >5 seconds
+@pytest.mark.e2e           # End-to-end test
+```
+
+### 5. Test User Stories
+
+Each user story should have corresponding tests:
+
+| Story | Test File | Focus |
+|-------|-----------|-------|
+| Story 000: Obsidian Vault Ingestion | `test_ingestor.py` | Markdown cleaning, chunking, embeddings |
+| Story 002: Obsidian Gatekeeper | `test_gatekeeper.py` | Shadow copy workflow |
+| Story 005: Semantic Routing | `test_router.py` | Cache hits, routing decisions |
+| Story 010: Scout Pattern Detection | `test_scout.py` | Pattern detection, confidence scoring |
+| Story 014: SQL Project Gatekeeper | `test_gatekeeper.py` | Approval workflow, SQL writes |
+| Story 016: Project Manager | `test_project_manager.py` | Pressure scores, deadline tracking |
+
+## Testing Patterns
+
+### Pattern 1: Testing with Mocks
+
+```python
+@pytest.mark.unit
+def test_with_mock_database():
+    """Test without real database"""
+    from unittest.mock import Mock
+
+    db = Mock()
+    db.cursor().fetchall.return_value = [
+        (1, "Test Project", 0.85)
+    ]
+
+    # Use mock in your test
+    component = MyComponent(db)
+    result = component.query()
+
+    # Verify mock was called
+    db.cursor.assert_called_once()
+```
+
+### Pattern 2: Testing Time-Dependent Code
+
+```python
+@pytest.mark.unit
+def test_with_frozen_time(freeze_time):
+    """Test deadline detection"""
+    with freeze_time("2024-01-15 08:00:00"):
+        # Time is frozen at 2024-01-15 08:00:00
+        deadline = datetime(2024, 1, 17)  # 2 days away
+
+        is_approaching = check_deadline(deadline)
+        assert is_approaching is True
+```
+
+### Pattern 3: Testing File Operations
+
+```python
+@pytest.mark.unit
+def test_file_cleaning(temp_vault):
+    """Test markdown file cleaning"""
+    # Create test file
+    test_file = temp_vault / "test.md"
+    test_file.write_text("""---
+tags: [test]
+---
+# Title
+Content here
+""")
+
+    # Test your function
+    cleaned = clean_markdown(test_file)
+
+    assert "---" not in cleaned
+    assert "# Title" in cleaned
+```
+
+### Pattern 4: Testing Async Code
+
+```python
+@pytest.mark.asyncio
+async def test_async_function():
+    """Test async operations"""
+    result = await async_operation()
+    assert result is not None
+```
+
+### Pattern 5: Testing Exceptions
+
+```python
+@pytest.mark.unit
+def test_raises_error():
+    """Test error handling"""
+    with pytest.raises(ValueError) as exc_info:
+        invalid_operation()
+
+    assert "expected error message" in str(exc_info.value)
+```
+
+## Running Specific Tests
+
+```bash
+# By file
+pytest tests/unit/test_ingestor.py
+
+# By class
+pytest tests/unit/test_scout.py::TestPatternDetection
+
+# By function
+pytest tests/unit/test_scout.py::TestPatternDetection::test_detect_project_candidate
+
+# By marker
+pytest -m unit
+pytest -m "integration and weaviate"
+pytest -m "not slow"
+
+# By keyword
+pytest -k "detect"  # Runs all tests with "detect" in name
+
+# With verbose output
+pytest -vv tests/unit/test_ingestor.py
+```
+
+## Debugging Tests
+
+```bash
+# Show print statements
+pytest -s
+
+# Stop at first failure
+pytest -x
+
+# Drop into debugger on failure
+pytest --pdb
+
+# Show why tests were selected
+pytest --collect-only
+
+# Show fixture setup/teardown
+pytest --setup-show
+```
+
+## Coverage
+
+```bash
+# Generate coverage report
+pytest --cov=. --cov-report=term-missing
+
+# HTML coverage report
+pytest --cov=. --cov-report=html
+open htmlcov/index.html
+
+# Check coverage threshold
+pytest --cov=. --cov-fail-under=80
+```
+
+## CI/CD Integration
+
+Tests run automatically on:
+- **Push to main/develop**
+- **Pull requests**
+- **Manual trigger** (`workflow_dispatch`)
+
+See [`.github/workflows/test.yml`](.github/workflows/test.yml) for configuration.
+
+## Docker Services for Testing
+
+Start services locally:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific services
+docker-compose up weaviate postgres -d
+
+# Check service health
+curl http://localhost:8080/v1/.well-known/ready  # Weaviate
+pg_isready -h localhost -p 5432 -U postgres      # PostgreSQL
+
+# View logs
+docker-compose logs -f weaviate
+docker-compose logs -f postgres
+
+# Stop services
+docker-compose down
+```
+
+## Example: Adding Test for New Feature
+
+### Step 1: Create User Story Test Outline
+
+```python
+# tests/unit/test_new_feature.py
+"""
+Unit tests for New Feature
+Tests Story XXX: New Feature Description
+"""
+import pytest
+
+@pytest.mark.unit
+class TestNewFeature:
+    """Test suite for new feature"""
+
+    def test_basic_operation(self):
+        """Test basic functionality works"""
+        # TODO: Implement
+        pass
+
+    def test_edge_cases(self):
+        """Test edge cases and error handling"""
+        # TODO: Implement
+        pass
+
+    def test_performance(self):
+        """Test meets performance targets"""
+        # TODO: Implement
+        pass
+```
+
+### Step 2: Implement Tests (TDD)
+
+```python
+@pytest.mark.unit
+def test_basic_operation(temp_vault):
+    """Test basic functionality works"""
+    from MyModule.new_feature import NewFeature
+
+    feature = NewFeature(vault_path=str(temp_vault))
+    result = feature.process()
+
+    assert result is not None
+    assert result.status == "success"
+```
+
+### Step 3: Add Integration Test if Needed
+
+```python
+# tests/integration/test_new_feature_integration.py
+@pytest.mark.integration
+@pytest.mark.weaviate
+def test_with_real_weaviate(weaviate_client, clean_weaviate_collection):
+    """Test new feature with real Weaviate"""
+    from MyModule.new_feature import NewFeature
+
+    feature = NewFeature(weaviate_client=weaviate_client)
+    result = feature.process()
+
+    # Verify data in Weaviate
+    collection = weaviate_client.collections.get("TestCollection")
+    objects = collection.query.fetch_objects(limit=10)
+
+    assert len(objects.objects) > 0
+```
+
+### Step 4: Run Tests
+
+```bash
+# Run just your new tests
+pytest tests/unit/test_new_feature.py -v
+
+# Run with coverage
+pytest tests/unit/test_new_feature.py --cov=MyModule.new_feature
+
+# Run full suite to ensure no regressions
+pytest
+```
+
+## Common Testing Scenarios
+
+### Testing Gatekeeper Approval
+
+```python
+@pytest.mark.unit
+def test_gatekeeper_approval(mock_discovery):
+    """Test project approval workflow"""
+    from Alexandria.sql_gatekeeper import SQLProjectGatekeeper
+
+    db = Mock()
+    messenger = Mock()
+    gatekeeper = SQLProjectGatekeeper(db, messenger)
+
+    # Request approval
+    gatekeeper.request_project_write(mock_discovery)
+
+    # Verify notification sent
+    messenger.send_message.assert_called_once()
+    assert "Approval Request" in messenger.send_message.call_args[0][0]
+```
+
+### Testing Scout Discovery
+
+```python
+@pytest.mark.unit
+def test_scout_detects_pattern(mock_cluster):
+    """Test Scout identifies project candidates"""
+    from Argus.scout import LatentScout
+
+    scout = LatentScout(muses_client=Mock())
+    patterns = scout.detect_patterns()
+
+    assert "project_candidate" in patterns
+    assert len(patterns["project_candidate"]) > 0
+```
+
+### Testing Weaviate Ingestion
+
+```python
+@pytest.mark.integration
+@pytest.mark.weaviate
+def test_ingest_to_weaviate(weaviate_client, clean_weaviate_collection, sample_chunks):
+    """Test chunk ingestion into Weaviate"""
+    # Create collection and insert data
+    collection = weaviate_client.collections.create(...)
+
+    # Verify insertion
+    response = collection.query.fetch_objects(limit=10)
+    assert len(response.objects) == len(sample_chunks)
+```
+
+## Resources
+
+- **Full Test Documentation**: [`tests/README.md`](tests/README.md)
+- **User Stories**: [`user-stories/STORY_INDEX.md`](user-stories/STORY_INDEX.md)
+- **pytest Docs**: https://docs.pytest.org/
+- **Weaviate Testing**: https://weaviate.io/developers/weaviate/client-libraries/python
+- **PostgreSQL Testing**: https://www.psycopg.org/docs/
+
+## Getting Help
+
+- Check existing tests in `tests/unit/` for examples
+- Review `conftest.py` for available fixtures
+- See `tests/README.md` for detailed documentation
+- GitHub Actions logs show CI test results

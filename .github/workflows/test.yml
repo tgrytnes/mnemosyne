@@ -1,0 +1,187 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+
+      - name: Run unit tests
+        run: |
+          poetry run pytest tests/unit -v --cov=. --cov-report=xml --cov-report=term-missing -m unit
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unit
+          name: unit-tests
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      weaviate:
+        image: semitechnologies/weaviate:1.27.0
+        ports:
+          - 8080:8080
+          - 50051:50051
+        env:
+          AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+          PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+          QUERY_DEFAULTS_LIMIT: '100'
+          DEFAULT_VECTORIZER_MODULE: 'none'
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/v1/.well-known/ready"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: ananke_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+
+      - name: Wait for services to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:8080/v1/.well-known/ready; do sleep 2; done'
+          timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 2; done'
+
+      - name: Run integration tests
+        env:
+          TEST_WEAVIATE_HOST: localhost
+          TEST_WEAVIATE_PORT: 8080
+          TEST_WEAVIATE_GRPC_PORT: 50051
+          TEST_POSTGRES_HOST: localhost
+          TEST_POSTGRES_PORT: 5432
+          TEST_POSTGRES_DB: ananke_test
+          TEST_POSTGRES_USER: postgres
+          TEST_POSTGRES_PASSWORD: test
+        run: |
+          poetry run pytest tests/integration -v --cov=. --cov-report=xml -m integration
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: integration
+          name: integration-tests
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev
+
+      - name: Run Black formatter check
+        run: |
+          poetry run black --check .
+
+      - name: Run Ruff linter
+        run: |
+          poetry run ruff check .
+
+      - name: Run mypy type checker
+        run: |
+          poetry run mypy . --ignore-missing-imports || true
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, code-quality]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "Integration Tests: ${{ needs.integration-tests.result }}"
+          echo "Code Quality: ${{ needs.code-quality.result }}"
+
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+            echo "❌ Some tests failed"
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi
