@@ -15,19 +15,19 @@ NC='\033[0m' # No Color
 
 # Step 1: Start Docker services
 echo -e "\n${YELLOW}Step 1: Starting Docker services (Weaviate + Ollama)${NC}"
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml up -d
 
 # Step 2: Wait for services to be healthy
 echo -e "\n${YELLOW}Step 2: Waiting for services to be ready...${NC}"
 echo "Waiting for Weaviate..."
-timeout 60 bash -c 'until curl -sf http://localhost:8080/v1/.well-known/ready > /dev/null; do sleep 2; done' || {
+timeout 60 bash -c 'until curl -sf http://localhost:8082/v1/.well-known/ready > /dev/null; do sleep 2; done' || {
     echo -e "${RED}❌ Weaviate failed to start${NC}"
     exit 1
 }
 echo -e "${GREEN}✓ Weaviate is ready${NC}"
 
 echo "Waiting for Ollama..."
-timeout 60 bash -c 'until curl -sf http://localhost:11434/ > /dev/null; do sleep 2; done' || {
+timeout 60 bash -c 'until curl -sf http://localhost:11435/ > /dev/null; do sleep 2; done' || {
     echo -e "${RED}❌ Ollama failed to start${NC}"
     exit 1
 }
@@ -47,20 +47,23 @@ echo "================================================"
 
 # Activate virtual environment and run tests
 source .venv/bin/activate
+export WEAVIATE_HTTP_PORT=8082
+export WEAVIATE_GRPC_PORT=50052
+export OLLAMA_BASE_URL=http://localhost:11435
 python -m pytest tests/integration/test_obsidian_ingestion_integration.py -v -m integration || {
     TEST_EXIT_CODE=$?
     echo -e "\n${RED}❌ Integration tests failed${NC}"
 
     # Cleanup on failure
     echo -e "\n${YELLOW}Cleaning up Docker services...${NC}"
-    docker-compose -f docker-compose.test.yml down -v
+    docker compose -f docker-compose.test.yml down -v
 
     exit $TEST_EXIT_CODE
 }
 
 # Step 5: Cleanup
 echo -e "\n${YELLOW}Step 5: Cleaning up Docker services${NC}"
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml down -v
 
 echo -e "\n${GREEN}================================================${NC}"
 echo -e "${GREEN}✅ Integration tests completed successfully!${NC}"

@@ -29,11 +29,13 @@ class TestObsidianIngestionIntegration:
         # Get connection details from environment
         host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         port = os.getenv("WEAVIATE_HTTP_PORT", "8080")
+        grpc_port = os.getenv("WEAVIATE_GRPC_PORT", "50051")
 
         # Connect to Weaviate
         client = weaviate.connect_to_local(
             host=host,
             port=int(port),
+            grpc_port=int(grpc_port),
         )
 
         yield client
@@ -214,7 +216,9 @@ Commands:
 
         # Verify vector exists and has correct dimensions
         assert chunk.vector is not None
-        assert len(chunk.vector) == 1024  # qwen3-embedding dimension
+        # Weaviate returns vector as dict with 'default' key
+        vector = chunk.vector['default'] if isinstance(chunk.vector, dict) else chunk.vector
+        assert len(vector) == 1024  # qwen3-embedding dimension
 
     def test_ingest_entire_vault(self, ingestor):
         """Should ingest all files in vault"""

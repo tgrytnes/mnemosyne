@@ -9,8 +9,8 @@ services:
     image: cr.weaviate.io/semitechnologies/weaviate:latest
     container_name: mnemosyne_test_weaviate
     ports:
-      - "8080:8080"
-      - "50051:50051"
+      - "8082:8080"
+      - "50052:50051"
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
@@ -33,7 +33,7 @@ services:
     image: ollama/ollama:latest
     container_name: mnemosyne_test_ollama
     ports:
-      - "11434:11434"
+      - "11435:11434"
     volumes:
       - ollama_test_data:/root/.ollama
     networks:
