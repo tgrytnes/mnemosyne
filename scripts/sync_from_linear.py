@@ -19,8 +19,9 @@ import requests
 from dotenv import load_dotenv
 import argparse
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (.env.local takes precedence)
+load_dotenv(".env.local")  # Load local secrets first
+load_dotenv()  # Then load standard .env
 
 LINEAR_API_KEY = os.getenv("LINEAR_API_KEY")
 LINEAR_API_URL = "https://api.linear.app/graphql"
