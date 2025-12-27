@@ -1,0 +1,55 @@
+# Docker Compose for Integration Testing
+# Runs Weaviate and Ollama for testing Story 000
+
+version: '3.8'
+
+services:
+  # Weaviate vector database
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:latest
+    container_name: mnemosyne_test_weaviate
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: ''
+      CLUSTER_HOSTNAME: 'node1'
+    volumes:
+      - weaviate_test_data:/var/lib/weaviate
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama for embeddings
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mnemosyne_test_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_test_data:/root/.ollama
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  weaviate_test_data:
+    driver: local
+  ollama_test_data:
+    driver: local
+
+networks:
+  test_network:
+    driver: bridge

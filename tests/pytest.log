@@ -1,13 +1,13 @@
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_process_single_file0/test.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_process_single_file0/test.md: 1 chunks
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:178 Found 3 markdown files in vault
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_ingest_vault_processes_al0/note1.md: 1 chunks
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_ingest_vault_processes_al0/note2.md: 1 chunks
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_ingest_vault_processes_al0/note3.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_ingest_vault_processes_al0/note1.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_ingest_vault_processes_al0/note2.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_ingest_vault_processes_al0/note3.md: 1 chunks
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:196 Ingestion complete: {'files_processed': 3, 'files_skipped': 0, 'total_files': 3, 'total_chunks': 3}
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:178 Found 3 markdown files in vault
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_incremental_ingestion0/new.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_incremental_ingestion0/new.md: 1 chunks
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:196 Ingestion complete: {'files_processed': 1, 'files_skipped': 2, 'total_files': 3, 'total_chunks': 1}
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:178 Found 0 markdown files in vault
 INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:196 Ingestion complete: {'files_processed': 0, 'files_skipped': 0, 'total_files': 0, 'total_chunks': 0}
-INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-3/test_ingestion_preserves_sourc0/note.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:157 Ingested /tmp/pytest-of-tgrytnes/pytest-4/test_ingestion_preserves_sourc0/note.md: 1 chunks
 ERROR    src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:161 Error ingesting /nonexistent/file.md: [Errno 2] No such file or directory: '/nonexistent/file.md'
