@@ -83,6 +83,21 @@ Track progress: https://linear.app/project-mnemosyne
 
 ## Development
 
+### Setup
+
+```bash
+# 1. Install dependencies
+poetry install --with dev
+
+# 2. Set up pre-commit hooks (enforces Black, Ruff, mypy)
+poetry run pre-commit install
+
+# 3. Configure environment
+make env-dev
+```
+
+**Pre-commit hooks** automatically check code quality before commits. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for details.
+
 ### Environment
 
 ```bash
@@ -125,6 +140,7 @@ make services-down
 
 ### Core Guides
 - **[Getting Started](docs/GETTING_STARTED.md)** - Quick start guide
+- **[Development Guide](docs/DEVELOPMENT.md)** - Pre-commit hooks, code quality, CI/CD
 - **[Implementation Plan](IMPLEMENTATION_PLAN.md)** - Week-by-week execution roadmap
 - **[Testing Guide](docs/TESTING.md)** - How to write and run tests
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment on Raspberry Pi

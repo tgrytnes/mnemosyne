@@ -64,6 +64,24 @@ Mnemosyne/
 
 ---
 
+### [Development Guide](DEVELOPMENT.md)
+**Purpose**: Pre-commit hooks, code quality, CI/CD
+
+**Contains**:
+- Pre-commit hooks setup and usage
+- Code quality standards (Black, Ruff, mypy)
+- CI/CD pipeline documentation
+- Development environment setup
+- Making changes workflow
+
+**When to read**:
+- Before first commit
+- When setting up development environment
+- When CI/CD fails
+- When contributing to the project
+
+---
+
 ### [Testing Guide](TESTING.md)
 **Purpose**: How to write and run tests
 
@@ -192,6 +210,11 @@ Mnemosyne/
 3. [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - Find Story 000
 4. `user-stories/phase-0-ingestion-hygiene/story-000-*.md` - Read requirements
 
+### "I'm contributing code"
+1. [DEVELOPMENT.md](DEVELOPMENT.md) - Setup pre-commit hooks
+2. [TESTING.md](TESTING.md) - Write tests first
+3. [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - Find current story
+
 ### "I need to write tests"
 1. [TESTING.md](TESTING.md) - Testing guide
 2. [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - Story testing plan
@@ -247,6 +270,7 @@ Mnemosyne/
 | Need | Document | Location |
 |------|----------|----------|
 | **Setup project** | Getting Started | [docs/GETTING_STARTED.md](GETTING_STARTED.md) |
+| **Setup pre-commit hooks** | Development Guide | [docs/DEVELOPMENT.md](DEVELOPMENT.md) |
 | **Find current task** | Implementation Plan | [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) |
 | **Read story details** | Individual story | `user-stories/phase-X/story-XXX-*.md` |
 | **Write tests** | Testing Guide | [docs/TESTING.md](TESTING.md) |
