@@ -36,10 +36,16 @@ class GetClusterRepresentatives:
         response = self.centroid_collection.query.fetch_objects(
             filters=Filter.by_property("clusterId").equal(cluster_id),
             limit=1,
-            include_vector=True,
+            include_vector=True,  # CRITICAL: Must request vectors explicitly
         )
-        if response.objects:
-            return np.array(response.objects[0].vector["default"])
+        if response.objects and response.objects[0].vector:
+            # Safely access vector with get() to handle missing 'default' key
+            vector_data = response.objects[0].vector.get("default")
+            if vector_data:
+                return np.array(vector_data)
+            # Fallback: try direct access if vector is a list
+            if isinstance(response.objects[0].vector, list):
+                return np.array(response.objects[0].vector)
 
         # If not cached, compute it on the fly
         logger.warning(

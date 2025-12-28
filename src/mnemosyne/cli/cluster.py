@@ -94,25 +94,47 @@ class ClusterManager:
         delete_result = self.centroid_collection.data.delete_many(
             where=Filter.by_property("clusterId").greater_or_equal(0)
         )
-        logger.info(f"Deleted {delete_result.matches} existing centroids")
+        logger.info(
+            f"Deleted {delete_result.matches} existing centroids "
+            f"(successful: {delete_result.successful}, failed: {delete_result.failed})"
+        )
 
-        # Verify deletion completed by checking count is 0
+        # Insert new centroids with proper batch size
         import time
 
-        time.sleep(0.5)  # Give Weaviate time to process the delete
+        centroids_to_insert = []
+        for i in range(len(centroids)):
+            cluster_size = np.count_nonzero(labels == i)
+            if cluster_size > 0:
+                centroids_to_insert.append((i, centroids[i], cluster_size))
 
-        with self.centroid_collection.batch.dynamic() as batch:
-            for i in range(len(centroids)):
-                cluster_size = np.count_nonzero(labels == i)
-                if cluster_size > 0:
-                    batch.add_object(
-                        vector=centroids[i].tolist(),
-                        properties={
-                            "clusterId": int(i),
-                            "clusterSize": int(cluster_size),
-                            "lastUpdated": datetime.utcnow().isoformat() + "Z",
-                        },
-                    )
+        logger.info(f"Inserting {len(centroids_to_insert)} new centroids...")
+
+        with self.centroid_collection.batch.fixed_size(batch_size=100) as batch:
+            for cluster_id, centroid_vec, size in centroids_to_insert:
+                batch.add_object(
+                    vector=centroid_vec.tolist(),
+                    properties={
+                        "clusterId": int(cluster_id),
+                        "clusterSize": int(size),
+                        "lastUpdated": datetime.utcnow().isoformat() + "Z",
+                    },
+                )
+
+        # Verify insertion with retries
+        time.sleep(0.5)
+        for attempt in range(3):
+            verify = self.centroid_collection.query.fetch_objects(limit=1, include_vector=True)
+            if len(verify.objects) > 0:
+                logger.info(
+                    f"Verified {len(centroids_to_insert)} centroids stored successfully"
+                )
+                break
+            logger.warning(
+                f"Verification attempt {attempt + 1}: No centroids found yet, retrying..."
+            )
+            time.sleep(0.5)
+
         logger.info("Finished storing cluster centroids.")
 
 
