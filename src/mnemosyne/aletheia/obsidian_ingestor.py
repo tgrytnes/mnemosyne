@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from ..alexandria.weaviate_schema import WeaviateSchemaManager
+from .chunking_strategy_factory import ChunkingStrategyConfig, ChunkingStrategyFactory
 from .ingestion_state import IngestionStateTracker
 from .markdown_cleaner import ObsidianMarkdownCleaner
 from .text_chunker import TextChunk, TextChunker
@@ -41,6 +42,14 @@ class ObsidianIngestor:
         state_tracker: IngestionStateTracker | None = None,
         chunk_size: int = 400,
         chunk_overlap: int = 100,
+        chunking_strategy: str = "recursive",
+        semantic_min_chunk_size: int = 100,
+        semantic_max_chunk_size: int = 1000,
+        semantic_model: str = "qwen3:0.6b",
+        semantic_temperature: float = 0.2,
+        semantic_request_timeout: float = 5.0,
+        semantic_total_timeout: float = 30.0,
+        section_semantic_min_length: int = 1000,
     ):
         """
         Initialize Obsidian ingestor.
@@ -60,8 +69,29 @@ class ObsidianIngestor:
 
         # Initialize components
         self.cleaner = ObsidianMarkdownCleaner()
-        self.chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        self.recursive_chunker = TextChunker(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
         self.state_tracker = state_tracker or IngestionStateTracker()
+
+        strategy_factory = ChunkingStrategyFactory(
+            ollama_client=ollama_client, state_tracker=self.state_tracker
+        )
+        strategy_config = ChunkingStrategyConfig(
+            strategy=chunking_strategy,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            semantic_min_chunk_size=semantic_min_chunk_size,
+            semantic_max_chunk_size=semantic_max_chunk_size,
+            semantic_model=semantic_model,
+            semantic_temperature=semantic_temperature,
+            semantic_request_timeout=semantic_request_timeout,
+            semantic_total_timeout=semantic_total_timeout,
+            section_semantic_min_length=section_semantic_min_length,
+        )
+        self.chunker = strategy_factory.create(
+            strategy_config, recursive_chunker=self.recursive_chunker
+        )
 
         # Ensure Weaviate collection exists
         schema_manager = WeaviateSchemaManager(weaviate_client)
@@ -211,11 +241,13 @@ class ObsidianIngestor:
 
     def _chunk_text(self, text: str, source_file: str) -> list[TextChunk]:
         """Chunk cleaned text (backward compatibility)"""
-        return self.chunker.chunk(text, source_file)
+        return self.recursive_chunker.chunk(text, source_file)
 
     def _chunk_text_with_structure(self, text: str, source_file: str, structure):
         """Chunk cleaned text with structure metadata (Story 020)"""
-        return self.chunker.chunk_with_structure(text, source_file, structure)
+        if isinstance(self.chunker, TextChunker):
+            return self.chunker.chunk_with_structure(text, source_file, structure)
+        return self.chunker.chunk(text, source_file, structure=structure)
 
     def _generate_embedding(self, text: str) -> list[float]:
         """
