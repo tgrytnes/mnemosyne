@@ -173,9 +173,21 @@ Regular content continues here.
 
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
+
+        # DEBUG: First, get all chunks to see what sourceFile values exist
+        all_chunks = collection.query.fetch_objects(limit=100)
+        print(f"\n=== DEBUG: Found {len(all_chunks.objects)} total chunks ===")
+        for obj in all_chunks.objects:
+            print(f"sourceFile: {obj.properties.get('sourceFile', 'N/A')}")
+
         results = collection.query.fetch_objects(
             filters=Filter.by_property("sourceFile").like("*/test_note.md"), limit=10
         )
+
+        print(f"\n=== DEBUG: Filter returned {len(results.objects)} chunks ===")
+        for obj in results.objects:
+            print(f"sourceFile: {obj.properties.get('sourceFile', 'N/A')}")
+            print(f"text preview: {obj.properties['text'][:100]}...")
 
         assert len(results.objects) > 0
 
