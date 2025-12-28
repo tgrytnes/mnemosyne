@@ -6,7 +6,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from mnemosyne.alexandria.the_gates import ClusterProfile
 
@@ -18,10 +18,10 @@ class ClusterData:
     """Cluster data required for profile synthesis."""
 
     cluster_id: str
-    representative_notes: List[str]
-    representative_note_ids: List[str]
-    tags: List[str] | None = None
-    metadata: Dict[str, Any] | None = None
+    representative_notes: list[str]
+    representative_note_ids: list[str]
+    tags: list[str] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass
@@ -89,7 +89,7 @@ class ClusterMetadataSynthesizer:
             f"Representative Notes:\n{notes}\n"
         )
 
-    def _validate_profile(self, cluster: ClusterData, data: Dict[str, Any]) -> ClusterProfile:
+    def _validate_profile(self, cluster: ClusterData, data: dict[str, Any]) -> ClusterProfile:
         if "cluster_id" not in data:
             data["cluster_id"] = cluster.cluster_id
         if "representative_note_ids" not in data:
