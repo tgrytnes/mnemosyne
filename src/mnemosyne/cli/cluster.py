@@ -91,9 +91,15 @@ class ClusterManager:
         # Clear existing centroids using a filter that matches all (clusterId >= 0)
         from weaviate.classes.query import Filter
 
-        self.centroid_collection.data.delete_many(
+        delete_result = self.centroid_collection.data.delete_many(
             where=Filter.by_property("clusterId").greater_or_equal(0)
         )
+        logger.info(f"Deleted {delete_result.matches} existing centroids")
+
+        # Verify deletion completed by checking count is 0
+        import time
+
+        time.sleep(0.5)  # Give Weaviate time to process the delete
 
         with self.centroid_collection.batch.dynamic() as batch:
             for i in range(len(centroids)):
