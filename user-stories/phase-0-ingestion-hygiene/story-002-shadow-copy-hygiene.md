@@ -15,6 +15,7 @@ The Obsidian Gatekeeper ensures that no automated agent can directly modify your
 - [ ] Janitor service copies files from source → shadow on file changes
 - [ ] Shadow copy receives all automated tags (#needs_review, #relevant_lessons_learned)
 - [ ] Shadow copy undergoes text normalization (whitespace, formatting)
+- [ ] **File deletion handling: Remove chunks from Weaviate when files deleted from Obsidian**
 - [ ] Gatekeeper approval required before syncing shadow → source
 - [ ] User reviews shadow changes in dedicated folder
 - [ ] Approved changes synced back to canonical vault
@@ -376,9 +377,10 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 class VaultSyncHandler(FileSystemEventHandler):
-    def __init__(self, janitor: Janitor, tagger: Tagger):
+    def __init__(self, janitor: Janitor, tagger: Tagger, weaviate_client):
         self.janitor = janitor
         self.tagger = tagger
+        self.weaviate_client = weaviate_client
 
     def on_modified(self, event):
         if event.src_path.endswith('.md'):
@@ -394,6 +396,43 @@ class VaultSyncHandler(FileSystemEventHandler):
 
                 # 3. Request approval
                 gatekeeper.request_approval(shadow_path, {'tags_added': tags})
+
+    def on_deleted(self, event):
+        """
+        Handle file deletion: Remove chunks from Weaviate
+
+        When a file is deleted from Obsidian, we need to:
+        1. Remove all chunks for that file from Weaviate (The Muses)
+        2. Update ingestion state to mark file as deleted
+        3. Delete shadow copy if it exists
+        4. Log deletion for audit trail
+        """
+        if event.src_path.endswith('.md'):
+            logger.info(f"Detected file deletion: {event.src_path}")
+
+            # 1. Remove chunks from Weaviate
+            file_path = Path(event.src_path)
+            relative_path = file_path.relative_to(vault_path)
+
+            collection = self.weaviate_client.collections.get("ObsidianNote")
+
+            # Delete all chunks where source_file matches
+            collection.data.delete_many(
+                where=Filter.by_property("source_file").equal(str(relative_path))
+            )
+
+            # 2. Update ingestion state
+            state_tracker.mark_file_deleted(str(file_path))
+
+            # 3. Delete shadow copy
+            shadow_path = self.janitor.get_shadow_path(event.src_path)
+            if os.path.exists(shadow_path):
+                os.remove(shadow_path)
+
+            # 4. Log deletion
+            audit_log.log_file_deletion(str(file_path))
+
+            logger.info(f"Removed {chunk_count} chunks for deleted file: {file_path}")
 ```
 
 ### Dependencies
