@@ -1,8 +1,23 @@
 """Embedding quality analysis."""
 
+from dataclasses import dataclass
+
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
+
+
+@dataclass
+class EmbeddingQualityMetrics:
+    """Container for embedding quality metrics."""
+
+    avg_pairwise_similarity: float
+    similarity_std: float
+    vector_space_coverage: float
+    dimensionality_usage: float
+    embedding_collapse_detected: bool
+    avg_vector_magnitude: float
+    magnitude_std: float
 
 
 class EmbeddingQualityAnalyzer:
@@ -104,3 +119,26 @@ class EmbeddingQualityAnalyzer:
         std_mag = float(np.std(magnitudes))
 
         return mean_mag, std_mag
+
+    def analyze(self) -> EmbeddingQualityMetrics:
+        """Run all quality analyses and return comprehensive metrics.
+
+        Returns:
+            EmbeddingQualityMetrics: Complete quality metrics
+        """
+        # Compute all metrics
+        avg_sim, sim_std = self.compute_pairwise_similarity()
+        coverage = self.compute_vector_space_coverage()
+        dim_usage = self.compute_dimensionality_usage()
+        collapse = self.detect_embedding_collapse()
+        avg_mag, mag_std = self.compute_vector_magnitudes()
+
+        return EmbeddingQualityMetrics(
+            avg_pairwise_similarity=avg_sim,
+            similarity_std=sim_std,
+            vector_space_coverage=coverage,
+            dimensionality_usage=dim_usage,
+            embedding_collapse_detected=collapse,
+            avg_vector_magnitude=avg_mag,
+            magnitude_std=mag_std,
+        )

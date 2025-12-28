@@ -110,3 +110,23 @@ class TestEmbeddingQualityAnalyzer:
         # Should be close to 1.0 with low variance
         assert abs(mean_mag - 1.0) < 0.01
         assert std_mag < 0.01
+
+    def test_analyze_returns_all_metrics(self):
+        """Test that analyze() returns complete metrics."""
+        vectors = np.random.randn(100, 384)
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+
+        metrics = analyzer.analyze()
+
+        # Check all fields are present
+        assert hasattr(metrics, "avg_pairwise_similarity")
+        assert hasattr(metrics, "similarity_std")
+        assert hasattr(metrics, "vector_space_coverage")
+        assert hasattr(metrics, "dimensionality_usage")
+        assert hasattr(metrics, "embedding_collapse_detected")
+        assert hasattr(metrics, "avg_vector_magnitude")
+        assert hasattr(metrics, "magnitude_std")
+
+        # Check types
+        assert isinstance(metrics.avg_pairwise_similarity, float)
+        assert isinstance(metrics.embedding_collapse_detected, bool)
