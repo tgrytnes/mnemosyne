@@ -90,3 +90,17 @@ class EmbeddingQualityAnalyzer:
         dim_usage = float(n_components_used) / self.n_dimensions
 
         return dim_usage
+
+    def compute_vector_magnitudes(self) -> tuple[float, float]:
+        """Compute statistics of vector magnitudes.
+
+        Returns:
+            tuple: (mean_magnitude, std_magnitude)
+        """
+        # Compute L2 norm for each vector
+        magnitudes = np.linalg.norm(self.vectors, axis=1)
+
+        mean_mag = float(np.mean(magnitudes))
+        std_mag = float(np.std(magnitudes))
+
+        return mean_mag, std_mag

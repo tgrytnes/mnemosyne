@@ -97,3 +97,16 @@ class TestEmbeddingQualityAnalyzer:
 
         # Should be between 0 and 1
         assert 0.0 <= dim_usage <= 1.0
+
+    def test_compute_vector_magnitudes(self):
+        """Test vector magnitude computation."""
+        # Unit vectors (magnitude = 1.0)
+        vectors = np.random.randn(100, 384)
+        vectors = vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+        mean_mag, std_mag = analyzer.compute_vector_magnitudes()
+
+        # Should be close to 1.0 with low variance
+        assert abs(mean_mag - 1.0) < 0.01
+        assert std_mag < 0.01
