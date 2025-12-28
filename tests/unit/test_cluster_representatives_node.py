@@ -63,27 +63,26 @@ def test_compute_centroid_on_the_fly(node, mock_weaviate_client):
     """Test that the node computes a centroid if one is not cached."""
     state = {"cluster_id": 1}
 
-    # No cached centroid
-    mock_weaviate_client.collections.get.return_value.query.fetch_objects.return_value.objects = []
-
-    # Mock the iterator for on-the-fly calculation
+    # Mock fetch_objects to return empty for cached centroid lookup, then vectors for on-the-fly
     mock_item1 = MagicMock()
     mock_item1.vector = {"default": [0.1, 0.2]}
     mock_item2 = MagicMock()
     mock_item2.vector = {"default": [0.3, 0.4]}
-    iterator_mock = mock_weaviate_client.collections.get.return_value.iterator
-    iterator_mock.return_value = [mock_item1, mock_item2]
+
+    # First call (cache lookup): return empty
+    # Second call (on-the-fly): return vectors
+    mock_weaviate_client.collections.get.return_value.query.fetch_objects.side_effect = [
+        MagicMock(objects=[]),  # Cache miss
+        MagicMock(objects=[mock_item1, mock_item2]),  # On-the-fly vectors
+    ]
 
     # Mock the near_vector query result
     mock_weaviate_client.collections.get.return_value.query.near_vector.return_value.objects = []
 
     node(state)
 
-    # Verify it tried to get a cached centroid
-    mock_weaviate_client.collections.get.return_value.query.fetch_objects.assert_called_once()
-
-    # Verify it iterated over the muses collection to compute the centroid
-    iterator_mock.assert_called_once()
+    # Verify fetch_objects was called twice (once for cache, once for on-the-fly)
+    assert mock_weaviate_client.collections.get.return_value.query.fetch_objects.call_count == 2
 
     # Verify it used the computed centroid in the near_vector query (mean of vectors)
     computed_centroid = np.mean([[0.1, 0.2], [0.3, 0.4]], axis=0).tolist()
