@@ -114,3 +114,29 @@ class RetrievalEvaluator:
 
         # Return normalized DCG
         return dcg / idcg
+
+    def reciprocal_rank(
+        self, retrieved_docs: list[str], relevant_docs: list[str]
+    ) -> float:
+        """Calculate Reciprocal Rank (RR) - used for Mean Reciprocal Rank (MRR).
+
+        Args:
+            retrieved_docs: List of retrieved document IDs (in ranked order)
+            relevant_docs: List of relevant document IDs
+
+        Returns:
+            float: Reciprocal rank (1/rank of first relevant doc, or 0 if none found)
+        """
+        if not relevant_docs:
+            return 0.0
+
+        # Convert to set for fast lookup
+        relevant_set = set(relevant_docs)
+
+        # Find position of first relevant document
+        for i, doc in enumerate(retrieved_docs, start=1):
+            if doc in relevant_set:
+                return 1.0 / i
+
+        # No relevant docs found
+        return 0.0

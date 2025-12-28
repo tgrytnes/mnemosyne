@@ -126,3 +126,39 @@ class TestRetrievalEvaluator:
 
         # NDCG should be between 0 and 1
         assert 0.0 < ndcg < 1.0
+
+    def test_reciprocal_rank_first_position(self):
+        """Test MRR when first relevant doc is at position 1."""
+        evaluator = RetrievalEvaluator()
+
+        # First relevant doc is first in results
+        retrieved = ["doc1.md", "doc2.md", "doc3.md"]
+        relevant = ["doc1.md"]
+
+        rr = evaluator.reciprocal_rank(retrieved, relevant)
+
+        assert rr == 1.0  # 1/1 = 1.0
+
+    def test_reciprocal_rank_third_position(self):
+        """Test MRR when first relevant doc is at position 3."""
+        evaluator = RetrievalEvaluator()
+
+        # First relevant doc is at position 3
+        retrieved = ["doc4.md", "doc5.md", "doc1.md", "doc2.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        rr = evaluator.reciprocal_rank(retrieved, relevant)
+
+        assert rr == pytest.approx(1 / 3)  # 1/3 ≈ 0.333
+
+    def test_reciprocal_rank_no_relevant_found(self):
+        """Test MRR when no relevant docs are found."""
+        evaluator = RetrievalEvaluator()
+
+        # No relevant docs in results
+        retrieved = ["doc4.md", "doc5.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        rr = evaluator.reciprocal_rank(retrieved, relevant)
+
+        assert rr == 0.0
