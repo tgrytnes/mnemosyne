@@ -1,0 +1,27 @@
+{
+  "queries": [
+    {
+      "id": "q001",
+      "query": "What is obsidian ingestion?",
+      "relevant_docs": [
+        "docs/obsidian-ingestion.md",
+        "docs/architecture.md"
+      ]
+    },
+    {
+      "id": "q002",
+      "query": "How does embedding work?",
+      "relevant_docs": [
+        "docs/embedding-process.md"
+      ]
+    },
+    {
+      "id": "q003",
+      "query": "What is Weaviate?",
+      "relevant_docs": [
+        "docs/weaviate-setup.md",
+        "docs/architecture.md"
+      ]
+    }
+  ]
+}
