@@ -6,7 +6,8 @@ for embedding generation using LangChain's RecursiveCharacterTextSplitter.
 """
 
 import pytest
-from src.mnemosyne.aletheia.text_chunker import TextChunker, TextChunk
+
+from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 
 
 class TestTextChunker:

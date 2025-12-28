@@ -18,7 +18,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+
 import requests
 from dotenv import load_dotenv
 
@@ -84,7 +84,7 @@ class LinearImporter:
         self.label_ids = {}
         self.created_issues = {}  # story_number -> issue_id
 
-    def graphql_query(self, query: str, variables: Optional[Dict] = None) -> Dict:
+    def graphql_query(self, query: str, variables: dict | None = None) -> dict:
         """Execute GraphQL query against Linear API"""
         response = requests.post(
             LINEAR_API_URL,
@@ -185,7 +185,7 @@ class LinearImporter:
         )
         return data["issueLabelCreate"]["issueLabel"]["id"]
 
-    def parse_story_file(self, file_path: Path) -> Dict:
+    def parse_story_file(self, file_path: Path) -> dict:
         """Parse user story markdown file"""
         content = file_path.read_text()
 
@@ -245,7 +245,7 @@ class LinearImporter:
         self,
         title: str,
         description: str,
-        label_ids: List[str],
+        label_ids: list[str],
         story_number: int,
     ) -> str:
         """Create Linear issue"""
@@ -282,7 +282,7 @@ class LinearImporter:
 
         return issue
 
-    def link_issues(self, issue_id: str, related_issue_ids: List[str]):
+    def link_issues(self, issue_id: str, related_issue_ids: list[str]):
         """Create relations between issues"""
         for related_id in related_issue_ids:
             mutation = """
@@ -386,8 +386,9 @@ class LinearImporter:
                 labels.append(self.label_ids["Hermes"])
 
             # Create issue
+            story_title = story_data["title"].split(":")[-1].strip()
             issue = self.create_issue(
-                title=f"Story {story_data['number']:03d}: {story_data['title'].split(':')[-1].strip()}",
+                title=f"Story {story_data['number']:03d}: {story_title}",
                 description=story_data["description"],
                 label_ids=labels,
                 story_number=story_data["number"],

@@ -7,8 +7,7 @@ to enable incremental updates (only re-ingest changed files).
 
 import sqlite3
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from pathlib import Path
+from typing import Any
 
 
 class IngestionStateTracker:
@@ -99,7 +98,7 @@ class IngestionStateTracker:
         # File needs re-ingestion if it's been modified
         return stored_time >= modified_time
 
-    def get_file_info(self, file_path: str) -> Optional[Dict[str, Any]]:
+    def get_file_info(self, file_path: str) -> dict[str, Any] | None:
         """
         Get ingestion metadata for file.
 
@@ -118,7 +117,7 @@ class IngestionStateTracker:
 
         return dict(result)
 
-    def get_all_files(self) -> List[Dict[str, Any]]:
+    def get_all_files(self) -> list[dict[str, Any]]:
         """
         Get all ingested files.
 

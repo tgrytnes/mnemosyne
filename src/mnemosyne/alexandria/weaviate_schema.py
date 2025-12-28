@@ -6,9 +6,8 @@ This is separate from TheLethe (emails/PDFs) to enable efficient clustering
 on curated knowledge only.
 """
 
-from typing import List, Dict, Any
 import weaviate
-from weaviate.classes.config import Property, DataType, Configure
+from weaviate.classes.config import Configure, DataType, Property
 
 
 class TheMuses:

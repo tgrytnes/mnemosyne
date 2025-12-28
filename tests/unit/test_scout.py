@@ -3,9 +3,9 @@ Unit tests for Scout (Layer 3: Argus)
 Tests Story 010: Autonomous Pattern Detection
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
 
 
 @pytest.mark.unit
@@ -16,7 +16,7 @@ class TestPatternDetection:
         """Test Scout identifies project candidates from clusters"""
         # from Argus.scout import LatentScout
 
-        muses_client = Mock()
+        Mock()
         # scout = LatentScout(muses_client=muses_client)
 
         # Mock cluster with project signals
@@ -79,9 +79,6 @@ class TestClusterAnalysis:
         """Test similarity between clusters"""
         # from Argus.scout import calculate_cluster_similarity
 
-        cluster1_embedding = [0.5] * 1024
-        cluster2_embedding = [0.5] * 1024  # Identical
-        cluster3_embedding = [0.1] * 1024  # Different
 
         # similarity_12 = calculate_cluster_similarity(cluster1_embedding, cluster2_embedding)
         # similarity_13 = calculate_cluster_similarity(cluster1_embedding, cluster3_embedding)
@@ -115,13 +112,6 @@ class TestDiscoveryStorage:
 
         # discovery_db = DiscoveryDB(weaviate_client=Mock())
 
-        discovery = {
-            "title": "Test Discovery",
-            "category": "project_candidate",
-            "confidence_score": 0.85,
-            "cluster_ids": ["cluster-1"],
-            "metadata": {},
-        }
 
         # discovery_id = discovery_db.store_discovery(discovery)
         # assert discovery_id is not None
@@ -196,7 +186,7 @@ class TestScoutIntegration:
         # from Alexandria.sql_gatekeeper import SQLProjectGatekeeper
 
         # scout = LatentScout(muses_client=Mock())
-        gatekeeper = Mock()
+        Mock()
 
         # Scout completes scan
         # patterns = scout.detect_patterns()
@@ -210,7 +200,7 @@ class TestScoutIntegration:
 
     def test_scout_notifies_via_hermes(self):
         """Test Scout sends notifications via Hermes"""
-        messenger = Mock()
+        Mock()
 
         # scout.run_nightly_scan(messenger=messenger)
 

@@ -7,11 +7,12 @@ triggers ingestion automatically.
 
 import logging
 import time
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, Callable
-from datetime import datetime, timedelta
+
+from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ class VaultWatcher:
             raise ValueError(f"Vault path is not a directory: {vault_path}")
 
         self.event_handler = VaultEventHandler(on_file_change, debounce_seconds)
-        self.observer: Optional[Observer] = None
+        self.observer: Observer | None = None
         self._running = False
 
     def start(self):

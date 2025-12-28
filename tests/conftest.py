@@ -3,15 +3,13 @@ Shared pytest fixtures for Mnemosyne tests
 """
 
 import os
-import tempfile
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Generator
 from unittest.mock import Mock
 
 import pytest
 import weaviate
-
 
 # ============================================================================
 # Configuration Fixtures

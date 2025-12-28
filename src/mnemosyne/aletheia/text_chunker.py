@@ -6,7 +6,7 @@ boundaries (paragraphs, sentences, words) with configurable overlap.
 """
 
 from dataclasses import dataclass
-from typing import List
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
@@ -66,7 +66,7 @@ class TextChunker:
             ],
         )
 
-    def chunk(self, text: str, source_file: str) -> List[TextChunk]:
+    def chunk(self, text: str, source_file: str) -> list[TextChunk]:
         """
         Split text into chunks.
 

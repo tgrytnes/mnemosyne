@@ -3,9 +3,10 @@ Unit tests for Project Manager (Layer 5: Hermes)
 Tests Story 016: Project Manager Agent
 """
 
+from datetime import datetime
+from unittest.mock import Mock, patch
+
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock, patch
 
 
 @pytest.mark.unit
@@ -19,8 +20,7 @@ class TestPressureScoreCalculation:
         with freeze_time("2024-01-15 08:00:00"):
             # pm = ProjectManagerAgent(db=Mock(), messenger=Mock())
 
-            deadline = datetime(2024, 1, 20, 17, 0, 0)  # 5 days away
-            work_estimate = 40  # 40 hours of work
+            datetime(2024, 1, 20, 17, 0, 0)  # 5 days away
 
             # pressure = pm._calculate_pressure(deadline, work_estimate)
 
@@ -32,7 +32,7 @@ class TestPressureScoreCalculation:
         with freeze_time("2024-01-15 08:00:00"):
             # pm = ProjectManagerAgent(db=Mock(), messenger=Mock())
 
-            deadline = datetime(2024, 1, 20, 17, 0, 0)
+            datetime(2024, 1, 20, 17, 0, 0)
 
             # Should use default (20 hours for medium project)
             # pressure = pm._calculate_pressure(deadline, work_estimate=None)
@@ -43,7 +43,7 @@ class TestPressureScoreCalculation:
         with freeze_time("2024-01-15 08:00:00"):
             # pm = ProjectManagerAgent(db=Mock(), messenger=Mock())
 
-            deadline = datetime(2024, 1, 10, 17, 0, 0)  # 5 days ago
+            datetime(2024, 1, 10, 17, 0, 0)  # 5 days ago
 
             # pressure = pm._calculate_pressure(deadline, work_estimate=20)
 
@@ -57,7 +57,7 @@ class TestDeadlineChecking:
     def test_detect_missing_deadlines(self):
         """Test detection of active projects without deadlines"""
         db = Mock()
-        messenger = Mock()
+        Mock()
         # pm = ProjectManagerAgent(db, messenger)
 
         # Mock query result: active project without deadline
@@ -79,7 +79,7 @@ class TestDeadlineChecking:
         """Test notifications for deadlines within 3 days"""
         with freeze_time("2024-01-15 08:00:00"):
             db = Mock()
-            messenger = Mock()
+            Mock()
             # pm = ProjectManagerAgent(db, messenger)
 
             # Mock: project due in 2 days
@@ -101,7 +101,7 @@ class TestDeadlineChecking:
         """Test no notification for deadlines >3 days away"""
         with freeze_time("2024-01-15 08:00:00"):
             db = Mock()
-            messenger = Mock()
+            Mock()
             # pm = ProjectManagerAgent(db, messenger)
 
             # Mock: project due in 10 days
@@ -125,7 +125,7 @@ class TestStalledProjectDetection:
         """Test detection of projects with no updates in 7+ days"""
         with freeze_time("2024-01-15 08:00:00"):
             db = Mock()
-            messenger = Mock()
+            Mock()
             # pm = ProjectManagerAgent(db, messenger)
 
             # Mock: project last updated 10 days ago
@@ -148,7 +148,7 @@ class TestStalledProjectDetection:
         """Test recently updated projects are not flagged"""
         with freeze_time("2024-01-15 08:00:00"):
             db = Mock()
-            messenger = Mock()
+            Mock()
             # pm = ProjectManagerAgent(db, messenger)
 
             # Mock: project updated 3 days ago
@@ -171,7 +171,7 @@ class TestDailyDigest:
     def test_daily_digest_includes_status_counts(self):
         """Test daily digest shows project counts by status"""
         db = Mock()
-        messenger = Mock()
+        Mock()
         # pm = ProjectManagerAgent(db, messenger)
 
         # Mock status counts
@@ -194,7 +194,7 @@ class TestDailyDigest:
     def test_daily_digest_shows_high_pressure_projects(self):
         """Test digest shows top 3 high-pressure projects"""
         db = Mock()
-        messenger = Mock()
+        Mock()
         # pm = ProjectManagerAgent(db, messenger)
 
         cursor = Mock()
@@ -251,8 +251,8 @@ class TestScheduledExecution:
 @pytest.mark.unit
 def test_project_manager_full_daily_routine():
     """Test complete daily management routine"""
-    db = Mock()
-    messenger = Mock()
+    Mock()
+    Mock()
     # pm = ProjectManagerAgent(db, messenger)
 
     # pm.run_daily_management()

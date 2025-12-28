@@ -12,6 +12,7 @@ Tests the ObsidianMarkdownCleaner class which removes:
 """
 
 import pytest
+
 from src.mnemosyne.aletheia.markdown_cleaner import ObsidianMarkdownCleaner
 
 

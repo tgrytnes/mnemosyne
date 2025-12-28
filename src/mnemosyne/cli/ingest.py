@@ -4,16 +4,16 @@ CLI commands for Obsidian vault ingestion.
 Provides commands for manual and automatic ingestion of Obsidian vault content.
 """
 
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
-from typing import Optional
-import weaviate
-import ollama
 
-from ..aletheia.obsidian_ingestor import ObsidianIngestor
+import ollama
+import weaviate
+
 from ..aletheia.ingestion_state import IngestionStateTracker
+from ..aletheia.obsidian_ingestor import ObsidianIngestor
 from ..aletheia.vault_watcher import VaultWatcher
 
 # Configure logging
@@ -100,7 +100,7 @@ def create_ingestor(config: IngestionConfig) -> ObsidianIngestor:
     return ingestor
 
 
-def ingest_once(vault_path: Optional[str] = None):
+def ingest_once(vault_path: str | None = None):
     """
     Ingest entire vault once (manual mode).
 
@@ -154,7 +154,7 @@ def ingest_once(vault_path: Optional[str] = None):
         sys.exit(1)
 
 
-def watch_vault(vault_path: Optional[str] = None):
+def watch_vault(vault_path: str | None = None):
     """
     Watch vault for changes and ingest automatically.
 

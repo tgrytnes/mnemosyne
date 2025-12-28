@@ -5,10 +5,12 @@ Tests the IngestionStateTracker class which uses SQLite to track
 which files have been ingested and when they were last modified.
 """
 
-import pytest
 import tempfile
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
+
 from src.mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 
 
@@ -32,7 +34,7 @@ class TestIngestionStateTracker:
     def test_create_database(self, temp_db):
         """Should create database file on initialization"""
         # GIVEN/WHEN: Creating state tracker
-        tracker = IngestionStateTracker(temp_db)
+        IngestionStateTracker(temp_db)
 
         # THEN: Database file exists
         assert Path(temp_db).exists()

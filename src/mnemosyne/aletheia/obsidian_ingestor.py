@@ -10,17 +10,17 @@ Coordinates the complete ingestion pipeline:
 6. Track state in SQLite
 """
 
+import logging
 import os
+from datetime import datetime
 from glob import glob
 from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-import logging
+from typing import Any
 
-from .markdown_cleaner import ObsidianMarkdownCleaner
-from .text_chunker import TextChunker, TextChunk
-from .ingestion_state import IngestionStateTracker
 from ..alexandria.weaviate_schema import WeaviateSchemaManager
+from .ingestion_state import IngestionStateTracker
+from .markdown_cleaner import ObsidianMarkdownCleaner
+from .text_chunker import TextChunk, TextChunker
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ObsidianIngestor:
         vault_path: str,
         weaviate_client,
         ollama_client,
-        state_tracker: Optional[IngestionStateTracker] = None,
+        state_tracker: IngestionStateTracker | None = None,
         chunk_size: int = 400,
         chunk_overlap: int = 100,
     ):
@@ -67,7 +67,7 @@ class ObsidianIngestor:
         schema_manager = WeaviateSchemaManager(weaviate_client)
         schema_manager.ensure_collection_exists(self.collection_name)
 
-    def scan_vault(self) -> List[str]:
+    def scan_vault(self) -> list[str]:
         """
         Scan vault for all markdown files.
 
@@ -163,7 +163,7 @@ class ObsidianIngestor:
             logger.error(f"Error ingesting {file_path}: {e}")
             return 0
 
-    def ingest_vault(self) -> Dict[str, int]:
+    def ingest_vault(self) -> dict[str, int]:
         """
         Ingest entire vault.
 
@@ -202,11 +202,11 @@ class ObsidianIngestor:
         """Clean Obsidian syntax from markdown"""
         return self.cleaner.clean(markdown)
 
-    def _chunk_text(self, text: str, source_file: str) -> List[TextChunk]:
+    def _chunk_text(self, text: str, source_file: str) -> list[TextChunk]:
         """Chunk cleaned text"""
         return self.chunker.chunk(text, source_file)
 
-    def _generate_embedding(self, text: str) -> List[float]:
+    def _generate_embedding(self, text: str) -> list[float]:
         """
         Generate embedding for text via Ollama.
 
@@ -219,7 +219,7 @@ class ObsidianIngestor:
         response = self.ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
         return response["embedding"]
 
-    def _store_chunk(self, chunk_data: Dict[str, Any]) -> None:
+    def _store_chunk(self, chunk_data: dict[str, Any]) -> None:
         """
         Store chunk in Weaviate TheMuses collection.
 

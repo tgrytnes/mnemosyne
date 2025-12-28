@@ -3,9 +3,9 @@ Unit tests for Gatekeepers (Layer 2: The Gates)
 Tests Story 002: Obsidian Gatekeeper and Story 014: SQL Project Gatekeeper
 """
 
+from unittest.mock import Mock
+
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
 
 
 @pytest.mark.unit
@@ -16,8 +16,8 @@ class TestSQLProjectGatekeeper:
         """High confidence (>80%) should request approval"""
         # from Alexandria.sql_gatekeeper import SQLProjectGatekeeper
 
-        db_conn = Mock()
-        messenger = Mock()
+        Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         mock_discovery.confidence_score = 0.85
@@ -35,8 +35,8 @@ class TestSQLProjectGatekeeper:
 
     def test_low_confidence_auto_rejects(self, mock_discovery):
         """Low confidence (<60%) should not request approval"""
-        db_conn = Mock()
-        messenger = Mock()
+        Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         mock_discovery.confidence_score = 0.55
@@ -49,8 +49,8 @@ class TestSQLProjectGatekeeper:
 
     def test_medium_confidence_requires_confirmation(self, mock_discovery):
         """Medium confidence (60-80%) requires user confirmation"""
-        db_conn = Mock()
-        messenger = Mock()
+        Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         mock_discovery.confidence_score = 0.70
@@ -65,7 +65,7 @@ class TestSQLProjectGatekeeper:
     def test_approve_project_writes_to_sql(self, mock_discovery):
         """Approving project writes to The Ananke"""
         db_conn = Mock()
-        messenger = Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         # First, request approval
@@ -87,8 +87,8 @@ class TestSQLProjectGatekeeper:
 
     def test_reject_project_does_not_write(self, mock_discovery):
         """Rejecting project does not write to SQL"""
-        db_conn = Mock()
-        messenger = Mock()
+        Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         mock_discovery.confidence_score = 0.85
@@ -107,8 +107,8 @@ class TestSQLProjectGatekeeper:
 
     def test_approval_audit_log(self, mock_discovery):
         """Test approval decisions are logged"""
-        db_conn = Mock()
-        messenger = Mock()
+        Mock()
+        Mock()
         # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)
 
         # After approval or rejection
@@ -219,8 +219,8 @@ def test_confidence_threshold_configuration():
     """Test confidence thresholds can be configured"""
     # from Alexandria.sql_gatekeeper import SQLProjectGatekeeper
 
-    db_conn = Mock()
-    messenger = Mock()
+    Mock()
+    Mock()
 
     # Default thresholds
     # gatekeeper = SQLProjectGatekeeper(db_conn, messenger)

@@ -3,9 +3,8 @@ Integration tests for Weaviate operations
 Requires Weaviate to be running (docker-compose up weaviate)
 """
 
+
 import pytest
-import weaviate
-from datetime import datetime
 
 
 @pytest.mark.integration
@@ -18,7 +17,7 @@ class TestWeaviateIngestion:
         import weaviate.classes as wvc
 
         # Create collection
-        collection = weaviate_client.collections.create(
+        weaviate_client.collections.create(
             name="TheMuses_Test",
             vectorizer_config=wvc.config.Configure.Vectorizer.none(),
             properties=[

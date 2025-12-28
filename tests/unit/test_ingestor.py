@@ -3,9 +3,8 @@ Unit tests for Obsidian Vault Ingestor (Layer 1: Input Processing)
 Tests Story 000: Obsidian Vault Ingestion
 """
 
+
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
 
 
 @pytest.mark.unit
@@ -70,18 +69,12 @@ class TestTextChunking:
 
     def test_chunk_size_respects_limit(self):
         """Test chunks don't exceed max size"""
-        text = "a" * 1000
-        chunk_size = 400
-        overlap = 100
 
         # chunks = ingestor.chunk_text(text, chunk_size, overlap)
         # assert all(len(chunk.text) <= chunk_size for chunk in chunks)
 
     def test_chunk_overlap_preserved(self):
         """Test overlap between consecutive chunks"""
-        text = "a" * 1000
-        chunk_size = 400
-        overlap = 100
 
         # chunks = ingestor.chunk_text(text, chunk_size, overlap)
         # Verify overlap
@@ -89,8 +82,6 @@ class TestTextChunking:
 
     def test_chunking_handles_small_text(self):
         """Test chunking text smaller than chunk size"""
-        text = "Small text"
-        chunk_size = 400
 
         # chunks = ingestor.chunk_text(text, chunk_size, 100)
         # assert len(chunks) == 1
@@ -105,23 +96,18 @@ class TestIngestionState:
         """Test file ingestion tracking"""
         # from Aletheia.ingestor import IngestionState
 
-        db_path = tmp_path / "state.db"
+        tmp_path / "state.db"
         # state = IngestionState(str(db_path))
 
-        file_path = "/vault/test.md"
-        modified_time = 1234567890.0
 
         # state.mark_ingested(file_path, modified_time)
         # assert state.already_ingested(file_path, modified_time) is True
 
     def test_detect_modified_file(self, tmp_path):
         """Test detection of modified files"""
-        db_path = tmp_path / "state.db"
+        tmp_path / "state.db"
         # state = IngestionState(str(db_path))
 
-        file_path = "/vault/test.md"
-        old_time = 1234567890.0
-        new_time = 1234567900.0  # 10 seconds later
 
         # state.mark_ingested(file_path, old_time)
         # assert state.already_ingested(file_path, new_time) is False

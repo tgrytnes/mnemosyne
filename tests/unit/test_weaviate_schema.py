@@ -6,7 +6,8 @@ the TheMuses collection schema for Obsidian vault embeddings.
 """
 
 import pytest
-from src.mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager, TheMuses
+
+from src.mnemosyne.alexandria.weaviate_schema import TheMuses, WeaviateSchemaManager
 
 
 class TestWeaviateSchemaManager:

@@ -4,12 +4,14 @@ Unit tests for VaultWatcher.
 Tests vault monitoring, file event handling, and debouncing.
 """
 
-import pytest
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, call
-from src.mnemosyne.aletheia.vault_watcher import VaultWatcher, VaultEventHandler
+from unittest.mock import MagicMock
+
+import pytest
+
+from src.mnemosyne.aletheia.vault_watcher import VaultEventHandler, VaultWatcher
 
 
 class TestVaultEventHandler:

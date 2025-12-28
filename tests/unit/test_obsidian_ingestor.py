@@ -5,10 +5,11 @@ Tests the main ingestor that coordinates markdown cleaning, chunking,
 embedding generation, and storage in Weaviate.
 """
 
-import pytest
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+
+import pytest
+
 from src.mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 
 

@@ -10,14 +10,14 @@ Usage:
     python scripts/sync_from_linear.py --show-status  # Just show, don't update
 """
 
+import argparse
 import os
-import sys
 import re
+import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+
 import requests
 from dotenv import load_dotenv
-import argparse
 
 # Load environment variables from .env
 load_dotenv()
@@ -46,7 +46,7 @@ class LinearSyncer:
         self.team_id = None
         self.issue_status = {}
 
-    def graphql_query(self, query: str, variables: Optional[Dict] = None) -> Dict:
+    def graphql_query(self, query: str, variables: dict | None = None) -> dict:
         """Execute GraphQL query against Linear API"""
         response = requests.post(
             LINEAR_API_URL,
@@ -84,7 +84,7 @@ class LinearSyncer:
         print(f"📋 Team: {teams[0]['name']}\n")
         return self.team_id
 
-    def fetch_all_issues(self) -> Dict[str, Dict]:
+    def fetch_all_issues(self) -> dict[str, dict]:
         """Fetch all Mnemosyne issues from Linear"""
         query = """
         query($teamId: String!) {
@@ -132,7 +132,7 @@ class LinearSyncer:
 
         return story_issues
 
-    def get_status_emoji(self, issue_info: Dict) -> str:
+    def get_status_emoji(self, issue_info: dict) -> str:
         """Get emoji based on Linear state"""
         state_type = issue_info["state_type"]
 
@@ -145,7 +145,7 @@ class LinearSyncer:
         else:  # backlog, triage, todo
             return "⬜"
 
-    def show_status_summary(self, issues: Dict[str, Dict]):
+    def show_status_summary(self, issues: dict[str, dict]):
         """Display status summary"""
         print("📊 Mnemosyne Project Status\n")
         print("=" * 80)
@@ -198,13 +198,15 @@ class LinearSyncer:
         all_in_progress = sum(1 for i in issues.values() if i["state_type"] == "started")
         all_total = len(issues)
 
+        progress_pct = all_completed / all_total * 100
         print(
-            f"\n📈 Overall Progress: {all_completed}/{all_total} completed ({all_completed/all_total*100:.1f}%)"
+            f"\n📈 Overall Progress: {all_completed}/{all_total} "
+            f"completed ({progress_pct:.1f}%)"
         )
         print(f"🔄 In Progress: {all_in_progress}")
         print(f"⬜ Not Started: {all_total - all_completed - all_in_progress}\n")
 
-    def update_implementation_plan(self, issues: Dict[str, Dict], plan_path: Path):
+    def update_implementation_plan(self, issues: dict[str, dict], plan_path: Path):
         """Update IMPLEMENTATION_PLAN.md with Linear status"""
 
         if not plan_path.exists():

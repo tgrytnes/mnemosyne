@@ -5,17 +5,15 @@ Tests the complete pipeline with real Weaviate and Ollama services.
 Requires Docker containers to be running.
 """
 
-import pytest
-import tempfile
 import os
 from pathlib import Path
-from datetime import datetime
-import weaviate
-from weaviate.classes.init import Auth
-import ollama
 
-from src.mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+import ollama
+import pytest
+import weaviate
+
 from src.mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from src.mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from src.mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
