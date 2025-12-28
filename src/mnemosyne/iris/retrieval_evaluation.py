@@ -49,4 +49,27 @@ class GroundTruthDataset:
 class RetrievalEvaluator:
     """Evaluator for retrieval performance metrics."""
 
-    pass
+    def recall_at_k(
+        self, retrieved_docs: list[str], relevant_docs: list[str], k: int
+    ) -> float:
+        """Calculate Recall@k metric.
+
+        Args:
+            retrieved_docs: List of retrieved document IDs
+            relevant_docs: List of relevant document IDs
+            k: Number of top results to consider
+
+        Returns:
+            float: Recall@k (fraction of relevant docs found in top k)
+        """
+        if not relevant_docs:
+            return 0.0
+
+        # Only consider top k retrieved documents
+        top_k = retrieved_docs[:k]
+
+        # Count how many relevant docs are in top k
+        found = len(set(top_k) & set(relevant_docs))
+
+        # Return fraction of relevant docs found
+        return found / len(relevant_docs)

@@ -38,3 +38,19 @@ class TestGroundTruthDataset:
         assert dataset.queries[0].query_id == "q001"
         assert dataset.queries[0].query == "test query"
         assert len(dataset.queries[0].relevant_docs) == 2
+
+
+class TestRetrievalEvaluator:
+    """Test suite for RetrievalEvaluator."""
+
+    def test_recall_at_k_perfect(self):
+        """Test recall@k with perfect retrieval."""
+        evaluator = RetrievalEvaluator()
+
+        # Perfect retrieval: all relevant docs in top k
+        retrieved = ["doc1.md", "doc2.md", "doc3.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        recall = evaluator.recall_at_k(retrieved, relevant, k=3)
+
+        assert recall == 1.0  # Found 2/2 relevant docs
