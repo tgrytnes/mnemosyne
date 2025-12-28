@@ -64,9 +64,7 @@ class QueryCacheStore:
             )
         """
         )
-        self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_query_hash ON query_cache(query_hash)"
-        )
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_query_hash ON query_cache(query_hash)")
         self._conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_last_accessed ON query_cache(last_accessed)"
         )

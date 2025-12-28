@@ -52,14 +52,10 @@ class TestSemanticRouter:
         with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
             cache = QueryCacheStore(tmp.name)
             cache.upsert("old query", [1.0, 1.0], {"answer": "old"}, source="cache")
-            cache._conn.execute(
-                "UPDATE query_cache SET created_at = datetime('now', '-10 days')"
-            )
+            cache._conn.execute("UPDATE query_cache SET created_at = datetime('now', '-10 days')")
             cache._conn.commit()
 
-            router = SemanticRouter(
-                embedder=dummy_embedder, cache_store=cache, cache_ttl_days=7
-            )
+            router = SemanticRouter(embedder=dummy_embedder, cache_store=cache, cache_ttl_days=7)
             removed = router.invalidate_cache()
 
             assert removed == 1
