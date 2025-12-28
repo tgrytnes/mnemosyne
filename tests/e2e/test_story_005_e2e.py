@@ -1,5 +1,7 @@
 """
 E2E tests for Story 005 semantic routing.
+
+Precondition: Ollama is running with qwen3-embedding:0.6b available.
 """
 
 import tempfile
@@ -10,15 +12,19 @@ import pytest
 from mnemosyne.iris.semantic_router import QueryCacheStore, SemanticRouter
 
 
-def simple_embedder(text: str) -> list[float]:
-    return [float(len(text)), 1.0]
+def ollama_embedder(ollama_client, text: str) -> list[float]:
+    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
+    return response["embedding"]
 
 
 @pytest.mark.e2e
-def test_story_005_end_to_end_routing_flow():
+def test_story_005_end_to_end_routing_flow(ollama_client):
     with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
         cache = QueryCacheStore(tmp.name)
-        router = SemanticRouter(embedder=simple_embedder, cache_store=cache)
+        router = SemanticRouter(
+            embedder=lambda text: ollama_embedder(ollama_client, text),
+            cache_store=cache,
+        )
 
         start = time.monotonic()
         first_decision = router.route(

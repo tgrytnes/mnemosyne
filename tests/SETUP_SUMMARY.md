@@ -6,7 +6,7 @@
 
 #### `pyproject.toml`
 - **Poetry configuration** with all dependencies
-- **Test dependencies**: pytest, pytest-cov, pytest-asyncio, pytest-mock, pytest-docker, freezegun, responses
+- **Test dependencies**: pytest, pytest-cov, pytest-asyncio, pytest-docker
 - **Dev tools**: black, ruff, mypy, pre-commit
 - **Pytest configuration** with markers and coverage settings
 - **Code quality tool configs** (black, ruff, mypy)
@@ -114,26 +114,21 @@ tests/
 - `clean_weaviate_collection` - Auto-cleanup for test collections
 - `postgres_connection` - PostgreSQL connection (session-scoped)
 - `ananke_test_db` - Test database with projects/audit tables
-
-#### Mocks
-- `mock_ollama_client` - Mocked Ollama for embeddings
-- `mock_telegram_bot` - Mocked Telegram bot
-- `mock_discovery` - Mock discovery record (0.85 confidence)
-- `mock_cluster` - Mock cluster metadata
+- `ollama_client` - Real Ollama client (session-scoped)
 
 #### Test Data
 - `sample_chunks` - Sample text chunks with metadata
 - `sample_email` - Sample email structure
+- `fake_vault_path` - Synthetic Obsidian vault path
 
 #### Utilities
-- `freeze_time` - Time mocking import
 - `reset_environment` - Auto-reset environment variables
 
 ### 5. CI/CD Configuration
 
 #### `.github/workflows/test.yml`
 
-**Four parallel jobs:**
+**Five parallel jobs:**
 
 1. **Unit Tests** (Matrix: Python 3.11, 3.12)
    - Fast unit tests
@@ -142,6 +137,8 @@ tests/
 
 2. **Integration Tests**
    - Docker services: Weaviate + PostgreSQL
+   - Ollama container and model pull
+   - Seeds Weaviate with `test_data/fake_vault`
    - Health checks before testing
    - Real service integration
    - Coverage report
@@ -151,7 +148,13 @@ tests/
    - Ruff linter
    - mypy type checking
 
-4. **Test Summary**
+4. **E2E Tests**
+   - Docker services: Weaviate + PostgreSQL
+   - Ollama container and model pull
+   - Seeds Weaviate with `test_data/fake_vault`
+   - Runs end-to-end workflows
+
+5. **Test Summary**
    - Aggregates all job results
    - Fails if any check fails
    - Clear success/failure reporting
@@ -256,13 +259,12 @@ make ci               # Simulate CI locally
 
 **Unit Tests (Many, Fast)**
 - No external dependencies
-- Mocked services
 - Isolated components
 - <1 second per test
 - Run locally without Docker
 
 **Integration Tests (Some, Moderate)**
-- Real Weaviate + PostgreSQL
+- Real Weaviate + PostgreSQL + Ollama
 - Component interactions
 - Service health checks
 - 1-5 seconds per test
@@ -323,8 +325,10 @@ Created:
 - tests/integration/test_weaviate_integration.py
 - tests/integration/test_postgres_integration.py
 
-- tests/e2e/                               (Empty, ready for future)
-- tests/fixtures/                          (Empty, ready for test data)
+- tests/e2e/                               (End-to-end tests)
+- test_data/fake_vault/                    (Synthetic Obsidian vault)
+- test_data/fake_emails/                   (Synthetic email fixtures)
+- test_data/fake_pdfs/                     (Synthetic PDFs for OCR tests)
 ```
 
 ## Testing Tools Installed
@@ -332,10 +336,7 @@ Created:
 - **pytest** - Testing framework
 - **pytest-cov** - Coverage reporting
 - **pytest-asyncio** - Async test support
-- **pytest-mock** - Enhanced mocking
 - **pytest-docker** - Docker service management
-- **freezegun** - Time mocking
-- **responses** - HTTP mocking
 - **black** - Code formatter
 - **ruff** - Fast linter
 - **mypy** - Type checker

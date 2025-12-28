@@ -70,7 +70,7 @@ Testing is crucial for software quality. Use pytest for unit tests.
 
 Key points:
 - Write tests first (TDD)
-- Mock external dependencies
+- Use real services in integration tests
 - Aim for high coverage
 """
         )

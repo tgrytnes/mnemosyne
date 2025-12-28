@@ -87,27 +87,11 @@ Tests are tagged with markers for selective execution:
 - `@pytest.mark.slow` - Long-running tests (>5 seconds)
 - `@pytest.mark.weaviate` - Requires Weaviate
 - `@pytest.mark.postgres` - Requires PostgreSQL
-- `@pytest.mark.telegram` - Requires Telegram API (usually mocked)
+- `@pytest.mark.telegram` - Requires Telegram API
+
+Note: Tests should use real services (Ollama, Weaviate, PostgreSQL) where applicable. Avoid mocks.
 
 ## Writing Tests
-
-### Unit Test Example
-
-```python
-import pytest
-from unittest.mock import Mock
-
-@pytest.mark.unit
-def test_chunk_text(temp_vault):
-    """Test text chunking respects size limits"""
-    from Aletheia.ingestor import ObsidianIngestor
-
-    ingestor = ObsidianIngestor(vault_path=str(temp_vault))
-    text = "a" * 1000
-    chunks = ingestor.chunk_text(text, chunk_size=400, overlap=100)
-
-    assert all(len(chunk.text) <= 400 for chunk in chunks)
-```
 
 ### Integration Test Example
 
@@ -134,10 +118,6 @@ Common fixtures from `conftest.py`:
 def test_with_vault(temp_vault):
     """Use temporary Obsidian vault"""
     # temp_vault is a Path object with sample notes
-
-def test_with_mocks(mock_ollama_client, mock_telegram_bot):
-    """Use mocked external services"""
-    # Services are pre-configured mocks
 
 def test_with_database(ananke_test_db):
     """Use test PostgreSQL database"""
@@ -172,13 +152,12 @@ View results at: `.github/workflows/test.yml`
 
 ## Test Data
 
-### Fixtures Directory
+### Fake Test Data
 
 ```
-tests/fixtures/
-├── sample_vault/       # Sample Obsidian notes
-├── sample_emails/      # Email test data
-└── sample_pdfs/        # PDF test documents
+test_data/fake_vault/   # Synthetic Obsidian vault
+test_data/fake_emails/  # Synthetic email fixtures
+test_data/fake_pdfs/    # Synthetic PDFs for OCR tests
 ```
 
 ### Creating Test Data
@@ -282,10 +261,10 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
    - Use fixtures for setup/teardown
    - Clean up resources
 
-3. **Mocking**
-   - Mock external services in unit tests
-   - Use real services in integration tests
-   - Mock time-dependent code with `freezegun`
+3. **Services**
+   - Use real Ollama and Weaviate for integration/e2e coverage
+   - Seed with `test_data/fake_vault` before workflows that depend on retrieval
+   - Keep tests explicit about fresh vs. existing collections
 
 4. **Assertions**
    - One logical assertion per test

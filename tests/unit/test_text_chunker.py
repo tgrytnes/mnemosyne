@@ -195,7 +195,7 @@ Third paragraph with more information."""
 Testing is crucial for software quality. Here are key principles:
 
 Unit tests should be fast and isolated. They test individual functions
-without external dependencies. Use mocks for databases and APIs.
+without external dependencies. Integration tests use real services.
 
 Integration tests verify that components work together correctly.
 They test real database connections and API calls.

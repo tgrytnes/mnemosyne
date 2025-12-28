@@ -30,7 +30,7 @@ class TestWeaviateIngestion:
         assert weaviate_client.collections.exists("TheMuses_Test")
 
     def test_insert_obsidian_chunks(
-        self, weaviate_client, clean_weaviate_collection, sample_chunks
+        self, weaviate_client, clean_weaviate_collection, sample_chunks, ollama_client
     ):
         """Test inserting Obsidian chunks into TheMuses"""
         import weaviate.classes as wvc
@@ -50,6 +50,9 @@ class TestWeaviateIngestion:
         # Insert chunks
         with collection.batch.dynamic() as batch:
             for chunk in sample_chunks:
+                embedding = ollama_client.embeddings(
+                    model="qwen3-embedding:0.6b", prompt=chunk["text"]
+                )["embedding"]
                 batch.add_object(
                     properties={
                         "text": chunk["text"],
@@ -57,14 +60,16 @@ class TestWeaviateIngestion:
                         "sourceType": "obsidian",
                         "chunkIndex": chunk["chunk_index"],
                     },
-                    vector=[0.1] * 1024,  # Mock embedding
+                    vector=embedding,
                 )
 
         # Verify insertion
         response = collection.query.fetch_objects(limit=10)
         assert len(response.objects) == len(sample_chunks)
 
-    def test_query_by_source_type(self, weaviate_client, clean_weaviate_collection, sample_chunks):
+    def test_query_by_source_type(
+        self, weaviate_client, clean_weaviate_collection, sample_chunks, ollama_client
+    ):
         """Test filtering by sourceType"""
         import weaviate.classes as wvc
 
@@ -82,6 +87,9 @@ class TestWeaviateIngestion:
         # Insert mixed data
         with collection.batch.dynamic() as batch:
             for chunk in sample_chunks:
+                embedding = ollama_client.embeddings(
+                    model="qwen3-embedding:0.6b", prompt=chunk["text"]
+                )["embedding"]
                 batch.add_object(
                     properties={
                         "text": chunk["text"],
@@ -89,7 +97,7 @@ class TestWeaviateIngestion:
                         "sourceType": "obsidian",
                         "chunkIndex": chunk["chunk_index"],
                     },
-                    vector=[0.1] * 1024,
+                    vector=embedding,
                 )
 
         # Query for obsidian only
@@ -107,7 +115,7 @@ class TestWeaviateIngestion:
 class TestSemanticSearch:
     """Test semantic search operations"""
 
-    def test_near_text_search(self, weaviate_client, clean_weaviate_collection):
+    def test_near_text_search(self, weaviate_client, clean_weaviate_collection, ollama_client):
         """Test semantic search with vector similarity"""
         import weaviate.classes as wvc
 
@@ -121,20 +129,23 @@ class TestSemanticSearch:
 
         # Insert test data
         test_docs = [
-            (
-                "Docker Compose is a tool for multi-container applications",
-                [0.8, 0.2] + [0.0] * 1022,
-            ),
-            ("Python is a programming language", [0.2, 0.8] + [0.0] * 1022),
-            ("Kubernetes orchestrates Docker containers", [0.7, 0.3] + [0.0] * 1022),
+            "Docker Compose is a tool for multi-container applications",
+            "Python is a programming language",
+            "Kubernetes orchestrates Docker containers",
         ]
 
         with collection.batch.dynamic() as batch:
-            for text, vector in test_docs:
-                batch.add_object(properties={"text": text}, vector=vector)
+            for text in test_docs:
+                embedding = ollama_client.embeddings(
+                    model="qwen3-embedding:0.6b", prompt=text
+                )["embedding"]
+                batch.add_object(properties={"text": text}, vector=embedding)
 
         # Query for Docker-related content
-        response = collection.query.near_vector(near_vector=[0.8, 0.2] + [0.0] * 1022, limit=2)
+        query_embedding = ollama_client.embeddings(
+            model="qwen3-embedding:0.6b", prompt="Docker containers"
+        )["embedding"]
+        response = collection.query.near_vector(near_vector=query_embedding, limit=2)
 
         # Should return Docker-related docs first
         assert len(response.objects) == 2
@@ -144,7 +155,7 @@ class TestSemanticSearch:
 @pytest.mark.integration
 @pytest.mark.weaviate
 @pytest.mark.slow
-def test_large_batch_insertion(weaviate_client, clean_weaviate_collection):
+def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollama_client):
     """Test inserting large batch of documents"""
     import weaviate.classes as wvc
 
@@ -156,13 +167,17 @@ def test_large_batch_insertion(weaviate_client, clean_weaviate_collection):
         ],
     )
 
+    base_embedding = ollama_client.embeddings(
+        model="qwen3-embedding:0.6b", prompt="Test document"
+    )["embedding"]
+
     # Insert 1000 documents
     num_docs = 1000
     with collection.batch.dynamic() as batch:
         for i in range(num_docs):
             batch.add_object(
                 properties={"text": f"Test document {i}"},
-                vector=[i / num_docs] * 1024,
+                vector=base_embedding,
             )
 
     # Verify count
