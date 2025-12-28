@@ -49,7 +49,9 @@ class TestStory000EndToEnd:
             client.embeddings(model="qwen3-embedding:0.6b", prompt="test")
             return client
         except Exception as e:
-            pytest.fail(f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!")
+            pytest.fail(
+                f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
+            )
 
     @pytest.fixture
     def test_vault(self, tmp_path):
@@ -59,7 +61,8 @@ class TestStory000EndToEnd:
 
         # Create test document with frontmatter and wiki-links
         doc1 = vault / "test_note.md"
-        doc1.write_text("""---
+        doc1.write_text(
+            """---
 title: Test Note
 tags: [testing, obsidian]
 created: 2025-01-01
@@ -76,11 +79,13 @@ Content with a link to [[Another Note]].
 ## Section Two
 
 More content here.
-""")
+"""
+        )
 
         # Create document with HTML and emoji markers
         doc2 = vault / "advanced_note.md"
-        doc2.write_text("""# Advanced Note
+        doc2.write_text(
+            """# Advanced Note
 
 Some content with <strong>HTML tags</strong> that should be removed.
 
@@ -93,13 +98,17 @@ HTML block content
 </div>
 
 Regular content continues here.
-""")
+"""
+        )
 
         # Create simple document for chunking test
         doc3 = vault / "long_note.md"
-        doc3.write_text("""# Long Document
+        doc3.write_text(
+            """# Long Document
 
-""" + "This is a long document with repeated content. " * 50)
+"""
+            + "This is a long document with repeated content. " * 50
+        )
 
         return vault
 
@@ -109,16 +118,11 @@ Regular content continues here.
 
     def test_real_ollama_connection(self, ollama_client):
         """REAL TEST: Verify Ollama is accessible."""
-        result = ollama_client.embeddings(
-            model="qwen3-embedding:0.6b",
-            prompt="Test connection"
-        )
+        result = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test connection")
         assert "embedding" in result
         assert len(result["embedding"]) == 1024
 
-    def test_real_vault_ingestion_end_to_end(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_vault_ingestion_end_to_end(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Full ingestion pipeline with real services."""
         # GIVEN: Real Obsidian vault
         ingestor = ObsidianIngestor(
@@ -138,8 +142,7 @@ Regular content continues here.
         # AND: Verify chunks stored in Weaviate TheMuses collection
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"),
-            limit=100
+            filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"), limit=100
         )
 
         # Should have chunks from all 3 files
@@ -157,9 +160,7 @@ Regular content continues here.
             assert "ingestedAt" in props
             assert "fileModifiedAt" in props
 
-    def test_real_markdown_cleaning(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_markdown_cleaning(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify markdown cleaning (frontmatter, wiki-links, HTML removed)."""
         # GIVEN: Vault with complex markdown
         ingestor = ObsidianIngestor(
@@ -174,8 +175,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_note.md"),
-            limit=10
+            filters=Filter.by_property("sourceFile").like("*/test_note.md"), limit=10
         )
 
         assert len(results.objects) > 0
@@ -191,9 +191,7 @@ Regular content continues here.
         assert "]]" not in all_text
         assert "wiki-links" in all_text or "Another Note" in all_text
 
-    def test_real_html_and_emoji_cleaning(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_html_and_emoji_cleaning(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify HTML and emoji markers are removed."""
         # GIVEN: Vault with HTML and emojis
         ingestor = ObsidianIngestor(
@@ -208,8 +206,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/advanced_note.md"),
-            limit=10
+            filters=Filter.by_property("sourceFile").like("*/advanced_note.md"), limit=10
         )
 
         assert len(results.objects) > 0
@@ -228,9 +225,7 @@ Regular content continues here.
         # Verify content preserved
         assert "HTML tags" in all_text or "Important" in all_text
 
-    def test_real_embedding_generation(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_embedding_generation(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify embeddings are generated via Ollama."""
         # GIVEN: Vault for ingestion
         ingestor = ObsidianIngestor(
@@ -247,7 +242,7 @@ Regular content continues here.
         results = collection.query.fetch_objects(
             filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"),
             limit=10,
-            return_vectors=True
+            return_vectors=True,
         )
 
         assert len(results.objects) > 0
@@ -259,9 +254,7 @@ Regular content continues here.
             # Verify vector is not all zeros
             assert sum(obj.vector) != 0
 
-    def test_real_chunking_with_overlap(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_chunking_with_overlap(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify chunking with 400 chars and 100 char overlap."""
         # GIVEN: Long document
         ingestor = ObsidianIngestor(
@@ -276,8 +269,7 @@ Regular content continues here.
         # THEN: Query chunks from long document
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/long_note.md"),
-            limit=100
+            filters=Filter.by_property("sourceFile").like("*/long_note.md"), limit=100
         )
 
         # Should have multiple chunks due to length
@@ -289,9 +281,7 @@ Regular content continues here.
             # Chunks should be between 100 and 600 chars (allowing some flexibility)
             assert 50 < text_len < 800
 
-    def test_real_incremental_updates(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_incremental_updates(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify incremental updates (only changed files re-processed)."""
         # GIVEN: Initial ingestion
         ingestor = ObsidianIngestor(
@@ -322,9 +312,7 @@ Regular content continues here.
         assert stats_after_change["files_processed"] == 1
         assert stats_after_change["files_skipped"] == 2
 
-    def test_real_state_persistence(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_state_persistence(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify ingestion state persists across restarts."""
         # GIVEN: Initial ingestion
         ingestor1 = ObsidianIngestor(
