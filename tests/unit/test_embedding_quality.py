@@ -16,3 +16,10 @@ class TestEmbeddingQualityAnalyzer:
 
         assert analyzer.n_samples == 100
         assert analyzer.n_dimensions == 384
+
+    def test_init_with_invalid_shape(self):
+        """Test that 1D array raises ValueError."""
+        vectors = np.random.randn(100)  # 1D array
+
+        with pytest.raises(ValueError, match="Expected 2D array"):
+            EmbeddingQualityAnalyzer(vectors)
