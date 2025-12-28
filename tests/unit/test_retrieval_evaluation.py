@@ -54,3 +54,38 @@ class TestRetrievalEvaluator:
         recall = evaluator.recall_at_k(retrieved, relevant, k=3)
 
         assert recall == 1.0  # Found 2/2 relevant docs
+
+    def test_recall_at_k_partial(self):
+        """Test recall@k with partial retrieval."""
+        evaluator = RetrievalEvaluator()
+
+        # Partial retrieval: only 1 of 3 relevant docs in top 2
+        retrieved = ["doc1.md", "doc4.md", "doc2.md", "doc3.md"]
+        relevant = ["doc1.md", "doc2.md", "doc3.md"]
+
+        recall = evaluator.recall_at_k(retrieved, relevant, k=2)
+
+        assert recall == pytest.approx(1 / 3)  # Found 1/3 relevant docs
+
+    def test_recall_at_k_zero(self):
+        """Test recall@k with no relevant docs found."""
+        evaluator = RetrievalEvaluator()
+
+        # No relevant docs in top k
+        retrieved = ["doc4.md", "doc5.md", "doc1.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        recall = evaluator.recall_at_k(retrieved, relevant, k=2)
+
+        assert recall == 0.0  # Found 0/2 relevant docs
+
+    def test_recall_at_k_empty_relevant(self):
+        """Test recall@k with empty relevant docs."""
+        evaluator = RetrievalEvaluator()
+
+        retrieved = ["doc1.md", "doc2.md"]
+        relevant = []
+
+        recall = evaluator.recall_at_k(retrieved, relevant, k=2)
+
+        assert recall == 0.0
