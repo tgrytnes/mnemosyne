@@ -6,12 +6,14 @@
 
 ## Acceptance Criteria
 - [ ] LangGraph checkpointer configured (SQLite or PostgreSQL backend)
-- [ ] Agent state persisted at key nodes (after semantic extraction, after search, etc.)
+- [ ] Agent state persisted at key nodes (after semantic extraction, after search, after synthesis)
 - [ ] Resume functionality: load previous state by query ID
 - [ ] State includes: conversation history, intermediate results, current node
 - [ ] Checkpoint cleanup policy (auto-delete after 30 days or manual trigger)
-- [ ] API endpoint to list/resume/delete checkpoints
+- [ ] API endpoints defined to list/resume/delete checkpoints (explicit routes or CLI commands)
 - [ ] Performance: State save/load completes in <500ms on Pi 5
+- [ ] Cleanup job removes checkpoints older than 30 days (validated by a test)
+- [ ] Tests: unit tests for serialization/validation + integration test for persistence + e2e test for resume flow
 
 ## Technical Notes
 
