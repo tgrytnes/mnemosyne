@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python3:*)",
       "Bash(ls:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(gh run view:*)",
+      "Bash(.venv/bin/black src/mnemosyne/cli/quality.py src/mnemosyne/iris/retrieval_evaluation.py)"
     ]
   }
 }
