@@ -58,7 +58,7 @@ jobs:
 
     services:
       weaviate:
-        image: semitechnologies/weaviate:1.27.0
+        image: cr.weaviate.io/semitechnologies/weaviate:latest
         ports:
           - 8080:8080
           - 50051:50051
@@ -67,11 +67,7 @@ jobs:
           PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
           QUERY_DEFAULTS_LIMIT: '100'
           DEFAULT_VECTORIZER_MODULE: 'none'
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/v1/.well-known/ready"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          CLUSTER_HOSTNAME: 'node1'
 
       postgres:
         image: postgres:15
