@@ -93,3 +93,23 @@ class ChunkingQualityAnalyzer:
 
         # Return fraction
         return good_boundaries / len(self.chunks)
+
+    def analyze(self) -> ChunkingQualityMetrics:
+        """Run all quality analyses and return comprehensive metrics.
+
+        Returns:
+            ChunkingQualityMetrics: Complete chunking quality metrics
+        """
+        # Compute all metrics
+        avg_size, std_size, min_size, max_size = self.compute_chunk_size_stats()
+        coherence = self.compute_semantic_coherence()
+        boundary_quality = self.compute_boundary_quality()
+
+        return ChunkingQualityMetrics(
+            avg_chunk_size=avg_size,
+            chunk_size_std=std_size,
+            min_chunk_size=min_size,
+            max_chunk_size=max_size,
+            semantic_coherence=coherence,
+            boundary_quality=boundary_quality,
+        )

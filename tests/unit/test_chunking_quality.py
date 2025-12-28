@@ -113,3 +113,34 @@ class TestChunkingQualityAnalyzer:
         quality = analyzer.compute_boundary_quality()
 
         assert quality == 0.0  # No chunks end with sentence terminators
+
+    def test_analyze_returns_all_metrics(self):
+        """Test that analyze() returns complete metrics."""
+        chunks = [
+            "This is chunk one.",
+            "This is chunk two!",
+            "This is chunk three?",
+        ]
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        metrics = analyzer.analyze()
+
+        # Check all fields are present
+        assert hasattr(metrics, "avg_chunk_size")
+        assert hasattr(metrics, "chunk_size_std")
+        assert hasattr(metrics, "min_chunk_size")
+        assert hasattr(metrics, "max_chunk_size")
+        assert hasattr(metrics, "semantic_coherence")
+        assert hasattr(metrics, "boundary_quality")
+
+        # Check types
+        assert isinstance(metrics.avg_chunk_size, float)
+        assert isinstance(metrics.chunk_size_std, float)
+        assert isinstance(metrics.min_chunk_size, int)
+        assert isinstance(metrics.max_chunk_size, int)
+        assert isinstance(metrics.semantic_coherence, float)
+        assert isinstance(metrics.boundary_quality, float)
+
+        # Check values are reasonable
+        assert metrics.boundary_quality == 1.0  # All end with punctuation
