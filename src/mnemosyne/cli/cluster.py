@@ -76,12 +76,12 @@ class ClusterManager:
     def update_chunk_cluster_ids(self, uuids: list[str], labels: np.ndarray) -> None:
         """Update each chunk with its assigned cluster ID."""
         logger.info("Updating cluster IDs for all chunks...")
-        with self.muses_collection.batch.dynamic() as batch:
-            for uuid, label in zip(uuids, labels):
-                batch.add_object(
-                    uuid=uuid,
-                    properties={"clusterId": int(label)},
-                )
+        # Use data.update() for each chunk to properly update existing objects
+        for uuid_str, label in zip(uuids, labels):
+            self.muses_collection.data.update(
+                uuid=uuid_str,
+                properties={"clusterId": int(label)},
+            )
         logger.info("Finished updating chunk cluster IDs.")
 
     def update_centroids(self, centroids: np.ndarray, labels: np.ndarray) -> None:
@@ -126,9 +126,7 @@ class ClusterManager:
         for attempt in range(3):
             verify = self.centroid_collection.query.fetch_objects(limit=1, include_vector=True)
             if len(verify.objects) > 0:
-                logger.info(
-                    f"Verified {len(centroids_to_insert)} centroids stored successfully"
-                )
+                logger.info(f"Verified {len(centroids_to_insert)} centroids stored successfully")
                 break
             logger.warning(
                 f"Verification attempt {attempt + 1}: No centroids found yet, retrying..."
