@@ -8,10 +8,13 @@
 - [ ] LangGraph node that analyzes cluster relationships
 - [ ] Algorithm to determine parent/child hierarchy (e.g., theme abstraction levels)
 - [ ] Algorithm to identify neighbor clusters (e.g., semantic similarity)
-- [ ] Relationships stored as a graph structure in The Ananke
-- [ ] API to query relationships (get children, get neighbors, get parents)
-- [ ] Visualization-ready output format (e.g., graph JSON)
-- [ ] Handle cycles and ambiguous relationships gracefully
+- [ ] Relationships stored as a graph structure in The Ananke with a defined table name and unique constraint on `cluster_id`
+- [ ] API to query relationships (`get_children`, `get_neighbors`, `get_parents`)
+- [ ] Visualization-ready output format (graph JSON with nodes + edges)
+- [ ] Cycle handling defined (break weakest edge or downgrade to neighbor)
+- [ ] Coverage target: >= 95% of clusters have at least one parent or neighbor
+- [ ] Performance target: process 50 clusters in <= 3 minutes on RPi 5
+- [ ] Tests: unit tests for relationship rules + integration test for graph persistence
 
 ## Technical Notes
 
