@@ -27,9 +27,7 @@ class TestSemanticChunker:
     def test_splits_text_at_llm_boundaries(self, mocker):
         """Should split text using boundaries returned by the LLM"""
         ollama_client = mocker.MagicMock()
-        ollama_client.generate.return_value = {
-            "response": json.dumps({"boundaries": [5]})
-        }
+        ollama_client.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
 
         chunker = SemanticChunker(ollama_client=ollama_client, min_chunk_size=1)
         text = "hello world"

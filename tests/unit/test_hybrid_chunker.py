@@ -79,9 +79,7 @@ Short content."""
         structure = extractor.extract_structure(markdown)
 
         semantic = mocker.MagicMock()
-        semantic.chunk.return_value = [
-            TextChunk(text="semantic", index=0, source_file="note.md")
-        ]
+        semantic.chunk.return_value = [TextChunk(text="semantic", index=0, source_file="note.md")]
         recursive = TextChunker(chunk_size=400, chunk_overlap=100)
 
         chunker = HybridChunker(

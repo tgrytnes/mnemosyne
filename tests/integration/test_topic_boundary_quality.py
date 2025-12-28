@@ -13,9 +13,7 @@ def test_semantic_chunking_aligns_with_topic_boundaries(mocker):
     boundary_index = text.index("Topic B")
 
     mock_ollama = mocker.MagicMock()
-    mock_ollama.generate.return_value = {
-        "response": json.dumps({"boundaries": [boundary_index]})
-    }
+    mock_ollama.generate.return_value = {"response": json.dumps({"boundaries": [boundary_index]})}
 
     chunker = SemanticChunker(ollama_client=mock_ollama, min_chunk_size=1)
     chunks = chunker.chunk(text, source_file="note.md")

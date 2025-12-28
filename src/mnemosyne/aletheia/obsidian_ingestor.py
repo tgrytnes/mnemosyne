@@ -69,9 +69,7 @@ class ObsidianIngestor:
 
         # Initialize components
         self.cleaner = ObsidianMarkdownCleaner()
-        self.recursive_chunker = TextChunker(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
-        )
+        self.recursive_chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         self.state_tracker = state_tracker or IngestionStateTracker()
 
         strategy_factory = ChunkingStrategyFactory(

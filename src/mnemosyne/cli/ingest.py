@@ -43,9 +43,7 @@ class IngestionConfig:
         self.semantic_temperature = float(os.getenv("SEMANTIC_LLM_TEMP", "0.2"))
         self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
         self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))
-        self.section_semantic_min_length = int(
-            os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000")
-        )
+        self.section_semantic_min_length = int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000"))
         self.watch_debounce = float(os.getenv("WATCH_DEBOUNCE_SECONDS", "2.0"))
 
     def validate(self) -> bool:

@@ -43,13 +43,9 @@ class HybridChunker:
             if len(section_text) >= self.section_semantic_min_length:
                 section_chunks = self.semantic_chunker.chunk(section_text, source_file)
             else:
-                section_chunks = [
-                    TextChunk(text=section_text, index=0, source_file=source_file)
-                ]
+                section_chunks = [TextChunk(text=section_text, index=0, source_file=source_file)]
 
-            heading_path, heading_level, section_title = self._heading_metadata(
-                structure, section
-            )
+            heading_path, heading_level, section_title = self._heading_metadata(structure, section)
             for chunk in section_chunks:
                 chunks.append(
                     TextChunk(
@@ -65,9 +61,7 @@ class HybridChunker:
 
         return chunks
 
-    def _get_sections(
-        self, structure: DocumentStructure, text: str
-    ) -> list[HeadingNode]:
+    def _get_sections(self, structure: DocumentStructure, text: str) -> list[HeadingNode]:
         root = structure.root
         if root.level == 0:
             return root.children or [root]
