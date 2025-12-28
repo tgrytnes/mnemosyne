@@ -39,3 +39,23 @@ class EmbeddingQualityAnalyzer:
         std_sim = float(np.std(similarities))
 
         return mean_sim, std_sim
+
+    def compute_vector_space_coverage(self, threshold: float = 0.01) -> float:
+        """Compute what percentage of vector space dimensions are used.
+
+        Args:
+            threshold: Minimum variance for a dimension to be considered "used"
+
+        Returns:
+            float: Fraction of dimensions with variance > threshold (0.0 to 1.0)
+        """
+        # Compute variance for each dimension across all vectors
+        variance_per_dim = np.var(self.vectors, axis=0)
+
+        # Count dimensions with meaningful variance
+        used_dims = np.sum(variance_per_dim > threshold)
+
+        # Return fraction of dimensions used
+        coverage = float(used_dims) / self.n_dimensions
+
+        return coverage

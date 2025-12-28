@@ -41,3 +41,26 @@ class TestEmbeddingQualityAnalyzer:
         # Mean should be moderate (mix of similar and dissimilar)
         assert 0.0 <= mean_sim <= 1.0
         assert std_sim >= 0.0
+
+    def test_compute_vector_space_coverage_full(self):
+        """Test coverage with vectors using all dimensions."""
+        # Vectors with variance in all dimensions
+        vectors = np.random.randn(100, 50)
+
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+        coverage = analyzer.compute_vector_space_coverage()
+
+        # Should use most dimensions (>90%)
+        assert coverage > 0.9
+
+    def test_compute_vector_space_coverage_partial(self):
+        """Test coverage with vectors using only some dimensions."""
+        # Vectors that only use first 10 of 50 dimensions
+        vectors = np.zeros((100, 50))
+        vectors[:, :10] = np.random.randn(100, 10)
+
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+        coverage = analyzer.compute_vector_space_coverage()
+
+        # Should detect low coverage (~20%)
+        assert coverage < 0.3
