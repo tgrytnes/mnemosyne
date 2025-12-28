@@ -52,6 +52,18 @@ class TestStory000EndToEnd:
                 f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
             )
 
+    @pytest.fixture(autouse=True)
+    def cleanup_weaviate(self, weaviate_client):
+        """Clean up Weaviate collection before each test to ensure isolation."""
+        # Run before test: Clear the collection
+        collection = weaviate_client.collections.get("TheMuses")
+        # Delete all objects using a filter that matches everything
+        collection.data.delete_many(
+            where=Filter.by_property("sourceType").equal("obsidian")
+        )
+        yield
+        # After test: No cleanup needed (next test will clean before it runs)
+
     @pytest.fixture
     def test_vault(self, tmp_path):
         """Create test vault with Obsidian markdown files."""
@@ -246,12 +258,14 @@ Regular content continues here.
 
         assert len(results.objects) > 0
 
-        # Verify all chunks have 1024-dimensional embeddings
+        # Verify all chunks have 1024-dimensional embeddings (from Ollama qwen3-embedding:0.6b)
         for obj in results.objects:
             assert obj.vector is not None
-            assert len(obj.vector) == 1024
-            # Verify vector is not all zeros
-            assert sum(obj.vector) != 0
+            # Vector is stored under 'default' key
+            assert "default" in obj.vector
+            assert len(obj.vector["default"]) == 1024
+            # Verify vector is not all zeros (real embedding from Ollama)
+            assert sum(obj.vector["default"]) != 0
 
     def test_real_chunking_with_overlap(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify chunking with 400 chars and 100 char overlap."""
