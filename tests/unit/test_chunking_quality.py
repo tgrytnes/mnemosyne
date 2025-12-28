@@ -71,3 +71,45 @@ class TestChunkingQualityAnalyzer:
 
         # Random vectors should have low similarity
         assert coherence < 0.5
+
+    def test_compute_boundary_quality_perfect(self):
+        """Test boundary quality with all chunks ending at sentence boundaries."""
+        chunks = [
+            "This is sentence one. This is sentence two.",
+            "This is sentence three. This is sentence four!",
+            "This is sentence five?",
+        ]
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        quality = analyzer.compute_boundary_quality()
+
+        assert quality == 1.0  # All chunks end with sentence terminators
+
+    def test_compute_boundary_quality_partial(self):
+        """Test boundary quality with some chunks not ending at boundaries."""
+        chunks = [
+            "This is a complete sentence.",  # Good boundary
+            "This chunk ends mid",  # Bad boundary
+            "Another complete sentence!",  # Good boundary
+        ]
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        quality = analyzer.compute_boundary_quality()
+
+        assert quality == pytest.approx(2 / 3)  # 2/3 chunks have good boundaries
+
+    def test_compute_boundary_quality_zero(self):
+        """Test boundary quality with no chunks ending at boundaries."""
+        chunks = [
+            "incomplete chunk one",
+            "incomplete chunk two",
+            "incomplete chunk three",
+        ]
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        quality = analyzer.compute_boundary_quality()
+
+        assert quality == 0.0  # No chunks end with sentence terminators

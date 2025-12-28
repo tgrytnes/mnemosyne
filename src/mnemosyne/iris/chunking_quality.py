@@ -73,3 +73,23 @@ class ChunkingQualityAnalyzer:
 
         # Return average similarity
         return float(np.mean(similarities))
+
+    def compute_boundary_quality(self) -> float:
+        """Compute boundary quality (fraction of chunks ending at sentence boundaries).
+
+        Returns:
+            float: Fraction of chunks ending with sentence terminators (0.0 to 1.0)
+        """
+        if not self.chunks:
+            return 0.0
+
+        # Sentence terminators
+        sentence_endings = (".", "!", "?")
+
+        # Count chunks ending with sentence terminators
+        good_boundaries = sum(
+            1 for chunk in self.chunks if chunk.rstrip().endswith(sentence_endings)
+        )
+
+        # Return fraction
+        return good_boundaries / len(self.chunks)
