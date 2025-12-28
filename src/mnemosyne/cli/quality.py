@@ -63,9 +63,7 @@ def generate_quality_report(
             f.write(f"- Similarity std: {embedding_metrics.similarity_std:.3f}\n")
             f.write(f"- Vector space coverage: {embedding_metrics.vector_space_coverage:.1%}\n")
             f.write(f"- Dimensionality usage: {embedding_metrics.dimensionality_usage:.1%}\n")
-            collapse_status = (
-                "Yes" if embedding_metrics.embedding_collapse_detected else "No"
-            )
+            collapse_status = "Yes" if embedding_metrics.embedding_collapse_detected else "No"
             f.write(f"- Embedding collapse detected: {collapse_status}\n")
             f.write(f"- Avg vector magnitude: {embedding_metrics.avg_vector_magnitude:.3f}\n")
             f.write(f"- Magnitude std: {embedding_metrics.magnitude_std:.3f}\n\n")
