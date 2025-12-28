@@ -86,3 +86,14 @@ class TestEmbeddingQualityAnalyzer:
         collapsed = analyzer.detect_embedding_collapse()
 
         assert collapsed is False
+
+    def test_dimensionality_usage(self):
+        """Test dimensionality usage computation."""
+        # Create vectors with known structure
+        vectors = np.random.randn(100, 100)
+
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+        dim_usage = analyzer.compute_dimensionality_usage()
+
+        # Should be between 0 and 1
+        assert 0.0 <= dim_usage <= 1.0

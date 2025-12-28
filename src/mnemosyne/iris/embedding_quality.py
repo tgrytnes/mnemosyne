@@ -1,6 +1,7 @@
 """Embedding quality analysis."""
 
 import numpy as np
+from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -70,3 +71,22 @@ class EmbeddingQualityAnalyzer:
         """
         mean_sim, _ = self.compute_pairwise_similarity()
         return mean_sim > self.collapse_threshold
+
+    def compute_dimensionality_usage(self, variance_threshold: float = 0.95) -> float:
+        """Compute effective dimensionality using PCA.
+
+        Args:
+            variance_threshold: Cumulative variance to capture (default: 0.95)
+
+        Returns:
+            float: Fraction of dimensions needed to capture variance_threshold of variance
+        """
+        # Use PCA to find how many dimensions capture most variance
+        pca = PCA(n_components=variance_threshold, svd_solver="full")
+        pca.fit(self.vectors)
+
+        # Return fraction of dimensions used
+        n_components_used = pca.n_components_
+        dim_usage = float(n_components_used) / self.n_dimensions
+
+        return dim_usage
