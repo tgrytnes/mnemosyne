@@ -6,6 +6,9 @@ Based on Project Crystal's markdown cleaning approach.
 """
 
 import re
+from typing import Tuple
+
+from mnemosyne.aletheia.structure_extractor import DocumentStructure, StructureExtractor
 
 
 class ObsidianMarkdownCleaner:
@@ -22,6 +25,10 @@ class ObsidianMarkdownCleaner:
     - Emoji markers
     - Extra whitespace
     """
+
+    def __init__(self):
+        """Initialize cleaner with structure extractor."""
+        self.structure_extractor = StructureExtractor()
 
     def clean(self, markdown: str) -> str:
         """
@@ -73,3 +80,25 @@ class ObsidianMarkdownCleaner:
         text = text.strip()
 
         return text
+
+    def clean_with_structure(self, markdown: str) -> Tuple[str, DocumentStructure]:
+        """
+        Clean markdown and extract document structure.
+
+        Extracts structure from ORIGINAL markdown before cleaning,
+        then cleans the text. This ensures heading positions and
+        content are preserved before markdown syntax is removed.
+
+        Args:
+            markdown: Raw markdown text from Obsidian
+
+        Returns:
+            Tuple of (cleaned_text, document_structure)
+        """
+        # Step 1: Extract structure from ORIGINAL markdown (before cleaning)
+        structure = self.structure_extractor.extract_structure(markdown)
+
+        # Step 2: Clean the markdown
+        cleaned_text = self.clean(markdown)
+
+        return cleaned_text, structure

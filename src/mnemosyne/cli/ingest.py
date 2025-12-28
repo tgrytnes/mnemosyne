@@ -154,6 +154,71 @@ def ingest_once(vault_path: str | None = None):
         sys.exit(1)
 
 
+def re_ingest_vault(vault_path: str | None = None, force: bool = False):
+    """
+    Re-ingest entire vault, bypassing state tracker.
+
+    Useful for adding structure metadata to existing chunks after Story 020.
+    This will delete and re-create all chunks for processed files.
+
+    Args:
+        vault_path: Optional path to vault (overrides env var)
+        force: If True, delete existing chunks before re-ingestion
+    """
+    try:
+        config = IngestionConfig()
+
+        if vault_path:
+            config.vault_path = vault_path
+
+        config.validate()
+
+        logger.info("=" * 60)
+        logger.info("Re-Ingesting Vault with Structure Metadata")
+        logger.info("=" * 60)
+        logger.info(f"Vault: {config.vault_path}")
+        logger.info(f"Weaviate: {config.weaviate_host}:{config.weaviate_port}")
+        logger.info(f"Ollama: {config.ollama_base_url}")
+        logger.info(f"Force mode: {force}")
+        logger.info("=" * 60)
+
+        ingestor = create_ingestor(config)
+
+        logger.info("\nScanning vault for markdown files...")
+        files = ingestor.scan_vault()
+        logger.info(f"Found {len(files)} markdown files")
+
+        if force:
+            logger.info("\n⚠️  Force mode: This will delete and re-create all chunks")
+            logger.info("Clearing ingestion state...")
+            # Clear state tracker to force re-ingestion
+            ingestor.state_tracker.clear_all()
+
+        logger.info("\nStarting re-ingestion...")
+        stats = ingestor.ingest_vault()
+
+        logger.info("\n" + "=" * 60)
+        logger.info("Re-Ingestion Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Total files: {stats['total_files']}")
+        logger.info(f"Files processed: {stats['files_processed']}")
+        logger.info(f"Files skipped: {stats['files_skipped']}")
+        logger.info(f"Total chunks created: {stats['total_chunks']}")
+        logger.info("=" * 60)
+        logger.info("\n✓ All chunks now include structure metadata (headingPath, headingLevel, sectionTitle)")
+
+        # Cleanup
+        ingestor.state_tracker.close()
+        ingestor.weaviate_client.close()
+
+    except Exception as e:
+        logger.error(f"Error during re-ingestion: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def watch_vault(vault_path: str | None = None):
     """
     Watch vault for changes and ingest automatically.
@@ -238,6 +303,9 @@ Examples:
   # Specify vault path explicitly
   python -m mnemosyne.cli.ingest once --vault-path /path/to/vault
 
+  # Re-ingest vault with structure metadata (Story 020)
+  python -m mnemosyne.cli.ingest re-ingest --force
+
 Environment Variables:
   OBSIDIAN_VAULT_PATH     Path to Obsidian vault (required)
   WEAVIATE_HTTP_HOST      Weaviate host (default: localhost)
@@ -267,6 +335,20 @@ Environment Variables:
         "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
     )
 
+    # 're-ingest' command (Story 020)
+    parser_reingest = subparsers.add_parser(
+        "re-ingest",
+        help="Re-ingest entire vault with structure metadata (Story 020)",
+    )
+    parser_reingest.add_argument(
+        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
+    )
+    parser_reingest.add_argument(
+        "--force",
+        action="store_true",
+        help="Clear all ingestion state and force re-ingestion of all files",
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -277,6 +359,8 @@ Environment Variables:
         ingest_once(args.vault_path)
     elif args.command == "watch":
         watch_vault(args.vault_path)
+    elif args.command == "re-ingest":
+        re_ingest_vault(args.vault_path, args.force)
 
 
 if __name__ == "__main__":

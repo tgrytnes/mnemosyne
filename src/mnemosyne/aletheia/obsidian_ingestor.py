@@ -105,8 +105,8 @@ class ObsidianIngestor:
 
         Processes file through complete pipeline:
         1. Read file
-        2. Clean markdown
-        3. Chunk text
+        2. Extract structure and clean markdown
+        3. Chunk text with structure metadata
         4. Generate embeddings
         5. Store in Weaviate
         6. Update state tracker
@@ -121,15 +121,15 @@ class ObsidianIngestor:
             # Read file
             content = Path(file_path).read_text(encoding="utf-8")
 
-            # Clean markdown
-            cleaned = self._clean_markdown(content)
+            # Extract structure and clean markdown (Story 020)
+            cleaned, structure = self._clean_markdown_with_structure(content)
 
             if not cleaned.strip():
                 logger.info(f"Skipping empty file: {file_path}")
                 return 0
 
-            # Chunk text
-            chunks = self._chunk_text(cleaned, file_path)
+            # Chunk text with structure metadata (Story 020)
+            chunks = self._chunk_text_with_structure(cleaned, file_path, structure)
 
             if not chunks:
                 logger.info(f"No chunks created for: {file_path}")
@@ -140,7 +140,7 @@ class ObsidianIngestor:
                 # Generate embedding
                 embedding = self._generate_embedding(chunk.text)
 
-                # Store in Weaviate
+                # Store in Weaviate (now includes heading metadata)
                 self._store_chunk(
                     {
                         "text": chunk.text,
@@ -148,6 +148,9 @@ class ObsidianIngestor:
                         "chunk_index": chunk.index,
                         "source_type": "obsidian",
                         "file_modified_at": datetime.fromtimestamp(os.path.getmtime(file_path)),
+                        "heading_path": chunk.heading_path,  # Story 020
+                        "heading_level": chunk.heading_level,  # Story 020
+                        "section_title": chunk.section_title,  # Story 020
                         "embedding": embedding,
                     }
                 )
@@ -199,12 +202,20 @@ class ObsidianIngestor:
         return stats
 
     def _clean_markdown(self, markdown: str) -> str:
-        """Clean Obsidian syntax from markdown"""
+        """Clean Obsidian syntax from markdown (backward compatibility)"""
         return self.cleaner.clean(markdown)
 
+    def _clean_markdown_with_structure(self, markdown: str):
+        """Extract structure and clean Obsidian syntax (Story 020)"""
+        return self.cleaner.clean_with_structure(markdown)
+
     def _chunk_text(self, text: str, source_file: str) -> list[TextChunk]:
-        """Chunk cleaned text"""
+        """Chunk cleaned text (backward compatibility)"""
         return self.chunker.chunk(text, source_file)
+
+    def _chunk_text_with_structure(self, text: str, source_file: str, structure):
+        """Chunk cleaned text with structure metadata (Story 020)"""
+        return self.chunker.chunk_with_structure(text, source_file, structure)
 
     def _generate_embedding(self, text: str) -> list[float]:
         """
@@ -235,6 +246,10 @@ class ObsidianIngestor:
             "chunkIndex": chunk_data["chunk_index"],
             "ingestedAt": datetime.now(),
             "fileModifiedAt": chunk_data["file_modified_at"],
+            # Story 020: Heading metadata
+            "headingPath": chunk_data.get("heading_path", ""),
+            "headingLevel": chunk_data.get("heading_level", 0),
+            "sectionTitle": chunk_data.get("section_title", ""),
         }
 
         collection.data.insert(
