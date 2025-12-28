@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 
 @dataclass
 class GroundTruthQuery:
@@ -73,3 +75,42 @@ class RetrievalEvaluator:
 
         # Return fraction of relevant docs found
         return found / len(relevant_docs)
+
+    def ndcg_at_k(
+        self, retrieved_docs: list[str], relevant_docs: list[str], k: int
+    ) -> float:
+        """Calculate Normalized Discounted Cumulative Gain (NDCG@k).
+
+        Args:
+            retrieved_docs: List of retrieved document IDs (in ranked order)
+            relevant_docs: List of relevant document IDs
+            k: Number of top results to consider
+
+        Returns:
+            float: NDCG@k score (0.0 to 1.0, higher is better)
+        """
+        if not relevant_docs:
+            return 0.0
+
+        # Convert to sets for fast lookup
+        relevant_set = set(relevant_docs)
+
+        # Calculate DCG@k
+        dcg = 0.0
+        for i, doc in enumerate(retrieved_docs[:k], start=1):
+            if doc in relevant_set:
+                # Relevance = 1 if relevant, 0 otherwise
+                # DCG formula: sum(rel_i / log2(i + 1))
+                dcg += 1.0 / np.log2(i + 1)
+
+        # Calculate ideal DCG@k (all relevant docs at top)
+        idcg = 0.0
+        for i in range(1, min(len(relevant_docs), k) + 1):
+            idcg += 1.0 / np.log2(i + 1)
+
+        # Avoid division by zero
+        if idcg == 0.0:
+            return 0.0
+
+        # Return normalized DCG
+        return dcg / idcg

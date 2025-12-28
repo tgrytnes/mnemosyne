@@ -89,3 +89,40 @@ class TestRetrievalEvaluator:
         recall = evaluator.recall_at_k(retrieved, relevant, k=2)
 
         assert recall == 0.0
+
+    def test_ndcg_at_k_perfect(self):
+        """Test NDCG@k with perfect ranking."""
+        evaluator = RetrievalEvaluator()
+
+        # Perfect ranking: all relevant docs at top in order
+        retrieved = ["doc1.md", "doc2.md", "doc3.md", "doc4.md"]
+        relevant = ["doc1.md", "doc2.md", "doc3.md"]
+
+        ndcg = evaluator.ndcg_at_k(retrieved, relevant, k=4)
+
+        assert ndcg == 1.0  # Perfect ranking
+
+    def test_ndcg_at_k_worst(self):
+        """Test NDCG@k with worst ranking."""
+        evaluator = RetrievalEvaluator()
+
+        # Worst ranking: all relevant docs at bottom
+        retrieved = ["doc4.md", "doc5.md", "doc1.md", "doc2.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        ndcg = evaluator.ndcg_at_k(retrieved, relevant, k=2)
+
+        assert ndcg == 0.0  # No relevant docs in top k
+
+    def test_ndcg_at_k_partial(self):
+        """Test NDCG@k with partial ranking."""
+        evaluator = RetrievalEvaluator()
+
+        # Mixed ranking: some relevant docs in top k but not ideal order
+        retrieved = ["doc1.md", "doc4.md", "doc2.md"]
+        relevant = ["doc1.md", "doc2.md"]
+
+        ndcg = evaluator.ndcg_at_k(retrieved, relevant, k=3)
+
+        # NDCG should be between 0 and 1
+        assert 0.0 < ndcg < 1.0
