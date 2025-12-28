@@ -210,6 +210,7 @@ def test_cli_validation_rejects_invalid_n_clusters():
 
 def test_cli_help_displays_correctly():
     """Test that CLI help message displays correctly."""
+    # Test main help
     result = subprocess.run(
         [sys.executable, "-m", "mnemosyne.cli.cluster", "--help"],
         capture_output=True,
@@ -218,4 +219,12 @@ def test_cli_help_displays_correctly():
     assert result.returncode == 0
     assert "Mnemosyne - Chunk Clustering" in result.stdout
     assert "run" in result.stdout
+
+    # Test subcommand help to verify --n-clusters argument
+    result = subprocess.run(
+        [sys.executable, "-m", "mnemosyne.cli.cluster", "run", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
     assert "--n-clusters" in result.stdout

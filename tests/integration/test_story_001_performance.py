@@ -95,14 +95,14 @@ def test_query_completes_under_2_seconds(weaviate_client):
                 uuid=uuid.uuid4(),
             )
 
-    assert muses_collection.aggregate.total_count()["total_count"] == n_vectors
+    assert muses_collection.aggregate.over_all(total_count=True).total_count == n_vectors
 
     # 2. Run clustering
     run_clustering(n_clusters=n_clusters)
 
     # Verify clustering completed
     centroid_collection = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
-    assert centroid_collection.aggregate.total_count()["total_count"] == n_clusters
+    assert centroid_collection.aggregate.over_all(total_count=True).total_count == n_clusters
 
     # 3. Performance test: Query for representative chunks
     node = GetClusterRepresentatives(client=weaviate_client)

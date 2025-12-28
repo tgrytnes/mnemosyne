@@ -73,14 +73,14 @@ def test_clustering_and_representation_pipeline(weaviate_client):
                 uuid=uuid.uuid4(),
             )
 
-    assert muses_collection.aggregate.total_count()["total_count"] == 10
+    assert muses_collection.aggregate.over_all(total_count=True).total_count == 10
 
     # 2. Run clustering
     run_clustering(n_clusters=2)
 
     # 3. Verify clustering results
     centroid_collection = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
-    assert centroid_collection.aggregate.total_count()["total_count"] == 2
+    assert centroid_collection.aggregate.over_all(total_count=True).total_count == 2
 
     # 4. Get representative chunks for a cluster
     node = GetClusterRepresentatives(client=weaviate_client)
