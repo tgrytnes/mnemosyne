@@ -88,8 +88,15 @@ class ClusterManager:
         """Calculate and store cluster centroids."""
         logger.info("Calculating and storing cluster centroids...")
 
-        # Clear existing centroids
-        self.centroid_collection.data.delete_many(where=None)
+        # Clear existing centroids by recreating the collection
+        if self.client.collections.exists(ClusterCentroidCollection.collection_name):
+            self.client.collections.delete(ClusterCentroidCollection.collection_name)
+        schema_manager = WeaviateSchemaManager(self.client)
+        schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+        # Refresh collection reference after recreation
+        self.centroid_collection = self.client.collections.get(
+            ClusterCentroidCollection.collection_name
+        )
 
         with self.centroid_collection.batch.dynamic() as batch:
             for i in range(len(centroids)):
