@@ -3,7 +3,6 @@ Unit tests for Obsidian Vault Ingestor (Layer 1: Input Processing)
 Tests Story 000: Obsidian Vault Ingestion
 """
 
-
 import pytest
 
 
@@ -99,7 +98,6 @@ class TestIngestionState:
         tmp_path / "state.db"
         # state = IngestionState(str(db_path))
 
-
         # state.mark_ingested(file_path, modified_time)
         # assert state.already_ingested(file_path, modified_time) is True
 
@@ -107,7 +105,6 @@ class TestIngestionState:
         """Test detection of modified files"""
         tmp_path / "state.db"
         # state = IngestionState(str(db_path))
-
 
         # state.mark_ingested(file_path, old_time)
         # assert state.already_ingested(file_path, new_time) is False

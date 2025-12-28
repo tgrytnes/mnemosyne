@@ -79,7 +79,6 @@ class TestClusterAnalysis:
         """Test similarity between clusters"""
         # from Argus.scout import calculate_cluster_similarity
 
-
         # similarity_12 = calculate_cluster_similarity(cluster1_embedding, cluster2_embedding)
         # similarity_13 = calculate_cluster_similarity(cluster1_embedding, cluster3_embedding)
 
@@ -111,7 +110,6 @@ class TestDiscoveryStorage:
         # from Argus.scout import DiscoveryDB
 
         # discovery_db = DiscoveryDB(weaviate_client=Mock())
-
 
         # discovery_id = discovery_db.store_discovery(discovery)
         # assert discovery_id is not None

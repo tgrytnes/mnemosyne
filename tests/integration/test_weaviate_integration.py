@@ -3,7 +3,6 @@ Integration tests for Weaviate operations
 Requires Weaviate to be running (docker-compose up weaviate)
 """
 
-
 import pytest
 
 
