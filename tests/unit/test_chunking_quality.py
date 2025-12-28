@@ -44,3 +44,30 @@ class TestChunkingQualityAnalyzer:
         assert min_size == 100
         assert max_size == 300
         assert std_size == pytest.approx(81.65, rel=0.01)  # Standard deviation
+
+    def test_compute_semantic_coherence_high(self):
+        """Test semantic coherence with similar vectors."""
+        chunks = ["similar text 1", "similar text 2", "similar text 3"]
+
+        # Create very similar vectors (high coherence)
+        base_vector = np.random.randn(384)
+        vectors = np.array([base_vector + np.random.randn(384) * 0.01 for _ in range(3)])
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        coherence = analyzer.compute_semantic_coherence()
+
+        # High similarity should yield high coherence
+        assert coherence > 0.8
+
+    def test_compute_semantic_coherence_low(self):
+        """Test semantic coherence with dissimilar vectors."""
+        chunks = ["text 1", "text 2", "text 3"]
+
+        # Create random dissimilar vectors (low coherence)
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        coherence = analyzer.compute_semantic_coherence()
+
+        # Random vectors should have low similarity
+        assert coherence < 0.5

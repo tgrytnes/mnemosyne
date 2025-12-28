@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 @dataclass
@@ -53,3 +54,22 @@ class ChunkingQualityAnalyzer:
         max_size = max(sizes)
 
         return avg_size, std_size, min_size, max_size
+
+    def compute_semantic_coherence(self) -> float:
+        """Compute semantic coherence (average pairwise cosine similarity).
+
+        Returns:
+            float: Average pairwise cosine similarity (0.0 to 1.0)
+        """
+        if self.n_chunks < 2:
+            return 0.0
+
+        # Compute pairwise cosine similarity matrix
+        sim_matrix = cosine_similarity(self.vectors)
+
+        # Get upper triangle (excluding diagonal)
+        triu_indices = np.triu_indices_from(sim_matrix, k=1)
+        similarities = sim_matrix[triu_indices]
+
+        # Return average similarity
+        return float(np.mean(similarities))
