@@ -9,9 +9,12 @@
 - [ ] Qwen3 integration with JSON mode enabled
 - [ ] Cluster Profile schema defined (using Pydantic)
 - [ ] Profile includes: theme summary, key entities, tags, confidence scores
-- [ ] Profiles stored in The Ananke (PostgreSQL registry)
-- [ ] Validation using Pydantic models from The Gates
-- [ ] Error handling for malformed JSON responses
+- [ ] Profiles stored in The Ananke (PostgreSQL registry) with a defined table name and unique constraint on `cluster_id`
+- [ ] Validation uses Pydantic models from The Gates (specify exact module path)
+- [ ] Error handling for malformed JSON responses (retry once, then log and mark profile as failed)
+- [ ] Success threshold: >= 95% of clusters produce valid profiles in a full run
+- [ ] Performance target: process 50 clusters in <= 5 minutes on RPi 5
+- [ ] Tests: unit tests for schema validation + integration test with mocked LLM JSON output
 
 ## Technical Notes
 
