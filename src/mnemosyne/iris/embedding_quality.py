@@ -7,11 +7,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 class EmbeddingQualityAnalyzer:
     """Analyzer for embedding quality metrics."""
 
-    def __init__(self, vectors: np.ndarray):
+    def __init__(self, vectors: np.ndarray, collapse_threshold: float = 0.95):
         """Initialize analyzer with embedding vectors.
 
         Args:
             vectors: 2D numpy array of shape (n_samples, n_dimensions)
+            collapse_threshold: Threshold for detecting embedding collapse (default: 0.95)
 
         Raises:
             ValueError: If vectors is not a 2D array
@@ -21,6 +22,7 @@ class EmbeddingQualityAnalyzer:
         self.vectors = vectors
         self.n_samples = vectors.shape[0]
         self.n_dimensions = vectors.shape[1]
+        self.collapse_threshold = collapse_threshold
 
     def compute_pairwise_similarity(self) -> tuple[float, float]:
         """Compute pairwise cosine similarity statistics.
@@ -59,3 +61,12 @@ class EmbeddingQualityAnalyzer:
         coverage = float(used_dims) / self.n_dimensions
 
         return coverage
+
+    def detect_embedding_collapse(self) -> bool:
+        """Detect if embeddings have collapsed (all vectors too similar).
+
+        Returns:
+            bool: True if average pairwise similarity exceeds collapse_threshold
+        """
+        mean_sim, _ = self.compute_pairwise_similarity()
+        return mean_sim > self.collapse_threshold

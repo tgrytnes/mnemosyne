@@ -64,3 +64,25 @@ class TestEmbeddingQualityAnalyzer:
 
         # Should detect low coverage (~20%)
         assert coverage < 0.3
+
+    def test_detect_embedding_collapse_positive(self):
+        """Test collapse detection with collapsed embeddings."""
+        # All vectors nearly identical (collapsed)
+        base_vector = np.random.randn(384)
+        vectors = np.tile(base_vector, (100, 1))
+        vectors += np.random.randn(100, 384) * 0.01  # Tiny noise
+
+        analyzer = EmbeddingQualityAnalyzer(vectors, collapse_threshold=0.95)
+        collapsed = analyzer.detect_embedding_collapse()
+
+        assert collapsed is True
+
+    def test_detect_embedding_collapse_negative(self):
+        """Test collapse detection with healthy embeddings."""
+        # Well-distributed random vectors
+        vectors = np.random.randn(100, 384)
+
+        analyzer = EmbeddingQualityAnalyzer(vectors, collapse_threshold=0.95)
+        collapsed = analyzer.detect_embedding_collapse()
+
+        assert collapsed is False
