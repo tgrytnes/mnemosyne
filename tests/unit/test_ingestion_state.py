@@ -187,7 +187,8 @@ class TestIngestionStateTracker:
         }
 
         needs_update = [
-            path for path, mod_time in actual_files.items()
+            path
+            for path, mod_time in actual_files.items()
             if not tracker.is_ingested(path, mod_time)
         ]
 

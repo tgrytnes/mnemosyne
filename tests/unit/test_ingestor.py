@@ -2,6 +2,7 @@
 Unit tests for Obsidian Vault Ingestor (Layer 1: Input Processing)
 Tests Story 000: Obsidian Vault Ingestion
 """
+
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -45,7 +46,8 @@ class TestMarkdownCleaning:
     def test_preserve_code_blocks(self, tmp_path):
         """Test that code blocks are preserved"""
         test_file = tmp_path / "code.md"
-        test_file.write_text("""# Code Example
+        test_file.write_text(
+            """# Code Example
 
 ```python
 def hello():
@@ -53,7 +55,8 @@ def hello():
 ```
 
 Regular [[link]] here.
-""")
+"""
+        )
 
         # Code blocks should be preserved
         # cleaned = ingestor.clean_markdown(test_file)

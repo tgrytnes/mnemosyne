@@ -2,6 +2,7 @@
 Unit tests for Gatekeepers (Layer 2: The Gates)
 Tests Story 002: Obsidian Gatekeeper and Story 014: SQL Project Gatekeeper
 """
+
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, MagicMock, patch

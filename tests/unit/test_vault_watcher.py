@@ -151,6 +151,7 @@ class TestVaultEventHandler:
 
     def test_error_handling_in_callback(self, event_handler):
         """Should handle errors in callback gracefully"""
+
         # GIVEN: Callback that raises error
         def failing_callback(path):
             raise ValueError("Test error")
@@ -182,10 +183,7 @@ class TestVaultWatcher:
     def test_initialization(self, temp_vault, mock_callback):
         """Should initialize with valid vault path"""
         # WHEN: Creating watcher
-        watcher = VaultWatcher(
-            vault_path=temp_vault,
-            on_file_change=mock_callback
-        )
+        watcher = VaultWatcher(vault_path=temp_vault, on_file_change=mock_callback)
 
         # THEN: Watcher configured correctly
         assert watcher.vault_path == Path(temp_vault)
@@ -197,10 +195,7 @@ class TestVaultWatcher:
         """Should raise error for nonexistent vault path"""
         # WHEN/THEN: Creating watcher with invalid path
         with pytest.raises(ValueError, match="does not exist"):
-            VaultWatcher(
-                vault_path="/nonexistent/path",
-                on_file_change=mock_callback
-            )
+            VaultWatcher(vault_path="/nonexistent/path", on_file_change=mock_callback)
 
     def test_initialization_with_file_path(self, temp_vault, mock_callback):
         """Should raise error if vault path is a file"""
@@ -210,10 +205,7 @@ class TestVaultWatcher:
 
         # WHEN/THEN: Creating watcher with file path
         with pytest.raises(ValueError, match="not a directory"):
-            VaultWatcher(
-                vault_path=str(file_path),
-                on_file_change=mock_callback
-            )
+            VaultWatcher(vault_path=str(file_path), on_file_change=mock_callback)
 
     def test_start_watcher(self, temp_vault, mock_callback):
         """Should start monitoring vault"""

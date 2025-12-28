@@ -118,7 +118,7 @@ class LinearSyncer:
         story_issues = {}
         for issue in issues:
             # Look for issues starting with "Story XXX:"
-            match = re.search(r'Story (\d+):', issue['title'])
+            match = re.search(r"Story (\d+):", issue["title"])
             if match:
                 story_num = int(match.group(1))
                 story_issues[story_num] = {
@@ -178,7 +178,11 @@ class LinearSyncer:
                 emoji = self.get_status_emoji(issue)
                 state = issue["state"]
                 identifier = issue["identifier"]
-                title = issue["title"].split(":")[1].strip() if ":" in issue["title"] else issue["title"]
+                title = (
+                    issue["title"].split(":")[1].strip()
+                    if ":" in issue["title"]
+                    else issue["title"]
+                )
 
                 # Truncate title if too long
                 if len(title) > 50:
@@ -194,7 +198,9 @@ class LinearSyncer:
         all_in_progress = sum(1 for i in issues.values() if i["state_type"] == "started")
         all_total = len(issues)
 
-        print(f"\n📈 Overall Progress: {all_completed}/{all_total} completed ({all_completed/all_total*100:.1f}%)")
+        print(
+            f"\n📈 Overall Progress: {all_completed}/{all_total} completed ({all_completed/all_total*100:.1f}%)"
+        )
         print(f"🔄 In Progress: {all_in_progress}")
         print(f"⬜ Not Started: {all_total - all_completed - all_in_progress}\n")
 
@@ -215,8 +221,8 @@ class LinearSyncer:
 
             # Find story header pattern in IMPLEMENTATION_PLAN.md
             # Pattern: - [ ] Story XXX: Title
-            pattern = rf'- \[ \] (Story {story_num:03d}:.*?)$'
-            replacement = rf'- {checkbox} \1'
+            pattern = rf"- \[ \] (Story {story_num:03d}:.*?)$"
+            replacement = rf"- {checkbox} \1"
 
             content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
 
@@ -241,7 +247,9 @@ class LinearSyncer:
 
 def main():
     parser = argparse.ArgumentParser(description="Sync Linear status to IMPLEMENTATION_PLAN.md")
-    parser.add_argument("--show-status", action="store_true", help="Show status summary only, don't update files")
+    parser.add_argument(
+        "--show-status", action="store_true", help="Show status summary only, don't update files"
+    )
     args = parser.parse_args()
 
     if not LINEAR_API_KEY:
@@ -281,6 +289,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

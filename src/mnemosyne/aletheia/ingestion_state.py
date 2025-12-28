@@ -33,22 +33,19 @@ class IngestionStateTracker:
 
     def _create_table(self) -> None:
         """Create ingested_files table if it doesn't exist"""
-        self.conn.execute("""
+        self.conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS ingested_files (
                 file_path TEXT PRIMARY KEY,
                 last_modified TIMESTAMP,
                 ingested_at TIMESTAMP,
                 chunk_count INTEGER
             )
-        """)
+        """
+        )
         self.conn.commit()
 
-    def mark_ingested(
-        self,
-        file_path: str,
-        modified_time: datetime,
-        chunk_count: int
-    ) -> None:
+    def mark_ingested(self, file_path: str, modified_time: datetime, chunk_count: int) -> None:
         """
         Mark file as ingested.
 
@@ -59,16 +56,19 @@ class IngestionStateTracker:
             modified_time: Last modification time of file
             chunk_count: Number of chunks created from file
         """
-        self.conn.execute("""
+        self.conn.execute(
+            """
             INSERT OR REPLACE INTO ingested_files
             (file_path, last_modified, ingested_at, chunk_count)
             VALUES (?, ?, ?, ?)
-        """, (
-            file_path,
-            modified_time.isoformat(),
-            datetime.now().isoformat(),
-            chunk_count,
-        ))
+        """,
+            (
+                file_path,
+                modified_time.isoformat(),
+                datetime.now().isoformat(),
+                chunk_count,
+            ),
+        )
         self.conn.commit()
 
     def is_ingested(self, file_path: str, modified_time: datetime) -> bool:
@@ -87,8 +87,7 @@ class IngestionStateTracker:
             True if file is up-to-date in database, False otherwise
         """
         result = self.conn.execute(
-            "SELECT last_modified FROM ingested_files WHERE file_path = ?",
-            (file_path,)
+            "SELECT last_modified FROM ingested_files WHERE file_path = ?", (file_path,)
         ).fetchone()
 
         if not result:
@@ -111,8 +110,7 @@ class IngestionStateTracker:
             Dict with file metadata, or None if not found
         """
         result = self.conn.execute(
-            "SELECT * FROM ingested_files WHERE file_path = ?",
-            (file_path,)
+            "SELECT * FROM ingested_files WHERE file_path = ?", (file_path,)
         ).fetchone()
 
         if not result:
@@ -153,10 +151,7 @@ class IngestionStateTracker:
         Args:
             file_path: Absolute path to file
         """
-        self.conn.execute(
-            "DELETE FROM ingested_files WHERE file_path = ?",
-            (file_path,)
-        )
+        self.conn.execute("DELETE FROM ingested_files WHERE file_path = ?", (file_path,))
         self.conn.commit()
 
     def clear_all(self) -> None:

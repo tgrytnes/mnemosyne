@@ -120,7 +120,7 @@ class TestTextChunker:
         # LangChain will split at ". " separator when possible, but not always
         # at the end of chunks due to overlap and size constraints
         assert len(chunks) > 1
-        chunks_ending_with_period = sum(1 for c in chunks if c.text.rstrip().endswith('.'))
+        chunks_ending_with_period = sum(1 for c in chunks if c.text.rstrip().endswith("."))
         # At least the last chunk should end with a period
         assert chunks_ending_with_period >= 1
 
@@ -179,9 +179,9 @@ Third paragraph with more information."""
         # THEN: Chunk has all required attributes
         chunk = chunks[0]
         assert isinstance(chunk, TextChunk)
-        assert hasattr(chunk, 'text')
-        assert hasattr(chunk, 'index')
-        assert hasattr(chunk, 'source_file')
+        assert hasattr(chunk, "text")
+        assert hasattr(chunk, "index")
+        assert hasattr(chunk, "source_file")
         assert chunk.text == text
         assert chunk.index == 0
         assert chunk.source_file == "test.md"

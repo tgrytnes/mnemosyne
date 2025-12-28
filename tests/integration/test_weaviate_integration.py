@@ -2,6 +2,7 @@
 Integration tests for Weaviate operations
 Requires Weaviate to be running (docker-compose up weaviate)
 """
+
 import pytest
 import weaviate
 from datetime import datetime
@@ -30,7 +31,9 @@ class TestWeaviateIngestion:
 
         assert weaviate_client.collections.exists("TheMuses_Test")
 
-    def test_insert_obsidian_chunks(self, weaviate_client, clean_weaviate_collection, sample_chunks):
+    def test_insert_obsidian_chunks(
+        self, weaviate_client, clean_weaviate_collection, sample_chunks
+    ):
         """Test inserting Obsidian chunks into TheMuses"""
         import weaviate.classes as wvc
 
@@ -120,7 +123,10 @@ class TestSemanticSearch:
 
         # Insert test data
         test_docs = [
-            ("Docker Compose is a tool for multi-container applications", [0.8, 0.2] + [0.0] * 1022),
+            (
+                "Docker Compose is a tool for multi-container applications",
+                [0.8, 0.2] + [0.0] * 1022,
+            ),
             ("Python is a programming language", [0.2, 0.8] + [0.0] * 1022),
             ("Kubernetes orchestrates Docker containers", [0.7, 0.3] + [0.0] * 1022),
         ]
@@ -130,9 +136,7 @@ class TestSemanticSearch:
                 batch.add_object(properties={"text": text}, vector=vector)
 
         # Query for Docker-related content
-        response = collection.query.near_vector(
-            near_vector=[0.8, 0.2] + [0.0] * 1022, limit=2
-        )
+        response = collection.query.near_vector(near_vector=[0.8, 0.2] + [0.0] * 1022, limit=2)
 
         # Should return Docker-related docs first
         assert len(response.objects) == 2

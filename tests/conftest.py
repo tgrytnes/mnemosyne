@@ -1,6 +1,7 @@
 """
 Shared pytest fixtures for Mnemosyne tests
 """
+
 import os
 import tempfile
 from datetime import datetime
@@ -15,6 +16,7 @@ import weaviate
 # ============================================================================
 # Configuration Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def test_config():
@@ -37,6 +39,7 @@ def test_config():
 # File System Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def temp_vault(tmp_path: Path) -> Generator[Path, None, None]:
     """Create a temporary Obsidian vault for testing"""
@@ -44,7 +47,8 @@ def temp_vault(tmp_path: Path) -> Generator[Path, None, None]:
     vault.mkdir()
 
     # Create sample notes
-    (vault / "note1.md").write_text("""---
+    (vault / "note1.md").write_text(
+        """---
 tags: [test, sample]
 ---
 # Test Note 1
@@ -53,21 +57,26 @@ This is a test note with [[note2]] link and #tag.
 
 ## Section
 Some content here.
-""")
+"""
+    )
 
-    (vault / "note2.md").write_text("""# Test Note 2
+    (vault / "note2.md").write_text(
+        """# Test Note 2
 
 This note is linked from [[note1]].
 
 It contains different content for testing chunking.
-""")
+"""
+    )
 
     # Create nested structure
     (vault / "subfolder").mkdir()
-    (vault / "subfolder" / "nested_note.md").write_text("""# Nested Note
+    (vault / "subfolder" / "nested_note.md").write_text(
+        """# Nested Note
 
 This tests directory structure handling.
-""")
+"""
+    )
 
     yield vault
 
@@ -84,7 +93,8 @@ def temp_shadow_vault(tmp_path: Path) -> Generator[Path, None, None]:
 def sample_markdown_file(tmp_path: Path) -> Path:
     """Create a sample markdown file for testing"""
     file_path = tmp_path / "sample.md"
-    file_path.write_text("""---
+    file_path.write_text(
+        """---
 title: Sample Document
 tags: [project, deadline]
 created: 2024-01-01
@@ -105,13 +115,15 @@ This is a sample document for testing.
 - Week 3: Testing
 
 This document has multiple sections for chunking tests.
-""")
+"""
+    )
     return file_path
 
 
 # ============================================================================
 # Weaviate Fixtures
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def weaviate_client(test_config):
@@ -162,6 +174,7 @@ def clean_weaviate_collection(weaviate_client):
 # PostgreSQL Fixtures
 # ============================================================================
 
+
 @pytest.fixture(scope="session")
 def postgres_connection(test_config):
     """
@@ -192,7 +205,8 @@ def ananke_test_db(postgres_connection):
     cursor = postgres_connection.cursor()
 
     # Create projects table
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS projects (
             id SERIAL PRIMARY KEY,
             title TEXT NOT NULL,
@@ -209,10 +223,12 @@ def ananke_test_db(postgres_connection):
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
-    """)
+    """
+    )
 
     # Create gatekeeper audit table
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS gatekeeper_audit (
             id SERIAL PRIMARY KEY,
             approval_id TEXT NOT NULL,
@@ -221,7 +237,8 @@ def ananke_test_db(postgres_connection):
             decided_at TIMESTAMP DEFAULT NOW(),
             decided_by TEXT DEFAULT 'telegram_user'
         )
-    """)
+    """
+    )
 
     postgres_connection.commit()
 
@@ -237,20 +254,17 @@ def ananke_test_db(postgres_connection):
 # Mock Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_ollama_client():
     """Mock Ollama client for unit tests"""
     client = Mock()
 
     # Mock embedding generation
-    client.embeddings.return_value = {
-        "embedding": [0.1] * 1024  # 1024-dimensional mock vector
-    }
+    client.embeddings.return_value = {"embedding": [0.1] * 1024}  # 1024-dimensional mock vector
 
     # Mock text generation
-    client.generate.return_value = {
-        "response": "Mocked LLM response"
-    }
+    client.generate.return_value = {"response": "Mocked LLM response"}
 
     return client
 
@@ -297,6 +311,7 @@ def mock_cluster():
 # ============================================================================
 # Data Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def sample_chunks():
@@ -350,10 +365,12 @@ Sender
 # Utility Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def freeze_time():
     """Import freezegun for time mocking"""
     from freezegun import freeze_time
+
     return freeze_time
 
 

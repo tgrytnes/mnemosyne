@@ -2,6 +2,7 @@
 Unit tests for Scout (Layer 3: Argus)
 Tests Story 010: Autonomous Pattern Detection
 """
+
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, MagicMock, patch
@@ -147,7 +148,7 @@ class TestDiscoveryStorage:
 class TestScoutScheduling:
     """Test Scout scheduled execution"""
 
-    @patch('time.sleep')
+    @patch("time.sleep")
     def test_nightly_scan_timing(self, mock_sleep, freeze_time):
         """Test Scout runs at scheduled time (3 AM)"""
         # from Argus.scout import ScoutScheduler

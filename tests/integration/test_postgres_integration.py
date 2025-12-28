@@ -2,6 +2,7 @@
 Integration tests for PostgreSQL (The Ananke)
 Requires PostgreSQL to be running
 """
+
 import pytest
 from datetime import datetime, timedelta
 

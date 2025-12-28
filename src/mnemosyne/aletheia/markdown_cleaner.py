@@ -39,32 +39,36 @@ class ObsidianMarkdownCleaner:
         text = markdown
 
         # Remove YAML frontmatter (---)
-        text = re.sub(r'^---\n.*?\n---\n', '', text, flags=re.DOTALL | re.MULTILINE)
+        text = re.sub(r"^---\n.*?\n---\n", "", text, flags=re.DOTALL | re.MULTILINE)
 
         # Remove ChatGPT plugin blocks (must be before general code block handling)
-        text = re.sub(r'```chatgpt[^`]*```', '', text, flags=re.DOTALL)
+        text = re.sub(r"```chatgpt[^`]*```", "", text, flags=re.DOTALL)
 
         # Remove embeds ![[...]] (must be before wiki-links)
-        text = re.sub(r'!\[\[([^\]]+)\]\]', '', text)
+        text = re.sub(r"!\[\[([^\]]+)\]\]", "", text)
 
         # Convert wiki-links [[...]] to plain text
         # Handle both [[link]] and [[link|alias]] formats
-        text = re.sub(r'\[\[([^\]|]+)(?:\|([^\]]+))?\]\]', lambda m: m.group(2) if m.group(2) else m.group(1), text)
+        text = re.sub(
+            r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]",
+            lambda m: m.group(2) if m.group(2) else m.group(1),
+            text,
+        )
 
         # Remove HTML tags
-        text = re.sub(r'<[^>]+>', '', text)
+        text = re.sub(r"<[^>]+>", "", text)
 
         # Remove Obsidian metadata (property::value)
-        text = re.sub(r'\b\w+::[^\n]+', '', text)
+        text = re.sub(r"\b\w+::[^\n]+", "", text)
 
         # Remove emoji markers
-        text = re.sub(r'📌|🎯|💡|⚡', '', text)
+        text = re.sub(r"📌|🎯|💡|⚡", "", text)
 
         # Normalize whitespace
         # Replace multiple spaces with single space
-        text = re.sub(r' +', ' ', text)
+        text = re.sub(r" +", " ", text)
         # Replace more than 2 newlines with 2 newlines
-        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
         # Strip leading/trailing whitespace
         text = text.strip()
 

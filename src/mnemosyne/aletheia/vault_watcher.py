@@ -57,17 +57,17 @@ class VaultEventHandler(FileSystemEventHandler):
 
     def _is_markdown_file(self, file_path: str) -> bool:
         """Check if file is a markdown file."""
-        return file_path.endswith('.md')
+        return file_path.endswith(".md")
 
     def _is_temp_file(self, file_path: str) -> bool:
         """Check if file is a temporary file that should be ignored."""
         path = Path(file_path)
         # Ignore hidden files, temp files, and Obsidian's workspace files
         return (
-            path.name.startswith('.') or
-            path.name.endswith('.tmp') or
-            path.name.endswith('~') or
-            '.obsidian' in path.parts
+            path.name.startswith(".")
+            or path.name.endswith(".tmp")
+            or path.name.endswith("~")
+            or ".obsidian" in path.parts
         )
 
     def on_created(self, event):
@@ -125,7 +125,9 @@ class VaultWatcher:
     ingest new/modified markdown files.
     """
 
-    def __init__(self, vault_path: str, on_file_change: Callable[[str], None], debounce_seconds: float = 2.0):
+    def __init__(
+        self, vault_path: str, on_file_change: Callable[[str], None], debounce_seconds: float = 2.0
+    ):
         """
         Initialize vault watcher.
 

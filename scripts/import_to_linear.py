@@ -35,31 +35,38 @@ STORY_FILES = [
     ("user-stories/phase-0-ingestion-hygiene/story-001-email-archive-ingestion.md", "Phase 0", 1),
     ("user-stories/phase-0-ingestion-hygiene/story-002-shadow-copy-hygiene.md", "Phase 0", 1),
     ("user-stories/phase-0-ingestion-hygiene/story-003-pdf-ocr-ingestion.md", "Phase 0", 2),
-
     # Phase 1: Semantic Extraction (Week 3-4)
     ("user-stories/phase-1-semantic-extraction/story-001-cluster-centroid-node.md", "Phase 1", 3),
-    ("user-stories/phase-1-semantic-extraction/story-002-structured-metadata-synthesis.md", "Phase 1", 3),
-    ("user-stories/phase-1-semantic-extraction/story-003-automated-graph-taxonomy.md", "Phase 1", 4),
-
+    (
+        "user-stories/phase-1-semantic-extraction/story-002-structured-metadata-synthesis.md",
+        "Phase 1",
+        3,
+    ),
+    (
+        "user-stories/phase-1-semantic-extraction/story-003-automated-graph-taxonomy.md",
+        "Phase 1",
+        4,
+    ),
     # Phase 2: Efficiency Engine (Week 5-6)
     ("user-stories/phase-2-efficiency-engine/story-004-checkpointed-knowledge.md", "Phase 2", 5),
     ("user-stories/phase-2-efficiency-engine/story-005-semantic-routing.md", "Phase 2", 5),
     ("user-stories/phase-2-efficiency-engine/story-006-delta-sync-node.md", "Phase 2", 6),
-
     # Phase 3: Showcase (Week 7)
     ("user-stories/phase-3-showcase/story-007-multi-turn-reasoning-loop.md", "Phase 3", 7),
     ("user-stories/phase-3-showcase/story-008-traceable-showcase.md", "Phase 3", 7),
     ("user-stories/phase-3-showcase/story-009-actionable-synthesis.md", "Phase 3", 7),
-
     # Phase 4: Latent Scout (Week 8-10)
     ("user-stories/phase-4-latent-scout/story-010-autonomous-pattern-detection.md", "Phase 4", 8),
     ("user-stories/phase-4-latent-scout/story-011-radar-vector-exploration.md", "Phase 4", 8),
-    ("user-stories/phase-4-latent-scout/story-012-proactive-insight-notifications.md", "Phase 4", 9),
+    (
+        "user-stories/phase-4-latent-scout/story-012-proactive-insight-notifications.md",
+        "Phase 4",
+        9,
+    ),
     ("user-stories/phase-4-latent-scout/story-013-discovery-feed-management.md", "Phase 4", 9),
     ("user-stories/phase-4-latent-scout/story-014-sql-project-gatekeeper.md", "Phase 4", 9),
     ("user-stories/phase-4-latent-scout/story-015-monitor-agent.md", "Phase 4", 10),
     ("user-stories/phase-4-latent-scout/story-016-project-manager-agent.md", "Phase 4", 10),
-
     # Phase 5: Vault Curation (Future)
     ("user-stories/phase-5-vault-curation/story-017-vault-curator-agent.md", "Phase 5", None),
     ("user-stories/phase-5-vault-curation/story-018-vault-editor-agent.md", "Phase 5", None),
@@ -168,11 +175,14 @@ class LinearImporter:
             }
         }
         """
-        data = self.graphql_query(mutation, {
-            "teamId": self.team_id,
-            "name": name,
-            "color": color,
-        })
+        data = self.graphql_query(
+            mutation,
+            {
+                "teamId": self.team_id,
+                "name": name,
+                "color": color,
+            },
+        )
         return data["issueLabelCreate"]["issueLabel"]["id"]
 
     def parse_story_file(self, file_path: Path) -> Dict:
@@ -180,18 +190,18 @@ class LinearImporter:
         content = file_path.read_text()
 
         # Extract story number from filename
-        story_match = re.search(r'story-(\d+)', file_path.name)
+        story_match = re.search(r"story-(\d+)", file_path.name)
         story_number = int(story_match.group(1)) if story_match else None
 
         # Extract title (first line with #)
-        title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+        title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
         title = title_match.group(1).strip() if title_match else file_path.stem
 
         # Extract user story (As a... I want... So that...)
         user_story_match = re.search(
-            r'\*\*As a\*\*\s+(.+?)\n\*\*I want\*\*\s+(.+?)\n\*\*So that\*\*\s+(.+)',
+            r"\*\*As a\*\*\s+(.+?)\n\*\*I want\*\*\s+(.+?)\n\*\*So that\*\*\s+(.+)",
             content,
-            re.DOTALL
+            re.DOTALL,
         )
 
         user_story = ""
@@ -201,17 +211,15 @@ class LinearImporter:
             user_story += f"**So that** {user_story_match.group(3).strip()}\n\n"
 
         # Extract acceptance criteria
-        ac_match = re.search(r'## Acceptance Criteria\s*\n((?:- \[ \].+\n?)+)', content, re.MULTILINE)
+        ac_match = re.search(
+            r"## Acceptance Criteria\s*\n((?:- \[ \].+\n?)+)", content, re.MULTILINE
+        )
         acceptance_criteria = ""
         if ac_match:
             acceptance_criteria = "## Acceptance Criteria\n" + ac_match.group(1)
 
         # Extract technical notes section
-        tech_notes_match = re.search(
-            r'## Technical Notes(.+?)(?=##|\Z)',
-            content,
-            re.DOTALL
-        )
+        tech_notes_match = re.search(r"## Technical Notes(.+?)(?=##|\Z)", content, re.DOTALL)
         technical_notes = tech_notes_match.group(0) if tech_notes_match else ""
 
         # Build description
@@ -222,7 +230,7 @@ class LinearImporter:
             description += "\n" + technical_notes[:2000]  # Limit length
 
         # Extract dependencies/related stories
-        related_match = re.findall(r'Story (\d+)', content)
+        related_match = re.findall(r"Story (\d+)", content)
         related_stories = [int(s) for s in related_match if int(s) != story_number]
 
         return {
@@ -259,12 +267,15 @@ class LinearImporter:
         }
         """
 
-        data = self.graphql_query(mutation, {
-            "teamId": self.team_id,
-            "title": title,
-            "description": description,
-            "labelIds": label_ids,
-        })
+        data = self.graphql_query(
+            mutation,
+            {
+                "teamId": self.team_id,
+                "title": title,
+                "description": description,
+                "labelIds": label_ids,
+            },
+        )
 
         issue = data["issueCreate"]["issue"]
         self.created_issues[story_number] = issue["id"]
@@ -288,10 +299,13 @@ class LinearImporter:
             }
             """
             try:
-                self.graphql_query(mutation, {
-                    "issueId": issue_id,
-                    "relatedIssueId": related_id,
-                })
+                self.graphql_query(
+                    mutation,
+                    {
+                        "issueId": issue_id,
+                        "relatedIssueId": related_id,
+                    },
+                )
             except Exception as e:
                 print(f"  ⚠ Failed to link issues: {e}")
 
@@ -364,7 +378,11 @@ class LinearImporter:
                 labels.append(self.label_ids["Argus"])
             if "routing" in title_lower or "query" in title_lower:
                 labels.append(self.label_ids["Iris"])
-            if "telegram" in title_lower or "manager" in title_lower or "notification" in title_lower:
+            if (
+                "telegram" in title_lower
+                or "manager" in title_lower
+                or "notification" in title_lower
+            ):
                 labels.append(self.label_ids["Hermes"])
 
             # Create issue
@@ -417,6 +435,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

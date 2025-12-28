@@ -56,7 +56,8 @@ class TestObsidianIngestionIntegration:
         vault_path.mkdir()
 
         # Create test markdown files
-        (vault_path / "note1.md").write_text("""---
+        (vault_path / "note1.md").write_text(
+            """---
 title: Python Testing
 tags: [python, testing]
 ---
@@ -73,9 +74,11 @@ Key points:
 - Write tests first (TDD)
 - Mock external dependencies
 - Aim for high coverage
-""")
+"""
+        )
 
-        (vault_path / "note2.md").write_text("""
+        (vault_path / "note2.md").write_text(
+            """
 # Machine Learning Basics
 
 Machine learning is a subset of artificial intelligence.
@@ -86,10 +89,12 @@ Common algorithms:
 3. Neural networks
 
 📌 Important: Always validate your models!
-""")
+"""
+        )
 
         (vault_path / "subdir").mkdir()
-        (vault_path / "subdir" / "note3.md").write_text("""
+        (vault_path / "subdir" / "note3.md").write_text(
+            """
 # Docker Containers
 
 Docker enables consistent development environments.
@@ -98,7 +103,8 @@ Commands:
 - docker build
 - docker run
 - docker compose
-""")
+"""
+        )
 
         return str(vault_path)
 
@@ -146,11 +152,12 @@ Commands:
         # GIVEN: Ollama client
         # WHEN: Listing models
         models = ollama_client.list()
-        model_names = [m['name'] for m in models['models']]
+        model_names = [m["name"] for m in models["models"]]
 
         # THEN: qwen3-embedding is available
-        assert any('qwen3-embedding' in name for name in model_names), \
-            "qwen3-embedding:0.6b model not found. Run: ollama pull qwen3-embedding:0.6b"
+        assert any(
+            "qwen3-embedding" in name for name in model_names
+        ), "qwen3-embedding:0.6b model not found. Run: ollama pull qwen3-embedding:0.6b"
 
     def test_create_weaviate_collection(self, weaviate_client):
         """Should create TheMuses collection"""
@@ -217,7 +224,7 @@ Commands:
         # Verify vector exists and has correct dimensions
         assert chunk.vector is not None
         # Weaviate returns vector as dict with 'default' key
-        vector = chunk.vector['default'] if isinstance(chunk.vector, dict) else chunk.vector
+        vector = chunk.vector["default"] if isinstance(chunk.vector, dict) else chunk.vector
         assert len(vector) == 1024  # qwen3-embedding dimension
 
     def test_ingest_entire_vault(self, ingestor):
@@ -266,18 +273,17 @@ Commands:
         query_embedding = ingestor._generate_embedding(query_text)
 
         # Search by vector
-        result = collection.query.near_vector(
-            near_vector=query_embedding,
-            limit=3
-        )
+        result = collection.query.near_vector(near_vector=query_embedding, limit=3)
 
         # THEN: Finds relevant chunks
         assert len(result.objects) > 0
 
         # Should find testing-related content
         top_result = result.objects[0]
-        assert "test" in top_result.properties["text"].lower() or \
-               "python" in top_result.properties["text"].lower()
+        assert (
+            "test" in top_result.properties["text"].lower()
+            or "python" in top_result.properties["text"].lower()
+        )
 
         print(f"Top result: {top_result.properties['text'][:100]}...")
 

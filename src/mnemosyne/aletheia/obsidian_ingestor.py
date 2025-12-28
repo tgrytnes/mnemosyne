@@ -119,7 +119,7 @@ class ObsidianIngestor:
         """
         try:
             # Read file
-            content = Path(file_path).read_text(encoding='utf-8')
+            content = Path(file_path).read_text(encoding="utf-8")
 
             # Clean markdown
             cleaned = self._clean_markdown(content)
@@ -141,14 +141,16 @@ class ObsidianIngestor:
                 embedding = self._generate_embedding(chunk.text)
 
                 # Store in Weaviate
-                self._store_chunk({
-                    "text": chunk.text,
-                    "source_file": chunk.source_file,
-                    "chunk_index": chunk.index,
-                    "source_type": "obsidian",
-                    "file_modified_at": datetime.fromtimestamp(os.path.getmtime(file_path)),
-                    "embedding": embedding,
-                })
+                self._store_chunk(
+                    {
+                        "text": chunk.text,
+                        "source_file": chunk.source_file,
+                        "chunk_index": chunk.index,
+                        "source_type": "obsidian",
+                        "file_modified_at": datetime.fromtimestamp(os.path.getmtime(file_path)),
+                        "embedding": embedding,
+                    }
+                )
 
             # Update state tracker
             mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
@@ -214,10 +216,7 @@ class ObsidianIngestor:
         Returns:
             1024-dimensional embedding vector
         """
-        response = self.ollama_client.embeddings(
-            model="qwen3-embedding:0.6b",
-            prompt=text
-        )
+        response = self.ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
         return response["embedding"]
 
     def _store_chunk(self, chunk_data: Dict[str, Any]) -> None:

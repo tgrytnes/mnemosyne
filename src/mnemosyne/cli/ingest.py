@@ -18,8 +18,7 @@ from ..aletheia.vault_watcher import VaultWatcher
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -29,15 +28,15 @@ class IngestionConfig:
 
     def __init__(self):
         """Load configuration from environment variables."""
-        self.vault_path = os.getenv('OBSIDIAN_VAULT_PATH')
-        self.weaviate_host = os.getenv('WEAVIATE_HTTP_HOST', 'localhost')
-        self.weaviate_port = int(os.getenv('WEAVIATE_HTTP_PORT', '8080'))
-        self.weaviate_grpc_port = int(os.getenv('WEAVIATE_GRPC_PORT', '50051'))
-        self.ollama_base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        self.state_db_path = os.getenv('INGESTION_STATE_DB', 'ingestion_state.db')
-        self.chunk_size = int(os.getenv('CHUNK_SIZE', '400'))
-        self.chunk_overlap = int(os.getenv('CHUNK_OVERLAP', '100'))
-        self.watch_debounce = float(os.getenv('WATCH_DEBOUNCE_SECONDS', '2.0'))
+        self.vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+        self.weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
+        self.weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
+        self.weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+        self.ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.state_db_path = os.getenv("INGESTION_STATE_DB", "ingestion_state.db")
+        self.chunk_size = int(os.getenv("CHUNK_SIZE", "400"))
+        self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "100"))
+        self.watch_debounce = float(os.getenv("WATCH_DEBOUNCE_SECONDS", "2.0"))
 
     def validate(self) -> bool:
         """
@@ -150,6 +149,7 @@ def ingest_once(vault_path: Optional[str] = None):
     except Exception as e:
         logger.error(f"Error during ingestion: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -186,7 +186,7 @@ def watch_vault(vault_path: Optional[str] = None):
             """Process a single file when it changes."""
             logger.info(f"\n{'=' * 60}")
             logger.info(f"Processing: {file_path}")
-            logger.info('=' * 60)
+            logger.info("=" * 60)
 
             try:
                 chunk_count = ingestor.ingest_file(file_path)
@@ -215,6 +215,7 @@ def watch_vault(vault_path: Optional[str] = None):
     except Exception as e:
         logger.error(f"Error during watching: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -224,7 +225,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Mnemosyne - Obsidian Vault Ingestion',
+        description="Mnemosyne - Obsidian Vault Ingestion",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -247,29 +248,23 @@ Environment Variables:
   CHUNK_SIZE              Chunk size in characters (default: 400)
   CHUNK_OVERLAP           Chunk overlap in characters (default: 100)
   WATCH_DEBOUNCE_SECONDS  Debounce time for file events (default: 2.0)
-        """
+        """,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # 'once' command
-    parser_once = subparsers.add_parser(
-        'once',
-        help='Ingest entire vault once (manual mode)'
-    )
+    parser_once = subparsers.add_parser("once", help="Ingest entire vault once (manual mode)")
     parser_once.add_argument(
-        '--vault-path',
-        help='Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)'
+        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
     )
 
     # 'watch' command
     parser_watch = subparsers.add_parser(
-        'watch',
-        help='Watch vault for changes and ingest automatically'
+        "watch", help="Watch vault for changes and ingest automatically"
     )
     parser_watch.add_argument(
-        '--vault-path',
-        help='Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)'
+        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
     )
 
     args = parser.parse_args()
@@ -278,11 +273,11 @@ Environment Variables:
         parser.print_help()
         sys.exit(1)
 
-    if args.command == 'once':
+    if args.command == "once":
         ingest_once(args.vault_path)
-    elif args.command == 'watch':
+    elif args.command == "watch":
         watch_vault(args.vault_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

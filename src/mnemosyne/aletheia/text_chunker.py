@@ -20,6 +20,7 @@ class TextChunk:
         index: Position in the original document (0-indexed)
         source_file: Path to the original file
     """
+
     text: str
     index: int
     source_file: str
@@ -58,10 +59,10 @@ class TextChunker:
             length_function=len,
             separators=[
                 "\n\n",  # Paragraphs (highest priority)
-                "\n",    # Lines
-                ". ",    # Sentences
-                " ",     # Words
-                "",      # Characters (fallback)
+                "\n",  # Lines
+                ". ",  # Sentences
+                " ",  # Words
+                "",  # Characters (fallback)
             ],
         )
 

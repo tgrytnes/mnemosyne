@@ -97,7 +97,9 @@ class TestObsidianIngestor:
         # THEN: File needs re-ingestion
         assert needs_ingestion
 
-    def test_process_single_file(self, ingestor, tmp_path, mock_state_tracker, mock_weaviate_client):
+    def test_process_single_file(
+        self, ingestor, tmp_path, mock_state_tracker, mock_weaviate_client
+    ):
         """Should process file through complete pipeline"""
         # GIVEN: Markdown file with Obsidian syntax
         file_path = tmp_path / "test.md"
@@ -148,8 +150,8 @@ Check [[link]] and ![[image.png]]"""
         assert len(chunks) > 1
         # Each chunk has metadata
         for chunk in chunks:
-            assert hasattr(chunk, 'text')
-            assert hasattr(chunk, 'index')
+            assert hasattr(chunk, "text")
+            assert hasattr(chunk, "index")
             assert chunk.source_file == "/vault/note.md"
 
     def test_generate_embedding(self, ingestor, mock_ollama_client):
@@ -244,8 +246,8 @@ Check [[link]] and ![[image.png]]"""
         call_args = mock_collection.data.insert.call_args_list
 
         for call in call_args:
-            properties = call[1]['properties']
-            assert properties['sourceType'] == 'obsidian'
+            properties = call[1]["properties"]
+            assert properties["sourceType"] == "obsidian"
 
     def test_error_handling_invalid_file(self, ingestor, tmp_path, mock_state_tracker):
         """Should handle errors gracefully and continue"""
