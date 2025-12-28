@@ -10,6 +10,7 @@ import pytest
 from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 
 
+@pytest.mark.unit
 class TestTextChunker:
     """Test text chunking for embedding generation"""
 

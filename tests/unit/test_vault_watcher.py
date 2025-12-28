@@ -14,6 +14,7 @@ from watchdog.events import DirCreatedEvent, FileCreatedEvent, FileModifiedEvent
 from src.mnemosyne.aletheia.vault_watcher import VaultEventHandler, VaultWatcher
 
 
+@pytest.mark.unit
 class TestVaultEventHandler:
     """Test vault event handler"""
 
@@ -166,6 +167,7 @@ class TestVaultEventHandler:
         event_handler.on_created(event)  # Should log error but not raise
 
 
+@pytest.mark.unit
 class TestVaultWatcher:
     """Test vault watcher"""
 

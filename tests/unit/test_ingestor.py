@@ -7,6 +7,7 @@ import pytest
 
 pytest.skip("Use integration/e2e ingestion tests with real services.", allow_module_level=True)
 
+
 @pytest.mark.unit
 class TestMarkdownCleaning:
     """Test markdown cleaning functionality"""

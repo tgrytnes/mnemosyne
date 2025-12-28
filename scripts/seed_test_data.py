@@ -75,7 +75,9 @@ def main() -> int:
     )
 
     stats = ingestor.ingest_vault()
-    print(f"Seeded TheMuses with {stats['total_chunks']} chunks from {stats['files_processed']} files")
+    print(
+        f"Seeded TheMuses with {stats['total_chunks']} chunks from {stats['files_processed']} files"
+    )
 
     state_tracker.close()
     weaviate_client.close()

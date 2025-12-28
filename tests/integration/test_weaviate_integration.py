@@ -136,9 +136,9 @@ class TestSemanticSearch:
 
         with collection.batch.dynamic() as batch:
             for text in test_docs:
-                embedding = ollama_client.embeddings(
-                    model="qwen3-embedding:0.6b", prompt=text
-                )["embedding"]
+                embedding = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)[
+                    "embedding"
+                ]
                 batch.add_object(properties={"text": text}, vector=embedding)
 
         # Query for Docker-related content
@@ -167,9 +167,9 @@ def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollam
         ],
     )
 
-    base_embedding = ollama_client.embeddings(
-        model="qwen3-embedding:0.6b", prompt="Test document"
-    )["embedding"]
+    base_embedding = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test document")[
+        "embedding"
+    ]
 
     # Insert 1000 documents
     num_docs = 1000
