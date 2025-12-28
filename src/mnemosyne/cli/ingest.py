@@ -205,7 +205,9 @@ def re_ingest_vault(vault_path: str | None = None, force: bool = False):
         logger.info(f"Files skipped: {stats['files_skipped']}")
         logger.info(f"Total chunks created: {stats['total_chunks']}")
         logger.info("=" * 60)
-        logger.info("\n✓ All chunks now include structure metadata (headingPath, headingLevel, sectionTitle)")
+        logger.info(
+            "\n✓ All chunks now include structure metadata (headingPath, headingLevel, sectionTitle)"
+        )
 
         # Cleanup
         ingestor.state_tracker.close()

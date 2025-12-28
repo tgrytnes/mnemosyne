@@ -48,21 +48,30 @@ class TestStructurePreservationValidation:
     ):
         """Test simple document achieves 100% structure preservation."""
         # GIVEN: Document with clear heading structure and enough content for multiple chunks
-        markdown_content = """# Main Topic
+        markdown_content = (
+            """# Main Topic
 
-Content under main topic. """ + "More content here. " * 50 + """
+Content under main topic. """
+            + "More content here. " * 50
+            + """
 
 ## Section One
 
-First section content. """ + "Additional text here. " * 50 + """
+First section content. """
+            + "Additional text here. " * 50
+            + """
 
 ## Section Two
 
-Second section content. """ + "Even more text here. " * 50 + """
+Second section content. """
+            + "Even more text here. " * 50
+            + """
 
 ### Subsection
 
-Nested content here. """ + "Final content block. " * 50
+Nested content here. """
+            + "Final content block. " * 50
+        )
 
         test_file = tmp_path / "simple.md"
         test_file.write_text(markdown_content)
@@ -97,53 +106,78 @@ Nested content here. """ + "Final content block. " * 50
     ):
         """Test complex document achieves >95% structure preservation."""
         # GIVEN: Complex document with multiple levels and enough content
-        markdown_content = """# Python Development Guide
+        markdown_content = (
+            """# Python Development Guide
 
-Introduction to Python development. """ + "Learn Python basics. " * 50 + """
+Introduction to Python development. """
+            + "Learn Python basics. " * 50
+            + """
 
 ## Setup
 
-How to set up your environment. """ + "Setup instructions. " * 50 + """
+How to set up your environment. """
+            + "Setup instructions. " * 50
+            + """
 
 ### Virtual Environments
 
-Use venv or virtualenv. """ + "Virtual env details. " * 50 + """
+Use venv or virtualenv. """
+            + "Virtual env details. " * 50
+            + """
 
 ### Package Management
 
-Use pip or poetry. """ + "Package management tips. " * 50 + """
+Use pip or poetry. """
+            + "Package management tips. " * 50
+            + """
 
 ## Best Practices
 
-Follow these guidelines. """ + "Best practice details. " * 50 + """
+Follow these guidelines. """
+            + "Best practice details. " * 50
+            + """
 
 ### Code Style
 
-Use PEP 8 formatting. """ + "Code style guidelines. " * 50 + """
+Use PEP 8 formatting. """
+            + "Code style guidelines. " * 50
+            + """
 
 ### Testing
 
-Write comprehensive tests. """ + "Testing strategies. " * 50 + """
+Write comprehensive tests. """
+            + "Testing strategies. " * 50
+            + """
 
 #### Unit Tests
 
-Test individual functions. """ + "Unit testing details. " * 50 + """
+Test individual functions. """
+            + "Unit testing details. " * 50
+            + """
 
 #### Integration Tests
 
-Test component interactions. """ + "Integration testing details. " * 50 + """
+Test component interactions. """
+            + "Integration testing details. " * 50
+            + """
 
 ## Advanced Topics
 
-Deep dive into advanced features. """ + "Advanced concepts. " * 50 + """
+Deep dive into advanced features. """
+            + "Advanced concepts. " * 50
+            + """
 
 ### Async Programming
 
-Using asyncio effectively. """ + "Async programming guide. " * 50 + """
+Using asyncio effectively. """
+            + "Async programming guide. " * 50
+            + """
 
 ### Type Hints
 
-Static type checking with mypy. """ + "Type hints tutorial. " * 50
+Static type checking with mypy. """
+            + "Type hints tutorial. " * 50
+        )
 
         test_file = tmp_path / "complex.md"
         test_file.write_text(markdown_content)
@@ -194,41 +228,60 @@ Static type checking with mypy. """ + "Type hints tutorial. " * 50
     ):
         """Test large document with lots of content achieves >95% preservation."""
         # GIVEN: Large document with multiple chunks per section
-        markdown_content = """# Machine Learning Fundamentals
+        markdown_content = (
+            """# Machine Learning Fundamentals
 
-""" + "Introduction to machine learning concepts. " * 50 + """
+"""
+            + "Introduction to machine learning concepts. " * 50
+            + """
 
 ## Supervised Learning
 
-""" + "Supervised learning uses labeled data. " * 100 + """
+"""
+            + "Supervised learning uses labeled data. " * 100
+            + """
 
 ### Classification
 
-""" + "Classification predicts discrete categories. " * 100 + """
+"""
+            + "Classification predicts discrete categories. " * 100
+            + """
 
 #### Decision Trees
 
-""" + "Decision trees split data recursively. " * 80 + """
+"""
+            + "Decision trees split data recursively. " * 80
+            + """
 
 #### Neural Networks
 
-""" + "Neural networks learn complex patterns. " * 80 + """
+"""
+            + "Neural networks learn complex patterns. " * 80
+            + """
 
 ### Regression
 
-""" + "Regression predicts continuous values. " * 100 + """
+"""
+            + "Regression predicts continuous values. " * 100
+            + """
 
 ## Unsupervised Learning
 
-""" + "Unsupervised learning finds patterns in unlabeled data. " * 100 + """
+"""
+            + "Unsupervised learning finds patterns in unlabeled data. " * 100
+            + """
 
 ### Clustering
 
-""" + "Clustering groups similar data points. " * 100 + """
+"""
+            + "Clustering groups similar data points. " * 100
+            + """
 
 ### Dimensionality Reduction
 
-""" + "Reducing feature space while preserving information. " * 80
+"""
+            + "Reducing feature space while preserving information. " * 80
+        )
 
         test_file = tmp_path / "large.md"
         test_file.write_text(markdown_content)
@@ -284,41 +337,54 @@ Static type checking with mypy. """ + "Type hints tutorial. " * 50
 
 ## Section A
 
-Content here. """ + "More text. " * 50 + """
+Content here. """
+            + "More text. " * 50
+            + """
 
 ## Section B
 
-More content. """ + "Additional text. " * 50,
+More content. """
+            + "Additional text. " * 50,
             "doc2.md": """# Doc Two
 
 ## Introduction
 
 ### Background
 
-Context here. """ + "More context. " * 50 + """
+Context here. """
+            + "More context. " * 50
+            + """
 
 ## Methods
 
-Details here. """ + "More details. " * 50,
+Details here. """
+            + "More details. " * 50,
             "doc3.md": """# Doc Three
 
 ## Overview
 
 ### Goal One
 
-Goal one details. """ + "More goal one. " * 30 + """
+Goal one details. """
+            + "More goal one. " * 30
+            + """
 
 ### Goal Two
 
-Goal two details. """ + "More goal two. " * 30 + """
+Goal two details. """
+            + "More goal two. " * 30
+            + """
 
 ### Goal Three
 
-Goal three details. """ + "More goal three. " * 30 + """
+Goal three details. """
+            + "More goal three. " * 30
+            + """
 
 ## Conclusion
 
-Final thoughts. """ + "Concluding remarks. " * 30,
+Final thoughts. """
+            + "Concluding remarks. " * 30,
         }
 
         all_expected_headings = []

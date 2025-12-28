@@ -14,9 +14,7 @@ class TestHeadingNode:
 
     def test_heading_node_creation(self):
         """Test creating a HeadingNode."""
-        node = HeadingNode(
-            level=1, title="Main Heading", start_pos=0, end_pos=100, children=[]
-        )
+        node = HeadingNode(level=1, title="Main Heading", start_pos=0, end_pos=100, children=[])
 
         assert node.level == 1
         assert node.title == "Main Heading"
@@ -26,9 +24,7 @@ class TestHeadingNode:
 
     def test_heading_node_with_children(self):
         """Test HeadingNode with child nodes."""
-        child = HeadingNode(
-            level=2, title="Child Heading", start_pos=50, end_pos=100, children=[]
-        )
+        child = HeadingNode(level=2, title="Child Heading", start_pos=50, end_pos=100, children=[])
         parent = HeadingNode(
             level=1, title="Parent Heading", start_pos=0, end_pos=100, children=[child]
         )
@@ -42,9 +38,7 @@ class TestDocumentStructure:
 
     def test_document_structure_creation(self):
         """Test creating a DocumentStructure."""
-        root = HeadingNode(
-            level=0, title="Root", start_pos=0, end_pos=200, children=[]
-        )
+        root = HeadingNode(level=0, title="Root", start_pos=0, end_pos=200, children=[])
         structure = DocumentStructure(root=root, heading_map={})
 
         assert structure.root.title == "Root"
@@ -52,12 +46,8 @@ class TestDocumentStructure:
 
     def test_get_heading_at_pos(self):
         """Test finding heading at specific position."""
-        child = HeadingNode(
-            level=2, title="Section", start_pos=50, end_pos=150, children=[]
-        )
-        root = HeadingNode(
-            level=1, title="Main", start_pos=0, end_pos=200, children=[child]
-        )
+        child = HeadingNode(level=2, title="Section", start_pos=50, end_pos=150, children=[])
+        root = HeadingNode(level=1, title="Main", start_pos=0, end_pos=200, children=[child])
         heading_map = {0: root, 50: child}
         structure = DocumentStructure(root=root, heading_map=heading_map)
 
@@ -74,9 +64,7 @@ class TestDocumentStructure:
         child = HeadingNode(
             level=2, title="Section", start_pos=50, end_pos=150, children=[grandchild]
         )
-        root = HeadingNode(
-            level=1, title="Main", start_pos=0, end_pos=200, children=[child]
-        )
+        root = HeadingNode(level=1, title="Main", start_pos=0, end_pos=200, children=[child])
         heading_map = {0: root, 50: child, 100: grandchild}
         structure = DocumentStructure(root=root, heading_map=heading_map)
 
@@ -94,9 +82,7 @@ class TestDocumentStructure:
         child = HeadingNode(
             level=2, title="Section", start_pos=50, end_pos=150, children=[grandchild]
         )
-        root = HeadingNode(
-            level=1, title="Main", start_pos=0, end_pos=200, children=[child]
-        )
+        root = HeadingNode(level=1, title="Main", start_pos=0, end_pos=200, children=[child])
         structure = DocumentStructure(root=root, heading_map={})
 
         path = structure.get_heading_path(grandchild)

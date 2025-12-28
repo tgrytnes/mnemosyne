@@ -153,17 +153,24 @@ See also [[Another Note|with alias]]."""
     ):
         """Test chunks are assigned to their parent headings."""
         # GIVEN: Document with clear sections and enough content for multiple chunks
-        markdown_content = """# Main
+        markdown_content = (
+            """# Main
 
-Content under main heading. """ + "More content. " * 100 + """
+Content under main heading. """
+            + "More content. " * 100
+            + """
 
 ## Section One
 
-First section content here. """ + "Additional content. " * 100 + """
+First section content here. """
+            + "Additional content. " * 100
+            + """
 
 ## Section Two
 
-Second section content here. """ + "Even more content. " * 100
+Second section content here. """
+            + "Even more content. " * 100
+        )
 
         test_file = tmp_path / "sections.md"
         test_file.write_text(markdown_content)
@@ -199,17 +206,24 @@ Second section content here. """ + "Even more content. " * 100
     ):
         """Test deeply nested heading structures are preserved."""
         # GIVEN: Document with 3-level nesting and enough content
-        markdown_content = """# Level 1
+        markdown_content = (
+            """# Level 1
 
-Content at level 1. """ + "More text. " * 50 + """
+Content at level 1. """
+            + "More text. " * 50
+            + """
 
 ## Level 2
 
-Content at level 2. """ + "Additional text. " * 50 + """
+Content at level 2. """
+            + "Additional text. " * 50
+            + """
 
 ### Level 3
 
-Content at level 3 (deepest). """ + "Even more text. " * 50
+Content at level 3 (deepest). """
+            + "Even more text. " * 50
+        )
 
         test_file = tmp_path / "nested.md"
         test_file.write_text(markdown_content)
@@ -287,9 +301,7 @@ Content at level 3 (deepest). """ + "Even more text. " * 50
         # Should have at least some non-zero levels
         assert any(level > 0 for level in heading_levels)
 
-    def test_document_without_headings(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
-    ):
+    def test_document_without_headings(self, tmp_path, mock_weaviate_client, mock_ollama_client):
         """Test documents without headings get default metadata."""
         # GIVEN: Plain text without headings
         markdown_content = "Just plain content without any structure or headings."

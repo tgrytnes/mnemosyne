@@ -32,6 +32,7 @@ class DocumentStructure:
         Returns:
             HeadingNode: Deepest heading containing this position, or None
         """
+
         def find_deepest(node: HeadingNode) -> Optional[HeadingNode]:
             """Recursively find the deepest node containing pos."""
             if not (node.start_pos <= pos < node.end_pos):
@@ -57,6 +58,7 @@ class DocumentStructure:
         Returns:
             str: Path like "# Main > ## Section > ### Subsection"
         """
+
         def find_path(node: HeadingNode, target: HeadingNode, path: List[str]) -> bool:
             """Recursively find path to target node."""
             # Format heading with # symbols
@@ -125,7 +127,9 @@ class StructureExtractor:
                 end_pos = len(markdown)
 
             # Create node
-            node = HeadingNode(level=level, title=title, start_pos=start_pos, end_pos=end_pos, children=[])
+            node = HeadingNode(
+                level=level, title=title, start_pos=start_pos, end_pos=end_pos, children=[]
+            )
             heading_map[start_pos] = node
 
             # Find parent by popping stack until we find a lower level

@@ -296,9 +296,7 @@ Content at position 80-110."""
         structure = extractor.extract_structure(text)
 
         # WHEN: Chunking with structure
-        chunks = chunker.chunk_with_structure(
-            text=text, source_file="test.md", structure=structure
-        )
+        chunks = chunker.chunk_with_structure(text=text, source_file="test.md", structure=structure)
 
         # THEN: Chunks have empty/null heading metadata
         assert len(chunks) == 1
@@ -309,17 +307,22 @@ Content at position 80-110."""
     def test_chunk_with_structure_nested_headings(self, chunker, extractor):
         """Should handle nested heading hierarchies"""
         # GIVEN: Document with nested headings and enough content to create multiple chunks
-        markdown = """# Main
+        markdown = (
+            """# Main
 
 Content at the main level. This needs to be long enough to potentially span chunks.
 
 ## Section
 
-More content under section. Let's add more text here to make it realistic. """ + "More text. " * 50 + """
+More content under section. Let's add more text here to make it realistic. """
+            + "More text. " * 50
+            + """
 
 ### Subsection
 
-Even more content under subsection. """ + "Additional content. " * 50
+Even more content under subsection. """
+            + "Additional content. " * 50
+        )
 
         structure = extractor.extract_structure(markdown)
         cleaned_text = markdown

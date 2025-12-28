@@ -49,7 +49,9 @@ class TestStory020EndToEnd:
             client.embeddings(model="qwen3-embedding:0.6b", prompt="test")
             return client
         except Exception as e:
-            pytest.fail(f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!")
+            pytest.fail(
+                f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
+            )
 
     @pytest.fixture
     def test_vault(self, tmp_path):
@@ -59,7 +61,8 @@ class TestStory020EndToEnd:
 
         # Create test document with clear heading structure
         doc1 = vault / "python_guide.md"
-        doc1.write_text("""# Python Development Guide
+        doc1.write_text(
+            """# Python Development Guide
 
 Introduction to Python development best practices.
 
@@ -69,11 +72,15 @@ Learn how to set up your development environment.
 
 ### Virtual Environments
 
-Use venv or virtualenv to isolate dependencies. """ + "More details about virtual environments. " * 30 + """
+Use venv or virtualenv to isolate dependencies. """
+            + "More details about virtual environments. " * 30
+            + """
 
 ### Package Management
 
-Use pip or poetry for managing packages. """ + "Package management best practices. " * 30 + """
+Use pip or poetry for managing packages. """
+            + "Package management best practices. " * 30
+            + """
 
 ## Testing Strategies
 
@@ -81,11 +88,15 @@ Comprehensive testing is essential.
 
 ### Unit Testing
 
-Test individual functions in isolation. """ + "Unit testing guidelines. " * 30 + """
+Test individual functions in isolation. """
+            + "Unit testing guidelines. " * 30
+            + """
 
 ### Integration Testing
 
-Test component interactions. """ + "Integration testing approaches. " * 30)
+Test component interactions. """
+            + "Integration testing approaches. " * 30
+        )
 
         return vault
 
@@ -96,10 +107,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
     def test_real_ollama_connection(self, ollama_client):
         """REAL TEST: Verify Ollama is accessible."""
         # This should not raise an exception
-        result = ollama_client.embeddings(
-            model="qwen3-embedding:0.6b",
-            prompt="Test connection"
-        )
+        result = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test connection")
         assert "embedding" in result
         assert len(result["embedding"]) == 1024
 
@@ -126,14 +134,10 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
 
         # Query chunks with heading metadata
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("headingPath").like("*Python*"),
-            limit=10
+            filters=Filter.by_property("headingPath").like("*Python*"), limit=10
         )
 
-        chunks_with_headings = [
-            obj for obj in results.objects
-            if obj.properties.get("headingPath")
-        ]
+        chunks_with_headings = [obj for obj in results.objects if obj.properties.get("headingPath")]
 
         # CRITICAL: Must have chunks with heading metadata
         assert len(chunks_with_headings) > 0
@@ -150,9 +154,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
                 assert props["headingLevel"] > 0
                 assert props["sectionTitle"]
 
-    def test_real_structure_preservation_score(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_structure_preservation_score(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify >95% structure preservation with real data."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
@@ -178,8 +180,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
         # WHEN: Querying all chunks from Weaviate
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*python_guide.md"),
-            limit=100
+            filters=Filter.by_property("sourceFile").like("*python_guide.md"), limit=100
         )
 
         # Convert to format expected by analyzer
@@ -196,9 +197,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
         )
         assert metrics.heading_depth_accuracy >= 0.95
 
-    def test_real_query_by_heading_path(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_query_by_heading_path(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify we can query chunks by heading path."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
@@ -211,8 +210,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
         # WHEN: Querying for specific section
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("headingPath").like("*Testing Strategies*"),
-            limit=10
+            filters=Filter.by_property("headingPath").like("*Testing Strategies*"), limit=10
         )
 
         # THEN: Should find chunks under that section
@@ -222,9 +220,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
             props = obj.properties
             assert "Testing Strategies" in props.get("headingPath", "")
 
-    def test_real_nested_heading_queries(
-        self, test_vault, weaviate_client, ollama_client
-    ):
+    def test_real_nested_heading_queries(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify nested heading path queries work correctly."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
@@ -238,8 +234,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
 
         # WHEN: Querying for top-level section
         top_level_results = collection.query.fetch_objects(
-            filters=Filter.by_property("headingPath").like("*Setup Instructions*"),
-            limit=20
+            filters=Filter.by_property("headingPath").like("*Setup Instructions*"), limit=20
         )
 
         # THEN: Should find chunks under "Setup Instructions" and its subsections
@@ -247,8 +242,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
 
         # WHEN: Querying for nested subsection
         nested_results = collection.query.fetch_objects(
-            filters=Filter.by_property("headingPath").like("*Virtual Environments*"),
-            limit=10
+            filters=Filter.by_property("headingPath").like("*Virtual Environments*"), limit=10
         )
 
         # THEN: Should find chunks specifically under "Virtual Environments"
@@ -263,8 +257,7 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
 
         # WHEN: Querying by heading level (only top-level headings)
         level1_results = collection.query.fetch_objects(
-            filters=Filter.by_property("headingLevel").equal(1),
-            limit=10
+            filters=Filter.by_property("headingLevel").equal(1), limit=10
         )
 
         # THEN: Should only find chunks directly under level 1 headings
@@ -278,6 +271,4 @@ Test component interactions. """ + "Integration testing approaches. " * 30)
         collection = weaviate_client.collections.get("TheMuses")
 
         # Delete all chunks from test vault
-        collection.data.delete_many(
-            where=Filter.by_property("sourceFile").like("*/test_vault/*")
-        )
+        collection.data.delete_many(where=Filter.by_property("sourceFile").like("*/test_vault/*"))
