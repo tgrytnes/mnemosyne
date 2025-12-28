@@ -29,16 +29,16 @@
 **See [SYSTEM_ARCHITECTURE.md](../SYSTEM_ARCHITECTURE.md) for complete system architecture.**
 
 ## Acceptance Criteria
-- [ ] The Ingestor watcher monitors Obsidian vault directory for changes
-- [ ] New/modified markdown files are detected within 1 minute
-- [ ] Files are cleaned (YAML frontmatter, wiki-links, HTML removed)
-- [ ] Cleaned content is chunked (400 chars with 100-char overlap)
-- [ ] Each chunk is embedded using Ollama (qwen3-embedding:0.6b)
-- [ ] Chunks stored ONLY in Weaviate collection "TheMuses" (NOT The Lethe)
-- [ ] Each chunk tagged with sourceType: "obsidian"
-- [ ] Handles 300+ files without performance degradation
-- [ ] Incremental updates: only changed files re-processed
-- [ ] Ingestion state persisted (avoid re-processing on restart)
+- [x] The Ingestor watcher monitors Obsidian vault directory for changes
+- [x] New/modified markdown files are detected within 1 minute
+- [x] Files are cleaned (YAML frontmatter, wiki-links, HTML removed)
+- [x] Cleaned content is chunked (400 chars with 100-char overlap)
+- [x] Each chunk is embedded using Ollama (qwen3-embedding:0.6b)
+- [x] Chunks stored ONLY in Weaviate collection "TheMuses" (NOT The Lethe)
+- [x] Each chunk tagged with sourceType: "obsidian"
+- [x] Handles 300+ files without performance degradation
+- [x] Incremental updates: only changed files re-processed
+- [x] Ingestion state persisted (avoid re-processing on restart)
 
 ## Technical Notes
 

@@ -1,0 +1,80 @@
+{
+  "queries": [
+    {
+      "id": "q001",
+      "query": "What are the core components of the Mnemosyne system?",
+      "relevant_docs": [
+        "projects/mnemosyne_design.md"
+      ]
+    },
+    {
+      "id": "q002",
+      "query": "Python testing and code quality best practices",
+      "relevant_docs": [
+        "reference/python_best_practices.md"
+      ]
+    },
+    {
+      "id": "q003",
+      "query": "Smart home automation project ideas with Raspberry Pi",
+      "relevant_docs": [
+        "projects/smart_home_automation.md"
+      ]
+    },
+    {
+      "id": "q004",
+      "query": "Machine learning experiments and semantic chunking research",
+      "relevant_docs": [
+        "projects/machine_learning_experiments.md",
+        "edge_cases/very_long_document.md"
+      ]
+    },
+    {
+      "id": "q005",
+      "query": "Cognitive biases and decision making from psychology books",
+      "relevant_docs": [
+        "reference/book_notes_thinking_fast_slow.md"
+      ]
+    },
+    {
+      "id": "q006",
+      "query": "What were my goals and reflections for 2023?",
+      "relevant_docs": [
+        "personal/annual_review_2023.md"
+      ]
+    },
+    {
+      "id": "q007",
+      "query": "Meeting notes about Q1 planning and priorities",
+      "relevant_docs": [
+        "quick_notes/meeting_2024_01_planning.md",
+        "daily_notes/2024-01-16.md"
+      ]
+    },
+    {
+      "id": "q008",
+      "query": "Ideas about knowledge management and second brain systems",
+      "relevant_docs": [
+        "daily_notes/2024-01-15.md",
+        "projects/mnemosyne_design.md",
+        "personal/dream_journal.md"
+      ]
+    },
+    {
+      "id": "q009",
+      "query": "What projects did I abandon and what lessons did I learn?",
+      "relevant_docs": [
+        "archived/old_project_idea.md",
+        "personal/annual_review_2023.md"
+      ]
+    },
+    {
+      "id": "q010",
+      "query": "Ollama and local LLM model usage",
+      "relevant_docs": [
+        "projects/mnemosyne_design.md",
+        "projects/machine_learning_experiments.md"
+      ]
+    }
+  ]
+}

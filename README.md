@@ -72,12 +72,12 @@ Layer 1: Aletheia        (Input Processing)
 
 **Current Phase**: Phase 0 - Ingestion & Hygiene (Week 1-2)
 
-- [ ] Story 000: Obsidian Vault Ingestion
+- [x] Story 000: Obsidian Vault Ingestion ✅
 - [ ] Story 001: Email Archive Ingestion
 - [ ] Story 002: Shadow Copy & Hygiene
 - [ ] Story 003: PDF/OCR Ingestion
 
-**Progress**: 0/18 stories completed (0%)
+**Progress**: 1/21 stories completed (5%) | 8/178 story points (4%)
 
 Track progress: https://linear.app/project-mnemosyne
 
@@ -148,7 +148,7 @@ make services-down
 ### Additional
 - **[Linear Integration](docs/LINEAR_INTEGRATION.md)** - Project management sync
 - **[System Architecture](user-stories/SYSTEM_ARCHITECTURE.md)** - Detailed architecture
-- **[User Stories](user-stories/STORY_INDEX.md)** - All 18 stories indexed
+- **[User Stories](user-stories/STORY_INDEX.md)** - All 21 stories indexed
 
 ## Technology Stack
 

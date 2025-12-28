@@ -3,6 +3,11 @@
 # Test data (not tracked)
 test_data/
 
+# Obsidian vaults (NEVER commit personal vaults)
+**/obsidian_vault/
+**/vault/
+*.obsidian/
+
 # Environment files (active .env not tracked, templates ARE tracked)
 .env
 .env.local

@@ -6,12 +6,12 @@ Quick reference for all user stories with status tracking.
 
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
-| 000 | Obsidian Vault Ingestion | Critical | 8 pts | 📝 Draft | - |
+| 000 | Obsidian Vault Ingestion | Critical | 8 pts | ✅ Done | - |
 | 001 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
 | 002 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
 | 003 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 
-**Phase Total**: 42 story points
+**Phase Total**: 42 story points (8 completed, 34 remaining)
 
 ## Phase 1: Semantic Extraction (The Graph Schema)
 
@@ -63,8 +63,10 @@ Quick reference for all user stories with status tracking.
 ## Summary
 
 - **Total Stories**: 21
+- **Stories Completed**: 1 (5%)
 - **Total Story Points**: 178 points
-- **Estimated Duration**: 36-45 weeks (assuming 4-5 points/week velocity)
+- **Story Points Completed**: 8 points (4%)
+- **Estimated Duration**: 34-43 weeks remaining (assuming 4-5 points/week velocity)
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
