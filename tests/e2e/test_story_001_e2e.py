@@ -1,16 +1,17 @@
 # tests/e2e/test_story_001_e2e.py
 
 import os
-import pytest
-from langgraph.graph import StateGraph, END
 
-from mnemosyne.cli.ingest import ingest_once
-from mnemosyne.cli.cluster import run_clustering
+import pytest
+from langgraph.graph import END, StateGraph
+
+from mnemosyne.alexandria.weaviate_schema import ClusterCentroidCollection, TheMuses
 from mnemosyne.argus.nodes.cluster_representatives import (
-    GetClusterRepresentatives,
     ClusterRepresentativesState,
+    GetClusterRepresentatives,
 )
-from mnemosyne.alexandria.weaviate_schema import TheMuses, ClusterCentroidCollection
+from mnemosyne.cli.cluster import run_clustering
+from mnemosyne.cli.ingest import ingest_once
 
 # Mark all tests in this file as E2E tests
 pytestmark = [pytest.mark.e2e, pytest.mark.weaviate]

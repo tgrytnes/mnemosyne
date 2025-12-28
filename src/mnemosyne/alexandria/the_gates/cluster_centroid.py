@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel
 
@@ -10,6 +9,6 @@ class ClusterCentroid(BaseModel):
     """
 
     cluster_id: int
-    centroid_vector: List[float]
+    centroid_vector: list[float]
     cluster_size: int
     last_updated: datetime

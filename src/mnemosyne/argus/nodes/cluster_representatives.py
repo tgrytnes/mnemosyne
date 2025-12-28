@@ -1,21 +1,21 @@
 # src/mnemosyne/argus/nodes/cluster_representatives.py
 
 import logging
-from typing import List, TypedDict
+from typing import TypedDict
 
 import numpy as np
 import weaviate
 from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.the_gates.chunk_representation import ChunkRepresentation
-from mnemosyne.alexandria.weaviate_schema import TheMuses, ClusterCentroidCollection
+from mnemosyne.alexandria.weaviate_schema import ClusterCentroidCollection, TheMuses
 
 logger = logging.getLogger(__name__)
 
 
 class ClusterRepresentativesState(TypedDict):
     cluster_id: int
-    representative_chunks: List[ChunkRepresentation]
+    representative_chunks: list[ChunkRepresentation]
     error: str | None
 
 

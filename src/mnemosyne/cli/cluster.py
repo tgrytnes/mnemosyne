@@ -9,7 +9,6 @@ from datetime import datetime
 import numpy as np
 import weaviate
 from sklearn.cluster import MiniBatchKMeans
-from weaviate.util import get_valid_uuid
 
 from mnemosyne.alexandria.weaviate_schema import (
     ClusterCentroidCollection,

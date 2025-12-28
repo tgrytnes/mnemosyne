@@ -1,6 +1,6 @@
 # tests/unit/test_cluster_representatives_node.py
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest

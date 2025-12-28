@@ -1,15 +1,16 @@
 # tests/integration/test_story_001_integration.py
 import uuid
-import pytest
+
 import numpy as np
+import pytest
 
 from mnemosyne.alexandria.weaviate_schema import (
-    WeaviateSchemaManager,
-    TheMuses,
     ClusterCentroidCollection,
+    TheMuses,
+    WeaviateSchemaManager,
 )
-from mnemosyne.cli.cluster import run_clustering
 from mnemosyne.argus.nodes.cluster_representatives import GetClusterRepresentatives
+from mnemosyne.cli.cluster import run_clustering
 
 # Mark all tests in this file as integration tests
 pytestmark = [pytest.mark.integration, pytest.mark.weaviate]
