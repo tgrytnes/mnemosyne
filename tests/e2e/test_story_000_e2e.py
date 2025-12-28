@@ -141,7 +141,7 @@ Regular content continues here.
         # AND: Verify chunks stored in Weaviate TheMuses collection
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"), limit=100
+            filters=Filter.by_property("sourceFile").contains_any(["test_vault_000"]), limit=100
         )
 
         # Should have chunks from all 3 files
@@ -173,21 +173,9 @@ Regular content continues here.
 
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
-
-        # DEBUG: First, get all chunks to see what sourceFile values exist
-        all_chunks = collection.query.fetch_objects(limit=100)
-        print(f"\n=== DEBUG: Found {len(all_chunks.objects)} total chunks ===")
-        for obj in all_chunks.objects:
-            print(f"sourceFile: {obj.properties.get('sourceFile', 'N/A')}")
-
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_note.md"), limit=10
+            filters=Filter.by_property("sourceFile").contains_any(["test_note.md"]), limit=10
         )
-
-        print(f"\n=== DEBUG: Filter returned {len(results.objects)} chunks ===")
-        for obj in results.objects:
-            print(f"sourceFile: {obj.properties.get('sourceFile', 'N/A')}")
-            print(f"text preview: {obj.properties['text'][:100]}...")
 
         assert len(results.objects) > 0
 
@@ -217,7 +205,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/advanced_note.md"), limit=10
+            filters=Filter.by_property("sourceFile").contains_any(["advanced_note.md"]), limit=10
         )
 
         assert len(results.objects) > 0
@@ -251,7 +239,7 @@ Regular content continues here.
         # THEN: Query chunks and verify embeddings
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"),
+            filters=Filter.by_property("sourceFile").contains_any(["test_vault_000"]),
             limit=10,
             include_vector=True,
         )
@@ -280,7 +268,7 @@ Regular content continues here.
         # THEN: Query chunks from long document
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/long_note.md"), limit=100
+            filters=Filter.by_property("sourceFile").contains_any(["long_note.md"]), limit=100
         )
 
         # Should have multiple chunks due to length
@@ -360,5 +348,5 @@ Regular content continues here.
 
         # Delete all chunks from test vault
         collection.data.delete_many(
-            where=Filter.by_property("sourceFile").like("*/test_vault_000/*")
+            where=Filter.by_property("sourceFile").contains_any(["test_vault_000"])
         )
