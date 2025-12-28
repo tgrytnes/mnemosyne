@@ -12,12 +12,10 @@ Prerequisites:
     - Ollama running with qwen3-embedding:0.6b model
 """
 
-import os
+import ollama
 import pytest
-from pathlib import Path
 import weaviate
 from weaviate.classes.query import Filter
-import ollama
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
@@ -162,11 +160,9 @@ Test component interactions. """
             weaviate_client=weaviate_client,
             ollama_client=ollama_client,
         )
-        stats = ingestor.ingest_vault()
+        ingestor.ingest_vault()
 
-        # Read expected headings from test document
-        doc_path = test_vault / "python_guide.md"
-        content = doc_path.read_text()
+        # Define expected headings from test document
         expected_headings = [
             "# Python Development Guide",
             "## Setup Instructions",

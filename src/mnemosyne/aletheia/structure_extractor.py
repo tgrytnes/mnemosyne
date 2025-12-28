@@ -2,7 +2,6 @@
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -13,7 +12,7 @@ class HeadingNode:
     title: str
     start_pos: int  # Character offset in original document
     end_pos: int  # Character offset where this heading's content ends
-    children: List["HeadingNode"] = field(default_factory=list)
+    children: list["HeadingNode"] = field(default_factory=list)
 
 
 @dataclass
@@ -21,9 +20,9 @@ class DocumentStructure:
     """Document structure containing heading hierarchy."""
 
     root: HeadingNode
-    heading_map: Dict[int, HeadingNode]  # start_pos -> HeadingNode
+    heading_map: dict[int, HeadingNode]  # start_pos -> HeadingNode
 
-    def get_heading_at_pos(self, pos: int) -> Optional[HeadingNode]:
+    def get_heading_at_pos(self, pos: int) -> HeadingNode | None:
         """Find the deepest heading that contains the given position.
 
         Args:
@@ -33,7 +32,7 @@ class DocumentStructure:
             HeadingNode: Deepest heading containing this position, or None
         """
 
-        def find_deepest(node: HeadingNode) -> Optional[HeadingNode]:
+        def find_deepest(node: HeadingNode) -> HeadingNode | None:
             """Recursively find the deepest node containing pos."""
             if not (node.start_pos <= pos < node.end_pos):
                 return None
@@ -59,7 +58,7 @@ class DocumentStructure:
             str: Path like "# Main > ## Section > ### Subsection"
         """
 
-        def find_path(node: HeadingNode, target: HeadingNode, path: List[str]) -> bool:
+        def find_path(node: HeadingNode, target: HeadingNode, path: list[str]) -> bool:
             """Recursively find path to target node."""
             # Format heading with # symbols
             if node.level > 0:
@@ -80,7 +79,7 @@ class DocumentStructure:
 
             return False
 
-        path: List[str] = []
+        path: list[str] = []
         find_path(self.root, heading, path)
         return " > ".join(path)
 
@@ -116,8 +115,8 @@ class StructureExtractor:
             return DocumentStructure(root=root, heading_map={})
 
         # Build heading tree
-        heading_map: Dict[int, HeadingNode] = {}
-        stack: List[HeadingNode] = [root]  # Stack of ancestor nodes
+        heading_map: dict[int, HeadingNode] = {}
+        stack: list[HeadingNode] = [root]  # Stack of ancestor nodes
 
         for i, (level, title, start_pos) in enumerate(headings):
             # Calculate end position (start of next heading or end of document)

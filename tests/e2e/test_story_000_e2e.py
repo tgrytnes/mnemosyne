@@ -12,13 +12,12 @@ Prerequisites:
     - Ollama running with qwen3-embedding:0.6b model
 """
 
-import os
-import pytest
 import time
-from pathlib import Path
+
+import ollama
+import pytest
 import weaviate
 from weaviate.classes.query import Filter
-import ollama
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 
@@ -242,7 +241,7 @@ Regular content continues here.
         results = collection.query.fetch_objects(
             filters=Filter.by_property("sourceFile").like("*/test_vault_000/*"),
             limit=10,
-            return_vectors=True,
+            include_vector=True,
         )
 
         assert len(results.objects) > 0

@@ -4,8 +4,9 @@ Validation test for Story 020 - Structure Preservation Score >95%.
 Tests that the complete pipeline preserves >95% of document headings.
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.aletheia.structure_extractor import StructureExtractor
@@ -76,9 +77,7 @@ Nested content here. """
         test_file = tmp_path / "simple.md"
         test_file.write_text(markdown_content)
 
-        # Extract expected headings
-        extractor = StructureExtractor()
-        structure = extractor.extract_structure(markdown_content)
+        # Define expected headings
         expected_headings = ["# Main Topic", "## Section One", "## Section Two", "### Subsection"]
 
         # WHEN: Ingesting through pipeline
@@ -182,10 +181,7 @@ Static type checking with mypy. """
         test_file = tmp_path / "complex.md"
         test_file.write_text(markdown_content)
 
-        # Extract expected headings
-        extractor = StructureExtractor()
-        structure = extractor.extract_structure(markdown_content)
-
+        # Define expected headings
         expected_headings = [
             "# Python Development Guide",
             "## Setup",
@@ -321,7 +317,7 @@ Static type checking with mypy. """
         assert metrics.n_headings_found >= 9  # All headings preserved
 
         # Print metrics for visibility
-        print(f"\nStructure Preservation Metrics:")
+        print("\nStructure Preservation Metrics:")
         print(f"  Preservation Score: {metrics.preservation_score:.1%}")
         print(f"  Headings Found: {metrics.n_headings_found}/{metrics.n_headings_expected}")
         print(f"  Depth Accuracy: {metrics.heading_depth_accuracy:.1%}")
@@ -426,7 +422,7 @@ Final thoughts. """
         # CRITICAL: Cross-document preservation >95%
         assert metrics.preservation_score >= 0.95
 
-        print(f"\nMulti-Document Preservation:")
+        print("\nMulti-Document Preservation:")
         print(f"  Documents: {len(docs)}")
         print(f"  Total Headings: {metrics.n_headings_expected}")
         print(f"  Headings Found: {metrics.n_headings_found}")
