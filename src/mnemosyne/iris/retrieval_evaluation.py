@@ -51,9 +51,7 @@ class GroundTruthDataset:
 class RetrievalEvaluator:
     """Evaluator for retrieval performance metrics."""
 
-    def recall_at_k(
-        self, retrieved_docs: list[str], relevant_docs: list[str], k: int
-    ) -> float:
+    def recall_at_k(self, retrieved_docs: list[str], relevant_docs: list[str], k: int) -> float:
         """Calculate Recall@k metric.
 
         Args:
@@ -76,9 +74,7 @@ class RetrievalEvaluator:
         # Return fraction of relevant docs found
         return found / len(relevant_docs)
 
-    def ndcg_at_k(
-        self, retrieved_docs: list[str], relevant_docs: list[str], k: int
-    ) -> float:
+    def ndcg_at_k(self, retrieved_docs: list[str], relevant_docs: list[str], k: int) -> float:
         """Calculate Normalized Discounted Cumulative Gain (NDCG@k).
 
         Args:
@@ -115,9 +111,7 @@ class RetrievalEvaluator:
         # Return normalized DCG
         return dcg / idcg
 
-    def reciprocal_rank(
-        self, retrieved_docs: list[str], relevant_docs: list[str]
-    ) -> float:
+    def reciprocal_rank(self, retrieved_docs: list[str], relevant_docs: list[str]) -> float:
         """Calculate Reciprocal Rank (RR) - used for Mean Reciprocal Rank (MRR).
 
         Args:
