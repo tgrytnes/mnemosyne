@@ -23,3 +23,21 @@ class TestEmbeddingQualityAnalyzer:
 
         with pytest.raises(ValueError, match="Expected 2D array"):
             EmbeddingQualityAnalyzer(vectors)
+
+    def test_compute_pairwise_similarity(self):
+        """Test pairwise similarity computation."""
+        # Create known vectors
+        vectors = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.9, 0.1, 0.0],  # Very similar to first
+                [0.0, 1.0, 0.0],  # Orthogonal to first
+            ]
+        )
+
+        analyzer = EmbeddingQualityAnalyzer(vectors)
+        mean_sim, std_sim = analyzer.compute_pairwise_similarity()
+
+        # Mean should be moderate (mix of similar and dissimilar)
+        assert 0.0 <= mean_sim <= 1.0
+        assert std_sim >= 0.0
