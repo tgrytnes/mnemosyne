@@ -46,15 +46,17 @@ class GetClusterRepresentatives:
             f"Centroid for cluster {cluster_id} not found in cache. Computing on the fly."
         )
 
-        all_vectors = []
-        for item in self.muses_collection.iterator(
-            filters=Filter.by_property("clusterId").equal(cluster_id), include_vector=True
-        ):
-            all_vectors.append(item.vector["default"])
+        # Use fetch_objects with filter instead of iterator (which doesn't support filters)
+        response = self.muses_collection.query.fetch_objects(
+            filters=Filter.by_property("clusterId").equal(cluster_id),
+            include_vector=True,
+            limit=10000,  # Large limit to get all vectors in cluster
+        )
 
-        if not all_vectors:
+        if not response.objects:
             return None
 
+        all_vectors = [obj.vector["default"] for obj in response.objects]
         return np.mean(all_vectors, axis=0)
 
     def __call__(self, state: ClusterRepresentativesState) -> ClusterRepresentativesState:
