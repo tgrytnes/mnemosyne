@@ -1,13 +1,11 @@
 """Unit tests for retrieval evaluation."""
 
 import json
-from pathlib import Path
 
 import pytest
 
 from mnemosyne.iris.retrieval_evaluation import (
     GroundTruthDataset,
-    GroundTruthQuery,
     RetrievalEvaluator,
 )
 

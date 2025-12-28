@@ -3,7 +3,6 @@
 Provides commands for generating quality reports, comparing strategies, and benchmarking.
 """
 
-import json
 import logging
 import sys
 from pathlib import Path
@@ -13,7 +12,6 @@ import weaviate
 
 from mnemosyne.iris.chunking_quality import ChunkingQualityAnalyzer
 from mnemosyne.iris.embedding_quality import EmbeddingQualityAnalyzer
-from mnemosyne.iris.retrieval_evaluation import GroundTruthDataset, RetrievalEvaluator
 
 # Configure logging
 logging.basicConfig(
@@ -65,9 +63,10 @@ def generate_quality_report(
             f.write(f"- Similarity std: {embedding_metrics.similarity_std:.3f}\n")
             f.write(f"- Vector space coverage: {embedding_metrics.vector_space_coverage:.1%}\n")
             f.write(f"- Dimensionality usage: {embedding_metrics.dimensionality_usage:.1%}\n")
-            f.write(
-                f"- Embedding collapse detected: {'Yes' if embedding_metrics.embedding_collapse_detected else 'No'}\n"
+            collapse_status = (
+                "Yes" if embedding_metrics.embedding_collapse_detected else "No"
             )
+            f.write(f"- Embedding collapse detected: {collapse_status}\n")
             f.write(f"- Avg vector magnitude: {embedding_metrics.avg_vector_magnitude:.3f}\n")
             f.write(f"- Magnitude std: {embedding_metrics.magnitude_std:.3f}\n\n")
 
