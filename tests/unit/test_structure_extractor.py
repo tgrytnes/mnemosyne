@@ -1,6 +1,5 @@
 """Unit tests for document structure extraction."""
 
-
 from mnemosyne.aletheia.structure_extractor import (
     DocumentStructure,
     HeadingNode,
