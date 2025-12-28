@@ -38,3 +38,18 @@ class ChunkingQualityAnalyzer:
         self.chunks = chunks
         self.vectors = vectors
         self.n_chunks = len(chunks)
+
+    def compute_chunk_size_stats(self) -> tuple[float, float, int, int]:
+        """Compute chunk size statistics.
+
+        Returns:
+            tuple: (avg_size, std_size, min_size, max_size)
+        """
+        sizes = [len(chunk) for chunk in self.chunks]
+
+        avg_size = float(np.mean(sizes))
+        std_size = float(np.std(sizes))
+        min_size = min(sizes)
+        max_size = max(sizes)
+
+        return avg_size, std_size, min_size, max_size

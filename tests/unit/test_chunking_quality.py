@@ -26,3 +26,21 @@ class TestChunkingQualityAnalyzer:
 
         with pytest.raises(ValueError, match="Number of chunks"):
             ChunkingQualityAnalyzer(chunks, vectors)
+
+    def test_compute_chunk_size_stats(self):
+        """Test chunk size statistics computation."""
+        # Create chunks with known sizes
+        chunks = [
+            "a" * 100,  # 100 chars
+            "b" * 200,  # 200 chars
+            "c" * 300,  # 300 chars
+        ]
+        vectors = np.random.randn(3, 384)
+
+        analyzer = ChunkingQualityAnalyzer(chunks, vectors)
+        avg_size, std_size, min_size, max_size = analyzer.compute_chunk_size_stats()
+
+        assert avg_size == 200.0  # (100 + 200 + 300) / 3
+        assert min_size == 100
+        assert max_size == 300
+        assert std_size == pytest.approx(81.65, rel=0.01)  # Standard deviation
