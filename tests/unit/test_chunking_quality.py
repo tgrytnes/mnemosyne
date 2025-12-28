@@ -18,3 +18,11 @@ class TestChunkingQualityAnalyzer:
 
         assert analyzer.n_chunks == 3
         assert len(analyzer.chunks) == 3
+
+    def test_init_with_mismatched_lengths(self):
+        """Test that mismatched chunks/vectors raises ValueError."""
+        chunks = ["chunk1", "chunk2"]
+        vectors = np.random.randn(3, 384)  # 3 vectors for 2 chunks
+
+        with pytest.raises(ValueError, match="Number of chunks"):
+            ChunkingQualityAnalyzer(chunks, vectors)
