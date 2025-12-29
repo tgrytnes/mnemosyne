@@ -48,13 +48,15 @@ def test_story_001_full_pipeline(weaviate_client, temp_vault):
     ingest_once()
 
     muses_collection = weaviate_client.collections.get(TheMuses.collection_name)
-    assert muses_collection.aggregate.total_count()["total_count"] > 0
+    total_chunks = muses_collection.aggregate.over_all(total_count=True).total_count
+    assert total_chunks > 0
 
     n_clusters = 2
     run_clustering(n_clusters=n_clusters)
 
     centroid_collection = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
-    assert centroid_collection.aggregate.total_count()["total_count"] == n_clusters
+    total_centroids = centroid_collection.aggregate.over_all(total_count=True).total_count
+    assert total_centroids == n_clusters
 
     workflow = StateGraph(ClusterRepresentativesState)
     get_representatives_node = GetClusterRepresentatives(client=weaviate_client)
