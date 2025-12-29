@@ -4,8 +4,8 @@ Integration tests for chunking strategies in the ingestion pipeline.
 
 import pytest
 
-from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 
 
 def _make_vault(tmp_path):

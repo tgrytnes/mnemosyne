@@ -3,8 +3,8 @@ Compare chunking strategies with simple retrieval metrics.
 """
 
 import argparse
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from mnemosyne.iris.retrieval_evaluation import RetrievalEvaluator
 
@@ -61,8 +61,9 @@ def compare_strategies(
             ndcgs.append(evaluator.ndcg_at_k(ranked_ids, relevant, k=5))
 
         if strategy_vectors and strategy in strategy_vectors:
-            from mnemosyne.iris.chunking_quality import ChunkingQualityAnalyzer
             import numpy as np
+
+            from mnemosyne.iris.chunking_quality import ChunkingQualityAnalyzer
 
             vectors = np.array(strategy_vectors[strategy])
             analyzer = ChunkingQualityAnalyzer(chunks, vectors)

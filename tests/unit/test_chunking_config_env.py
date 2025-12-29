@@ -2,8 +2,6 @@
 Unit tests for chunking strategy selection via environment config.
 """
 
-from pathlib import Path
-
 from mnemosyne.aletheia.hybrid_chunker import HybridChunker
 from mnemosyne.aletheia.text_chunker import TextChunker
 from mnemosyne.cli.ingest import IngestionConfig, create_ingestor

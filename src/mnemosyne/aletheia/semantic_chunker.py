@@ -5,7 +5,6 @@ Semantic chunking using LLM boundary detection.
 import hashlib
 import json
 import logging
-from typing import Optional
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker

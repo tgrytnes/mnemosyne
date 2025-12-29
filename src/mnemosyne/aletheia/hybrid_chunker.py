@@ -2,9 +2,9 @@
 Hybrid chunking strategy: heading-based splits + semantic LLM refinement.
 """
 
+from mnemosyne.aletheia.semantic_chunker import SemanticChunker
 from mnemosyne.aletheia.structure_extractor import DocumentStructure, HeadingNode
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
-from mnemosyne.aletheia.semantic_chunker import SemanticChunker
 
 
 class HybridChunker:
