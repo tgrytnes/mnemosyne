@@ -85,7 +85,8 @@ class SemanticChunker:
 
     def _identify_boundaries(self, text: str) -> list[int]:
         prompt = (
-            "You are a text segmentation expert. Identify where the topic changes significantly.\n\n"
+            "You are a text segmentation expert.\n"
+            "Identify where the topic changes significantly.\n\n"
             "Rules:\n"
             "- A topic change is when the subject matter shifts to a new, distinct concept.\n"
             "- Only return CHARACTER OFFSETS (0-based index into the text string).\n"
