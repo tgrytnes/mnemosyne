@@ -104,6 +104,9 @@ jobs:
           # Pull embedding model (this takes 2-3 minutes)
           docker exec ollama ollama pull qwen3-embedding:0.6b
 
+          # Pull generation model for cluster metadata synthesis
+          docker exec ollama ollama pull qwen3:0.6b
+
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
