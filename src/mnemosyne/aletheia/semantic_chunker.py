@@ -3,9 +3,9 @@ Semantic chunking using LLM boundary detection.
 """
 
 import hashlib
-import json
 import logging
 import os
+import re
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
@@ -84,53 +84,59 @@ class SemanticChunker:
         )
 
     def _identify_boundaries(self, text: str) -> list[int]:
-        prompt = (
-            "You are a text segmentation expert.\n"
-            "Identify where the topic changes significantly.\n\n"
-            "Rules:\n"
-            "- A topic change is when the subject matter shifts to a new, distinct concept.\n"
-            "- Only return CHARACTER OFFSETS (0-based index into the text string).\n"
-            "- Do NOT return line numbers or word counts.\n"
-            '- Return JSON ONLY: {"boundaries": [offsets...]}\n'
-            "- If there is an obvious topic shift, include at least one boundary.\n"
-            '- If no topic changes exist, return {"boundaries": []}.\n\n'
-            "Example:\n"
-            'Text: "Cats are pets. Dogs are pets.\\n\\nQuantum physics studies particles."\n'
-            'Output: {"boundaries": [29]}\n\n'
-            f"Text:\n{text}\n\n"
-            "Output format:\n"
-            '{"boundaries": [120, 450, 980]}'
-        )
-
-        response = self.ollama_client.generate(
-            model=self.model,
-            prompt=prompt,
-            format="json",
-            options={"temperature": self.temperature},
-        )
-
-        raw = response.get("response", "{}")
-        try:
-            data = json.loads(raw)
-            boundaries = data.get("boundaries", [])
-
-            if not isinstance(boundaries, list):
-                logger.warning(f"Invalid boundaries type: {type(boundaries)}, using empty list")
-                return []
-
-            # Validate all items are integers
-            valid_boundaries = [b for b in boundaries if isinstance(b, int) and 0 < b < len(text)]
-
-            if len(valid_boundaries) != len(boundaries):
-                logger.warning(
-                    f"Filtered {len(boundaries) - len(valid_boundaries)} invalid boundaries"
-                )
-
-            return sorted(valid_boundaries)
-
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"Failed to parse LLM response: {e}, raw: {raw[:100]}")
+        sentences = self._split_sentences(text)
+        if len(sentences) <= 1:
             return []
+
+        boundaries: list[int] = []
+        current_text = sentences[0]["text"]
+
+        for sentence in sentences[1:]:
+            start_index = sentence["start"]
+
+            if len(current_text) + len(sentence["text"]) > self.max_chunk_size:
+                boundaries.append(start_index)
+                current_text = sentence["text"]
+                continue
+
+            prompt = (
+                "You are a topic classifier.\n"
+                "Decide if the NEXT sentence starts a NEW topic.\n"
+                "Answer ONLY 'yes' or 'no'.\n\n"
+                f"Current chunk:\n{current_text[-800:]}\n\n"
+                f"Next sentence:\n{sentence['text']}\n\n"
+                "Does the next sentence start a new topic?"
+            )
+
+            response = self.ollama_client.generate(
+                model=self.model,
+                prompt=prompt,
+                options={"temperature": self.temperature},
+            )
+
+            answer = response.get("response", "").strip().lower()
+            if answer.startswith("yes"):
+                boundaries.append(start_index)
+                current_text = sentence["text"]
+            else:
+                current_text = f"{current_text} {sentence['text']}"
+
+        return boundaries
+
+    def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
+        sentences = re.split(r"(?<=[.!?])\\s+", text.strip())
+        results: list[dict[str, int | str]] = []
+        cursor = 0
+        for sentence in sentences:
+            if not sentence.strip():
+                continue
+            start = text.find(sentence, cursor)
+            if start == -1:
+                continue
+            end = start + len(sentence)
+            results.append({"text": sentence, "start": start, "end": end})
+            cursor = end
+        return results
 
     def _chunks_from_boundaries(
         self, text: str, source_file: str, boundaries: list[int]
