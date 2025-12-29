@@ -138,7 +138,7 @@ class SemanticChunker:
         return boundaries
 
     def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
-        sentences = re.split(r"(?<=[.!?])\\s+", text.strip())
+        sentences = re.split(r"(?<=[.!?])\s+", text.strip())
         results: list[dict[str, int | str]] = []
         cursor = 0
         for sentence in sentences:
