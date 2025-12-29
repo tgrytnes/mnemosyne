@@ -192,12 +192,14 @@ Regular content continues here.
         # Use a simple approach - filter all results manually in Python
         all_results = collection.query.fetch_objects(limit=100)
         results_list = [
-            obj for obj in all_results.objects
-            if obj.properties.get('sourceFile', '').endswith('/test_note.md')
+            obj
+            for obj in all_results.objects
+            if obj.properties.get("sourceFile", "").endswith("/test_note.md")
         ]
 
         # Create a mock results object
         from types import SimpleNamespace
+
         results = SimpleNamespace(objects=results_list)
 
         assert len(results.objects) > 0
@@ -230,10 +232,12 @@ Regular content continues here.
 
         # Filter manually in Python since Weaviate filters are problematic
         from types import SimpleNamespace
+
         all_results = collection.query.fetch_objects(limit=100)
         results_list = [
-            obj for obj in all_results.objects
-            if obj.properties.get('sourceFile', '').endswith('/advanced_note.md')
+            obj
+            for obj in all_results.objects
+            if obj.properties.get("sourceFile", "").endswith("/advanced_note.md")
         ]
         results = SimpleNamespace(objects=results_list)
 
@@ -301,10 +305,12 @@ Regular content continues here.
 
         # Filter manually in Python since Weaviate filters are problematic
         from types import SimpleNamespace
+
         all_results = collection.query.fetch_objects(limit=100)
         results_list = [
-            obj for obj in all_results.objects
-            if obj.properties.get('sourceFile', '').endswith('/long_note.md')
+            obj
+            for obj in all_results.objects
+            if obj.properties.get("sourceFile", "").endswith("/long_note.md")
         ]
         results = SimpleNamespace(objects=results_list)
 
