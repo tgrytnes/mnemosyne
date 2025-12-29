@@ -244,9 +244,7 @@ class ObsidianIngestor:
         logger.info(f"Ingestion complete: {stats}")
         return stats
 
-    def _prepare_chunks_for_file(
-        self, file_path: str
-    ) -> tuple[list[TextChunk], datetime] | None:
+    def _prepare_chunks_for_file(self, file_path: str) -> tuple[list[TextChunk], datetime] | None:
         try:
             content = Path(file_path).read_text(encoding="utf-8")
             cleaned, structure = self._clean_markdown_with_structure(content)
