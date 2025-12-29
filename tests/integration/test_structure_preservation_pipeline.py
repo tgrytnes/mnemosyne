@@ -329,7 +329,7 @@ Content at level 3 (deepest). """
 
         # AND: Has default heading metadata
         collection = weaviate_client.collections.get("TheMuses")
-        results = collection.query.fetch_objects(limit=1)
+        results = collection.query.fetch_objects(limit=1, include_vector=True)
         properties = results.objects[0].properties
 
         assert properties["headingPath"] == ""
