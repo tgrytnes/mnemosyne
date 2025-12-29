@@ -141,9 +141,6 @@ jobs:
             tests/integration/test_topic_boundary_quality.py \
             -v --cov=. --cov-report=xml -m integration
 
-      - name: Cleanup Ollama container
-        if: always()
-        run: docker rm -f ollama
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -213,9 +210,6 @@ jobs:
         run: |
           poetry run pytest tests/e2e -v --tb=short -m e2e
 
-      - name: Cleanup Ollama container
-        if: always()
-        run: docker rm -f ollama
 
   code-quality:
     name: Code Quality

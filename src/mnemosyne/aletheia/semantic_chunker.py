@@ -18,6 +18,8 @@ class SemanticChunker:
     Split text into chunks using LLM-detected topic boundaries.
     """
 
+    BOUNDARY_VERSION = "incremental-v1"
+
     def __init__(
         self,
         ollama_client,
@@ -65,7 +67,10 @@ class SemanticChunker:
 
     def _cache_key(self, text: str) -> str:
         digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        return f"{self.model}:{self.min_chunk_size}:{self.max_chunk_size}:{digest}"
+        return (
+            f"{self.BOUNDARY_VERSION}:{self.model}:{self.min_chunk_size}:"
+            f"{self.max_chunk_size}:{digest}"
+        )
 
     def _get_cached_boundaries(self, cache_key: str) -> list[int] | None:
         if not self.state_tracker:
