@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
+
 from mnemosyne.argus.checkpointing import CheckpointStore, ResearchState
 
 
