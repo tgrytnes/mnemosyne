@@ -85,18 +85,20 @@ class SemanticChunker:
 
     def _identify_boundaries(self, text: str) -> list[int]:
         prompt = (
-            "You are a text segmentation expert. Analyze the text and "
-            "identify where the topic changes significantly.\n\n"
-            "A topic change occurs when:\n"
-            "- The subject matter shifts (e.g., technical to organizational)\n"
-            "- A new distinct concept is introduced\n"
-            "- There's a clear semantic break between paragraphs\n\n"
-            "Return character offset (position in text) where each change occurs.\n"
-            "Return JSON object with ONLY a 'boundaries' array of integers.\n\n"
+            "You are a text segmentation expert. Identify where the topic changes significantly.\n\n"
+            "Rules:\n"
+            "- A topic change is when the subject matter shifts to a new, distinct concept.\n"
+            "- Only return CHARACTER OFFSETS (0-based index into the text string).\n"
+            "- Do NOT return line numbers or word counts.\n"
+            "- Return JSON ONLY: {\"boundaries\": [offsets...]}\n"
+            "- If there is an obvious topic shift, include at least one boundary.\n"
+            "- If no topic changes exist, return {\"boundaries\": []}.\n\n"
+            "Example:\n"
+            "Text: \"Cats are pets. Dogs are pets.\\n\\nQuantum physics studies particles.\"\n"
+            "Output: {\"boundaries\": [29]}\n\n"
             f"Text:\n{text}\n\n"
             "Output format:\n"
-            '{"boundaries": [120, 450, 980]}\n\n'
-            'If NO topic changes detected, return: {"boundaries": []}'
+            "{\"boundaries\": [120, 450, 980]}"
         )
 
         response = self.ollama_client.generate(
