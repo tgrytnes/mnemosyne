@@ -148,6 +148,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     services:
