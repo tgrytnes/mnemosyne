@@ -320,8 +320,9 @@ Regular content continues here.
         # Verify chunk sizes are reasonable (around 400 chars)
         for obj in results.objects:
             text_len = len(obj.properties["text"])
-            # Chunks should be between 100 and 600 chars (allowing some flexibility)
-            assert 50 < text_len < 800
+            # Chunks should be between 10 and 800 chars
+            # (allowing for short heading-only chunks from structure preservation)
+            assert 10 < text_len < 800
 
     def test_real_incremental_updates(self, test_vault, weaviate_client, ollama_client):
         """REAL TEST: Verify incremental updates (only changed files re-processed)."""
