@@ -44,7 +44,6 @@ import logging
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import weaviate
 from weaviate.classes.query import Filter
@@ -85,7 +84,7 @@ class StructureReIngester:
             "files_not_found": 0,
         }
 
-    def fetch_chunks_by_source_type(self, source_type: str) -> List[Dict]:
+    def fetch_chunks_by_source_type(self, source_type: str) -> list[dict]:
         """Fetch all chunks for a given source type."""
         logger.info(f"Fetching chunks with sourceType={source_type}...")
 
@@ -108,7 +107,7 @@ class StructureReIngester:
         logger.info(f"Fetched {len(chunks)} chunks")
         return chunks
 
-    def group_chunks_by_file(self, chunks: List[Dict]) -> Dict[str, List[Dict]]:
+    def group_chunks_by_file(self, chunks: list[dict]) -> dict[str, list[dict]]:
         """Group chunks by sourceFile."""
         grouped = defaultdict(list)
         for chunk in chunks:
@@ -117,7 +116,7 @@ class StructureReIngester:
                 grouped[source_file].append(chunk)
         return dict(grouped)
 
-    def read_original_file(self, file_path: str) -> Optional[str]:
+    def read_original_file(self, file_path: str) -> str | None:
         """Read the original markdown file."""
         try:
             path = Path(file_path)
@@ -131,7 +130,7 @@ class StructureReIngester:
             logger.error(f"Error reading {file_path}: {e}")
             return None
 
-    def extract_structure_for_chunks(self, original_text: str, chunks: List[Dict]) -> List[Dict]:
+    def extract_structure_for_chunks(self, original_text: str, chunks: list[dict]) -> list[dict]:
         """Extract structure and assign to chunks."""
         # Extract document structure
         structure = self.structure_extractor.extract_structure(original_text)
@@ -171,7 +170,7 @@ class StructureReIngester:
 
         return updated_chunks
 
-    def update_chunks_in_weaviate(self, chunks: List[Dict]) -> int:
+    def update_chunks_in_weaviate(self, chunks: list[dict]) -> int:
         """Update chunks in Weaviate with new structure metadata."""
         if self.dry_run:
             logger.info(f"[DRY RUN] Would update {len(chunks)} chunks")
@@ -199,7 +198,7 @@ class StructureReIngester:
 
         return updated_count
 
-    def reingest_file(self, source_file: str, chunks: List[Dict]) -> None:
+    def reingest_file(self, source_file: str, chunks: list[dict]) -> None:
         """Re-ingest a single file's chunks with structure metadata."""
         logger.info(f"Processing {source_file} ({len(chunks)} chunks)...")
 
