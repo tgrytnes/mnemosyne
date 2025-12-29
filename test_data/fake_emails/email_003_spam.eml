@@ -1,0 +1,15 @@
+From: "Prize Team" <winner@promo-example.biz>
+To: user@example.com
+Subject: You won a prize!!!
+Date: Thu, 08 Feb 2024 07:30:00 -0500
+Message-ID: <spam-003@example.com>
+Content-Type: text/html; charset="utf-8"
+
+<html>
+  <body>
+    <p>CONGRATULATIONS!!! You have been selected.</p>
+    <p>Click <a href="http://promo-example.biz/win">here</a> to claim your prize.</p>
+    <p>Limited time offer. Act now.</p>
+    <script>var tracking = true;</script>
+  </body>
+</html>

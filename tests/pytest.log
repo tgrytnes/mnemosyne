@@ -1,0 +1,158 @@
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=True http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/usr/lib/ssl/cert.pem'
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_process_single_file0/test.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:183 Found 3 markdown files in vault
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_ingest_vault_processes_al0/note1.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_ingest_vault_processes_al0/note2.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_ingest_vault_processes_al0/note3.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:201 Ingestion complete: {'files_processed': 3, 'files_skipped': 0, 'total_files': 3, 'total_chunks': 3}
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:183 Found 3 markdown files in vault
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_incremental_ingestion0/new.md: 1 chunks
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:201 Ingestion complete: {'files_processed': 1, 'files_skipped': 2, 'total_files': 3, 'total_chunks': 1}
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:183 Found 0 markdown files in vault
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:201 Ingestion complete: {'files_processed': 0, 'files_skipped': 0, 'total_files': 0, 'total_chunks': 0}
+INFO     src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_ingestion_preserves_sourc0/note.md: 1 chunks
+ERROR    src.mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:166 Error ingesting /nonexistent/file.md: [Errno 2] No such file or directory: '/nonexistent/file.md'
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:89 Detected new file: /vault/new_note.md
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:112 Detected modified file: /vault/note.md
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:112 Detected modified file: /vault/note.md
+DEBUG    src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:109 Skipping /vault/note.md (debounce)
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:112 Detected modified file: /vault/note.md
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:112 Detected modified file: /vault/note.md
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:89 Detected new file: /vault/note.md
+ERROR    src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:95 Error processing /vault/note.md: Test error
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmp5f76v7dt
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmp5f76v7dt', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmp5f76v7dt', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmpwg3u4iul
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpwg3u4iul', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpwg3u4iul', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmphwyeae29
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmphwyeae29', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+WARNING  src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:157 Watcher already running
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmphwyeae29', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+WARNING  src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:172 Watcher not running
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmpi2k4ukoq
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq/new_note.md', wd=1, mask=IN_CREATE, cookie=0, name='new_note.md'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq/new_note.md', wd=1, mask=IN_OPEN, cookie=0, name='new_note.md'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq/new_note.md', wd=1, mask=IN_MODIFY, cookie=0, name='new_note.md'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq/new_note.md', wd=1, mask=IN_CLOSE_WRITE, cookie=0, name='new_note.md'>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:89 Detected new file: /tmp/tmpi2k4ukoq/new_note.md
+DEBUG    src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:109 Skipping /tmp/tmpi2k4ukoq/new_note.md (debounce)
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpi2k4ukoq', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmpuj16em0_
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpuj16em0_', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpuj16em0_/note.md', wd=1, mask=IN_OPEN, cookie=0, name='note.md'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpuj16em0_/note.md', wd=1, mask=IN_MODIFY, cookie=0, name='note.md'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpuj16em0_/note.md', wd=1, mask=IN_CLOSE_WRITE, cookie=0, name='note.md'>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:112 Detected modified file: /tmp/tmpuj16em0_/note.md
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmpuj16em0_', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:160 Starting vault watcher for: /tmp/tmprsjawbls
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls', wd=1, mask=IN_ISDIR|IN_OPEN, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:167 Vault watcher started successfully
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls/test.txt', wd=1, mask=IN_CREATE, cookie=0, name='test.txt'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls/test.txt', wd=1, mask=IN_OPEN, cookie=0, name='test.txt'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls/test.txt', wd=1, mask=IN_MODIFY, cookie=0, name='test.txt'>
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls/test.txt', wd=1, mask=IN_CLOSE_WRITE, cookie=0, name='test.txt'>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:175 Stopping vault watcher...
+DEBUG    watchdog.observers.inotify_buffer:inotify_buffer.py:59 in-event <InotifyEvent: src_path=b'/tmp/tmprsjawbls', wd=1, mask=IN_IGNORED, cookie=0, name=''>
+INFO     src.mnemosyne.aletheia.vault_watcher:vault_watcher.py:182 Vault watcher stopped
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=False http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/home/tgrytnes/projects/Mnemosyne/.venv/lib/python3.11/site-packages/certifi/cacert.pem'
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.started host='localhost' port=8080 local_address=None timeout=5.0 socket_options=None
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fff500977d0>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.complete return_value=(b'HTTP/1.1', 302, b'Found', [(b'date', b'Sun, 28 Dec 2025 17:08:11 GMT'), (b'server', b'uvicorn'), (b'content-type', b'text/html; charset=utf-8'), (b'location', b'/accounts/login/?next=/v1/.well-known/openid-configuration'), (b'x-frame-options', b'SAMEORIGIN'), (b'content-length', b'0'), (b'vary', b'Accept-Language, origin, Cookie'), (b'content-language', b'en-us'), (b'x-content-type-options', b'nosniff'), (b'referrer-policy', b'same-origin'), (b'cross-origin-opener-policy', b'same-origin')])
+INFO     httpx:_client.py:1038 HTTP Request: GET http://localhost:8080/v1/.well-known/openid-configuration "HTTP/1.1 302 Found"
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http11:_trace.py:47 response_closed.started
+DEBUG    httpcore.http11:_trace.py:47 response_closed.complete
+DEBUG    httpcore.connection:_trace.py:47 close.started
+DEBUG    httpcore.connection:_trace.py:47 close.complete
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=False http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/home/tgrytnes/projects/Mnemosyne/.venv/lib/python3.11/site-packages/certifi/cacert.pem'
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.started host='localhost' port=8080 local_address=None timeout=5.0 socket_options=None
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fff5009d450>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.complete return_value=(b'HTTP/1.1', 302, b'Found', [(b'date', b'Sun, 28 Dec 2025 17:08:11 GMT'), (b'server', b'uvicorn'), (b'content-type', b'text/html; charset=utf-8'), (b'location', b'/accounts/login/?next=/v1/meta'), (b'x-frame-options', b'SAMEORIGIN'), (b'content-length', b'0'), (b'vary', b'Accept-Language, origin, Cookie'), (b'content-language', b'en-us'), (b'x-content-type-options', b'nosniff'), (b'referrer-policy', b'same-origin'), (b'cross-origin-opener-policy', b'same-origin')])
+INFO     httpx:_client.py:1038 HTTP Request: GET http://localhost:8080/v1/meta "HTTP/1.1 302 Found"
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http11:_trace.py:47 response_closed.started
+DEBUG    httpcore.http11:_trace.py:47 response_closed.complete
+DEBUG    httpcore.connection:_trace.py:47 close.started
+DEBUG    httpcore.connection:_trace.py:47 close.complete
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=True http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/usr/lib/ssl/cert.pem'
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_end_to_end_structure_pres0/testing.md: 2 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_structure_extraction_befo0/linked.md: 1 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_chunks_assigned_to_correc0/sections.md: 22 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_nested_heading_structure_0/nested.md: 11 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_heading_levels_correctly_0/levels.md: 1 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_document_without_headings0/plain.md: 1 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_backward_compatibility_pr0/test.md: 1 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_simple_document_100_perce0/simple.md: 19 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_complex_document_95_perce0/complex.md: 61 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_large_document_95_percent0/large.md: 123 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_preservation_across_multi0/doc1.md: 7 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_preservation_across_multi0/doc2.md: 8 chunks
+INFO     mnemosyne.aletheia.obsidian_ingestor:obsidian_ingestor.py:162 Ingested /tmp/pytest-of-tgrytnes/pytest-30/test_preservation_across_multi0/doc3.md: 12 chunks
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=False http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/home/tgrytnes/projects/Mnemosyne/.venv/lib/python3.11/site-packages/certifi/cacert.pem'
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.started host='localhost' port=8080 local_address=None timeout=5.0 socket_options=None
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fff4a105f90>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.complete return_value=(b'HTTP/1.1', 302, b'Found', [(b'date', b'Sun, 28 Dec 2025 17:08:12 GMT'), (b'server', b'uvicorn'), (b'content-type', b'text/html; charset=utf-8'), (b'location', b'/accounts/login/?next=/v1/.well-known/openid-configuration'), (b'x-frame-options', b'SAMEORIGIN'), (b'content-length', b'0'), (b'vary', b'Accept-Language, origin, Cookie'), (b'content-language', b'en-us'), (b'x-content-type-options', b'nosniff'), (b'referrer-policy', b'same-origin'), (b'cross-origin-opener-policy', b'same-origin')])
+INFO     httpx:_client.py:1038 HTTP Request: GET http://localhost:8080/v1/.well-known/openid-configuration "HTTP/1.1 302 Found"
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http11:_trace.py:47 response_closed.started
+DEBUG    httpcore.http11:_trace.py:47 response_closed.complete
+DEBUG    httpcore.connection:_trace.py:47 close.started
+DEBUG    httpcore.connection:_trace.py:47 close.complete
+DEBUG    httpx:_config.py:82 load_ssl_context verify=True cert=None trust_env=False http2=False
+DEBUG    httpx:_config.py:148 load_verify_locations cafile='/home/tgrytnes/projects/Mnemosyne/.venv/lib/python3.11/site-packages/certifi/cacert.pem'
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.started host='localhost' port=8080 local_address=None timeout=5.0 socket_options=None
+DEBUG    httpcore.connection:_trace.py:47 connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fff4a135d50>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_headers.complete
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 send_request_body.complete
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_headers.complete return_value=(b'HTTP/1.1', 302, b'Found', [(b'date', b'Sun, 28 Dec 2025 17:08:12 GMT'), (b'server', b'uvicorn'), (b'content-type', b'text/html; charset=utf-8'), (b'location', b'/accounts/login/?next=/v1/meta'), (b'x-frame-options', b'SAMEORIGIN'), (b'content-length', b'0'), (b'vary', b'Accept-Language, origin, Cookie'), (b'content-language', b'en-us'), (b'x-content-type-options', b'nosniff'), (b'referrer-policy', b'same-origin'), (b'cross-origin-opener-policy', b'same-origin')])
+INFO     httpx:_client.py:1038 HTTP Request: GET http://localhost:8080/v1/meta "HTTP/1.1 302 Found"
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.started request=<Request [b'GET']>
+DEBUG    httpcore.http11:_trace.py:47 receive_response_body.complete
+DEBUG    httpcore.http11:_trace.py:47 response_closed.started
+DEBUG    httpcore.http11:_trace.py:47 response_closed.complete
+DEBUG    httpcore.connection:_trace.py:47 close.started
+DEBUG    httpcore.connection:_trace.py:47 close.complete

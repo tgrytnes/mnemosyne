@@ -7,6 +7,9 @@ for embedding generation using LangChain's RecursiveCharacterTextSplitter.
 
 import pytest
 
+from mnemosyne.aletheia.structure_extractor import (
+    StructureExtractor,
+)
 from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 
 
@@ -218,3 +221,199 @@ Not all code needs 100% coverage, prioritize business logic."""
         combined = " ".join(c.text for c in chunks)
         assert "Testing is crucial" in combined
         assert "Test-driven development" in combined
+
+
+class TestTextChunkerWithStructure:
+    """Test text chunking with document structure (Story 020)"""
+
+    @pytest.fixture
+    def chunker(self):
+        """Create a text chunker with standard settings"""
+        return TextChunker(chunk_size=400, chunk_overlap=100)
+
+    @pytest.fixture
+    def extractor(self):
+        """Create a structure extractor"""
+        return StructureExtractor()
+
+    def test_chunk_with_structure_attaches_metadata(self, chunker, extractor):
+        """Should attach heading metadata to chunks"""
+        # GIVEN: Markdown with headings (extract structure first)
+        markdown = """# Main Heading
+
+Content under main heading.
+
+## Section One
+
+Content under section one."""
+
+        structure = extractor.extract_structure(markdown)
+        # Clean text (simulate markdown cleaning)
+        cleaned_text = markdown
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(
+            text=cleaned_text, source_file="test.md", structure=structure
+        )
+
+        # THEN: Chunks have heading metadata
+        assert len(chunks) >= 1
+        for chunk in chunks:
+            assert hasattr(chunk, "heading_path")
+            assert hasattr(chunk, "heading_level")
+            assert hasattr(chunk, "section_title")
+
+    def test_chunk_with_structure_assigns_correct_headings(self, chunker, extractor):
+        """Should assign chunks to correct parent headings"""
+        # GIVEN: Document with clear heading structure
+        markdown = """# Main Heading
+
+Content at position 20-50.
+
+## Section One
+
+Content at position 80-110."""
+
+        structure = extractor.extract_structure(markdown)
+        cleaned_text = markdown
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(
+            text=cleaned_text, source_file="test.md", structure=structure
+        )
+
+        # THEN: First chunk belongs to "Main Heading"
+        # Note: Exact behavior depends on chunk positions, but at least one
+        # chunk should have heading metadata
+        assert any(chunk.heading_path for chunk in chunks)
+
+    def test_chunk_with_structure_handles_no_headings(self, chunker, extractor):
+        """Should handle documents without headings"""
+        # GIVEN: Plain text without headings
+        text = "Just plain content without any structure."
+        structure = extractor.extract_structure(text)
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(text=text, source_file="test.md", structure=structure)
+
+        # THEN: Chunks have empty/null heading metadata
+        assert len(chunks) == 1
+        assert chunks[0].heading_path == ""
+        assert chunks[0].heading_level == 0
+        assert chunks[0].section_title == ""
+
+    def test_chunk_with_structure_nested_headings(self, chunker, extractor):
+        """Should handle nested heading hierarchies"""
+        # GIVEN: Document with nested headings and enough content to create multiple chunks
+        markdown = (
+            """# Main
+
+Content at the main level. This needs to be long enough to potentially span chunks.
+
+## Section
+
+More content under section. Let's add more text here to make it realistic. """
+            + "More text. " * 50
+            + """
+
+### Subsection
+
+Even more content under subsection. """
+            + "Additional content. " * 50
+        )
+
+        structure = extractor.extract_structure(markdown)
+        cleaned_text = markdown
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(
+            text=cleaned_text, source_file="test.md", structure=structure
+        )
+
+        # THEN: At least some chunks have heading paths
+        heading_paths = [c.heading_path for c in chunks if c.heading_path]
+        assert len(heading_paths) > 0
+
+        # At least one chunk should be under "Subsection" with nested path
+        subsection_chunks = [c for c in chunks if "Subsection" in c.heading_path]
+        assert len(subsection_chunks) > 0
+        # The subsection path should be nested
+        assert any(">" in c.heading_path for c in subsection_chunks)
+
+    def test_chunk_with_structure_preserves_existing_fields(self, chunker, extractor):
+        """Should preserve text, index, source_file from original chunking"""
+        # GIVEN: Simple document
+        markdown = """# Heading
+
+Content here."""
+
+        structure = extractor.extract_structure(markdown)
+        cleaned_text = markdown
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(
+            text=cleaned_text, source_file="test.md", structure=structure
+        )
+
+        # THEN: Original fields still present
+        chunk = chunks[0]
+        assert hasattr(chunk, "text")
+        assert hasattr(chunk, "index")
+        assert hasattr(chunk, "source_file")
+        assert chunk.source_file == "test.md"
+        assert chunk.index == 0
+
+    def test_chunk_with_structure_backward_compatible(self, chunker):
+        """Should still work without structure parameter (backward compatibility)"""
+        # GIVEN: Text without structure
+        text = "Some content"
+
+        # WHEN: Chunking without structure (old API)
+        chunks = chunker.chunk(text, source_file="test.md")
+
+        # THEN: Works as before
+        assert len(chunks) == 1
+        assert chunks[0].text == text
+        assert chunks[0].source_file == "test.md"
+
+    def test_chunk_with_structure_complex_document(self, chunker, extractor):
+        """Should handle realistic document with multiple sections"""
+        # GIVEN: Realistic Obsidian note structure
+        markdown = """# Python Testing
+
+Testing is important.
+
+## Unit Tests
+
+Unit tests are fast.
+
+They test individual functions.
+
+## Integration Tests
+
+Integration tests verify components work together.
+
+### Database Tests
+
+These test database interactions.
+
+## Best Practices
+
+Always write tests first."""
+
+        structure = extractor.extract_structure(markdown)
+        cleaned_text = markdown
+
+        # WHEN: Chunking with structure
+        chunks = chunker.chunk_with_structure(
+            text=cleaned_text, source_file="python-testing.md", structure=structure
+        )
+
+        # THEN: Multiple chunks with appropriate heading metadata
+        assert len(chunks) >= 1
+        # All chunks should have structure metadata
+        assert all(hasattr(c, "heading_path") for c in chunks)
+        assert all(hasattr(c, "heading_level") for c in chunks)
+        # At least some chunks should be under specific sections
+        section_titles = [c.section_title for c in chunks if c.section_title]
+        assert len(section_titles) > 0

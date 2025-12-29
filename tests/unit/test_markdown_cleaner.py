@@ -13,6 +13,7 @@ Tests the ObsidianMarkdownCleaner class which removes:
 
 import pytest
 
+from mnemosyne.aletheia.structure_extractor import DocumentStructure
 from src.mnemosyne.aletheia.markdown_cleaner import ObsidianMarkdownCleaner
 
 
@@ -217,3 +218,130 @@ The actual content about testing."""
         # THEN: Content unchanged (except whitespace normalization)
         assert "This is clean markdown" in result
         assert "Nothing to remove" in result
+
+
+class TestObsidianMarkdownCleanerWithStructure:
+    """Test markdown cleaning with structure extraction (Story 020)"""
+
+    @pytest.fixture
+    def cleaner(self):
+        """Create a markdown cleaner instance"""
+        return ObsidianMarkdownCleaner()
+
+    def test_clean_with_structure_returns_tuple(self, cleaner):
+        """Should return tuple of (cleaned_text, structure)"""
+        # GIVEN: Markdown with headings
+        markdown = """# Main Heading
+
+Some content here.
+
+## Section One
+
+More content."""
+
+        # WHEN: Cleaning with structure extraction
+        result = cleaner.clean_with_structure(markdown)
+
+        # THEN: Returns tuple of (cleaned_text, DocumentStructure)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        cleaned_text, structure = result
+        assert isinstance(cleaned_text, str)
+        assert isinstance(structure, DocumentStructure)
+
+    def test_clean_with_structure_extracts_before_cleaning(self, cleaner):
+        """Should extract structure from ORIGINAL markdown before cleaning"""
+        # GIVEN: Markdown with headings and wiki-links
+        markdown = """# Main Heading
+
+Content with [[wiki-link]].
+
+## Section One
+
+More content."""
+
+        # WHEN: Cleaning with structure extraction
+        cleaned_text, structure = cleaner.clean_with_structure(markdown)
+
+        # THEN: Structure preserves original headings
+        assert structure.root.title == "Main Heading"
+        assert structure.root.level == 1
+        assert len(structure.root.children) == 1
+        assert structure.root.children[0].title == "Section One"
+
+        # AND: Cleaned text has wiki-links removed
+        assert "[[" not in cleaned_text
+        assert "wiki-link" in cleaned_text
+
+    def test_clean_with_structure_preserves_heading_positions(self, cleaner):
+        """Should preserve heading positions from original document"""
+        # GIVEN: Markdown with headings
+        markdown = """# Main
+
+Content.
+
+## Section
+
+More content."""
+
+        # WHEN: Cleaning with structure extraction
+        cleaned_text, structure = cleaner.clean_with_structure(markdown)
+
+        # THEN: Heading positions are from original markdown
+        assert structure.root.start_pos == 0
+        assert structure.root.children[0].start_pos > 0
+
+    def test_clean_with_structure_handles_no_headings(self, cleaner):
+        """Should handle documents without headings"""
+        # GIVEN: Markdown without headings
+        markdown = "Just plain text without any headings."
+
+        # WHEN: Cleaning with structure extraction
+        cleaned_text, structure = cleaner.clean_with_structure(markdown)
+
+        # THEN: Structure has empty root node
+        assert structure.root.level == 0
+        assert structure.root.title == ""
+        assert len(structure.root.children) == 0
+
+        # AND: Text is still cleaned
+        assert cleaned_text == "Just plain text without any headings."
+
+    def test_clean_with_structure_handles_complex_document(self, cleaner):
+        """Should handle complex document with frontmatter, headings, and noise"""
+        # GIVEN: Complex markdown
+        markdown = """---
+title: Test Note
+---
+
+# Main Heading
+
+📌 Important: Check [[Other Note]]
+
+## Section One
+
+Content here.
+
+### Subsection
+
+![[image.png]]
+
+## Section Two
+
+More content."""
+
+        # WHEN: Cleaning with structure extraction
+        cleaned_text, structure = cleaner.clean_with_structure(markdown)
+
+        # THEN: Structure extracted from original
+        assert structure.root.title == "Main Heading"
+        assert len(structure.root.children) == 2
+        assert structure.root.children[0].title == "Section One"
+        assert structure.root.children[0].children[0].title == "Subsection"
+
+        # AND: Cleaned text has all noise removed
+        assert "---" not in cleaned_text
+        assert "📌" not in cleaned_text
+        assert "[[" not in cleaned_text
+        assert "![[" not in cleaned_text
+        assert "Important: Check Other Note" in cleaned_text

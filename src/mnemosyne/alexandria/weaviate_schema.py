@@ -62,6 +62,21 @@ class TheMuses:
             "description": "Last modified time of source file",
         },
         {
+            "name": "headingPath",
+            "dataType": ["text"],
+            "description": "Full heading path (e.g., '# Main > ## Section > ### Subsection')",
+        },
+        {
+            "name": "headingLevel",
+            "dataType": ["int"],
+            "description": "Heading level: 0 (no heading), 1-6 (# to ######)",
+        },
+        {
+            "name": "sectionTitle",
+            "dataType": ["text"],
+            "description": "Immediate parent heading title",
+        },
+        {
             "name": "clusterId",
             "dataType": ["int"],
             "description": "ID of the cluster this chunk belongs to",

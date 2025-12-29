@@ -20,8 +20,11 @@ Quick reference for all user stories with status tracking.
 | 001 | Cluster Centroid Node | High | 5 pts | 📝 Draft | - |
 | 002 | Structured Metadata Synthesis | High | 8 pts | 📝 Draft | - |
 | 003 | Automated Graph Taxonomy | Medium | 8 pts | 📝 Draft | - |
+| 019 | Quality Assurance Framework | High | 8 pts | 📝 Draft | - |
+| 020 | Hierarchical Structure Preservation | High | 5 pts | 📝 Draft | - |
+| 021 | Semantic Chunking with LLM | High | 13 pts | 📝 Draft | - |
 
-**Phase Total**: 21 story points
+**Phase Total**: 47 story points
 
 ## Phase 2: The Efficiency Engine (Memory & Persistence)
 
@@ -59,9 +62,9 @@ Quick reference for all user stories with status tracking.
 
 ## Summary
 
-- **Total Stories**: 18
-- **Total Story Points**: 152 points
-- **Estimated Duration**: 30-38 weeks (assuming 4-5 points/week velocity)
+- **Total Stories**: 21
+- **Total Story Points**: 178 points
+- **Estimated Duration**: 36-45 weeks (assuming 4-5 points/week velocity)
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
