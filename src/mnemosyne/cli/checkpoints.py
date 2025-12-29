@@ -26,9 +26,11 @@ def list_checkpoints(db_path: str) -> int:
     with CheckpointStore(db_path) as store:
         items = store.list_checkpoints()
         for item in items:
-            print(
-                f"{item.query_id}\t{item.current_node}\t{_format_timestamp(item.updated_at)}"
+            line = (
+                f"{item.query_id}\t{item.current_node}\t"
+                f"{_format_timestamp(item.updated_at)}"
             )
+            print(line)
     return 0
 
 
