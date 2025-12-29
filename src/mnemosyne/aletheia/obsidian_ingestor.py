@@ -147,50 +147,34 @@ class ObsidianIngestor:
             Number of chunks created
         """
         try:
-            # Read file
-            content = Path(file_path).read_text(encoding="utf-8")
-
-            # Extract structure and clean markdown (Story 020)
-            cleaned, structure = self._clean_markdown_with_structure(content)
-
-            if not cleaned.strip():
-                logger.info(f"Skipping empty file: {file_path}")
+            prepared = self._prepare_chunks_for_file(file_path)
+            if prepared is None:
                 return 0
 
-            # Chunk text with structure metadata (Story 020)
-            chunks = self._chunk_text_with_structure(cleaned, file_path, structure)
-
+            chunks, mod_time = prepared
             if not chunks:
                 logger.info(f"No chunks created for: {file_path}")
                 return 0
 
-            # Process each chunk
             for chunk in chunks:
-                # Generate embedding
                 embedding = self._generate_embedding(chunk.text)
-
-                # Store in Weaviate (now includes heading metadata)
                 self._store_chunk(
                     {
                         "text": chunk.text,
                         "source_file": chunk.source_file,
                         "chunk_index": chunk.index,
                         "source_type": "obsidian",
-                        "file_modified_at": datetime.fromtimestamp(os.path.getmtime(file_path)),
-                        "heading_path": chunk.heading_path,  # Story 020
-                        "heading_level": chunk.heading_level,  # Story 020
-                        "section_title": chunk.section_title,  # Story 020
+                        "file_modified_at": mod_time,
+                        "heading_path": chunk.heading_path,
+                        "heading_level": chunk.heading_level,
+                        "section_title": chunk.section_title,
                         "embedding": embedding,
                     }
                 )
 
-            # Update state tracker
-            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
             self.state_tracker.mark_ingested(file_path, mod_time, len(chunks))
-
             logger.info(f"Ingested {file_path}: {len(chunks)} chunks")
             return len(chunks)
-
         except Exception as e:
             logger.error(f"Error ingesting {file_path}: {e}")
             return 0
@@ -211,14 +195,44 @@ class ObsidianIngestor:
 
         logger.info(f"Found {len(files)} markdown files in vault")
 
+        prepared_files: list[tuple[str, datetime, list[TextChunk]]] = []
+
         for file_path in files:
-            if self.needs_ingestion(file_path):
-                chunk_count = self.ingest_file(file_path)
-                if chunk_count > 0:
-                    files_processed += 1
-                    total_chunks += chunk_count
-            else:
+            if not self.needs_ingestion(file_path):
                 files_skipped += 1
+                continue
+
+            prepared = self._prepare_chunks_for_file(file_path)
+            if prepared is None:
+                continue
+
+            chunks, mod_time = prepared
+            if not chunks:
+                logger.info(f"No chunks created for: {file_path}")
+                continue
+
+            prepared_files.append((file_path, mod_time, chunks))
+            files_processed += 1
+            total_chunks += len(chunks)
+
+        for file_path, mod_time, chunks in prepared_files:
+            for chunk in chunks:
+                embedding = self._generate_embedding(chunk.text)
+                self._store_chunk(
+                    {
+                        "text": chunk.text,
+                        "source_file": chunk.source_file,
+                        "chunk_index": chunk.index,
+                        "source_type": "obsidian",
+                        "file_modified_at": mod_time,
+                        "heading_path": chunk.heading_path,
+                        "heading_level": chunk.heading_level,
+                        "section_title": chunk.section_title,
+                        "embedding": embedding,
+                    }
+                )
+
+            self.state_tracker.mark_ingested(file_path, mod_time, len(chunks))
 
         stats = {
             "files_processed": files_processed,
@@ -229,6 +243,24 @@ class ObsidianIngestor:
 
         logger.info(f"Ingestion complete: {stats}")
         return stats
+
+    def _prepare_chunks_for_file(
+        self, file_path: str
+    ) -> tuple[list[TextChunk], datetime] | None:
+        try:
+            content = Path(file_path).read_text(encoding="utf-8")
+            cleaned, structure = self._clean_markdown_with_structure(content)
+
+            if not cleaned.strip():
+                logger.info(f"Skipping empty file: {file_path}")
+                return None
+
+            chunks = self._chunk_text_with_structure(cleaned, file_path, structure)
+            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+            return chunks, mod_time
+        except Exception as e:
+            logger.error(f"Error preparing chunks for {file_path}: {e}")
+            return None
 
     def _clean_markdown(self, markdown: str) -> str:
         """Clean Obsidian syntax from markdown (backward compatibility)"""
