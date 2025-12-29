@@ -153,13 +153,13 @@ def test_semantic_chunking_detects_topic_shift(
     chunks = [
         obj.properties["text"]
         for obj in results.objects
-        if obj.properties.get("sourceFile", "").endswith(f\"/{filename}\")
+        if obj.properties.get("sourceFile", "").endswith(f"/{filename}")
     ]
 
     assert (
         len(chunks) >= expected_min_chunks
-    ), f\"Expected at least {expected_min_chunks} chunks, got {len(chunks)}\"
+    ), f"Expected at least {expected_min_chunks} chunks, got {len(chunks)}"
 
     chunk_texts = [text.lower() for text in chunks]
     for keyword in keywords:
-        assert any(keyword in text for text in chunk_texts), f\"Missing keyword: {keyword}\"
+        assert any(keyword in text for text in chunk_texts), f"Missing keyword: {keyword}"
