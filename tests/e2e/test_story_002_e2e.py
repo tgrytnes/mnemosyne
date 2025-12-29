@@ -28,7 +28,10 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
     5. Verify persistence
     """
     # Use REAL Ollama client
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     # Setup repository
     repo = ClusterProfileRepository(postgres_connection)
@@ -145,7 +148,10 @@ def test_real_llm_identifies_themes(
     - Generates appropriate summaries
     - Identifies key entities and topics
     """
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
@@ -193,7 +199,10 @@ def test_story_002_performance_target(postgres_connection, test_config):
     Note: This test uses 10 clusters for faster CI runtime.
     Scale to 50 for full acceptance validation.
     """
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()

@@ -126,6 +126,7 @@ jobs:
           TEST_POSTGRES_USER: postgres
           TEST_POSTGRES_PASSWORD: test
           OLLAMA_BASE_URL: http://localhost:11434
+          TEST_OLLAMA_TIMEOUT: 120
         run: |
           poetry run pytest tests/integration -v --cov=. --cov-report=xml -m integration
 
@@ -214,6 +215,7 @@ jobs:
           TEST_POSTGRES_USER: postgres
           TEST_POSTGRES_PASSWORD: test
           OLLAMA_BASE_URL: http://localhost:11434
+          TEST_OLLAMA_TIMEOUT: 120
         run: |
           poetry run pytest tests/e2e -v --cov=. --cov-report=xml -m e2e
 

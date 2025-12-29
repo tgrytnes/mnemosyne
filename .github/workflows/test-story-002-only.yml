@@ -84,6 +84,7 @@ jobs:
           TEST_POSTGRES_USER: postgres
           TEST_POSTGRES_PASSWORD: test
           OLLAMA_BASE_URL: http://localhost:11434
+          TEST_OLLAMA_TIMEOUT: 120
         run: |
           poetry run pytest tests/integration/test_cluster_metadata_synthesis.py -v --cov=. --cov-report=xml
 

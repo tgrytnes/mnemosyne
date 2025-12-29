@@ -24,7 +24,10 @@ def test_synthesis_and_storage_with_real_ollama(postgres_connection, test_config
     - PostgreSQL storage and retrieval works
     """
     # Use REAL Ollama client
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
@@ -131,7 +134,10 @@ Team coordination and task management.
             (vault_path / filename).write_text(content)
 
         # Ingest to Weaviate
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        ollama_client = ollama.Client(
+            host=test_config["ollama_url"],
+            timeout=test_config["ollama_timeout"],
+        )
         state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
 
         ingestor = ObsidianIngestor(
@@ -222,7 +228,10 @@ def test_real_llm_topic_extraction(
 
     Parametrized test ensures LLM works across different content types.
     """
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     synthesizer = ClusterMetadataSynthesizer(ollama_client)
 
@@ -263,7 +272,10 @@ def test_error_handling_with_real_llm(test_config):
     Tests retry logic when LLM gives malformed responses.
     Note: This might pass if Ollama always returns valid JSON.
     """
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    ollama_client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
 
     synthesizer = ClusterMetadataSynthesizer(
         ollama_client,
