@@ -90,10 +90,3 @@ jobs:
       - name: Cleanup Ollama container
         if: always()
         run: docker rm -f ollama
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: integration-story-002
-          name: story-002-integration-tests

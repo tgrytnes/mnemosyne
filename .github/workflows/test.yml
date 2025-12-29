@@ -45,12 +45,6 @@ jobs:
         run: |
           poetry run pytest tests/unit -v --cov=. --cov-report=xml --cov-report=term-missing -m unit
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unit
-          name: unit-tests
 
   integration-tests:
     name: Integration Tests
@@ -139,12 +133,6 @@ jobs:
         if: always()
         run: docker rm -f ollama
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: integration
-          name: integration-tests
 
   e2e-tests:
     name: E2E Tests
@@ -233,12 +221,6 @@ jobs:
         if: always()
         run: docker rm -f ollama
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: e2e
-          name: e2e-tests
 
   code-quality:
     name: Code Quality
