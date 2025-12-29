@@ -362,7 +362,7 @@ Content at level 3 (deepest). """
 
         # THEN: Original metadata fields still present
         collection = weaviate_client.collections.get("TheMuses")
-        results = collection.query.fetch_objects(limit=1)
+        results = collection.query.fetch_objects(limit=1, include_vector=True)
         properties = results.objects[0].properties
 
         # Story 000 fields (backward compatibility)
