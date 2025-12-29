@@ -3,10 +3,12 @@ Integration tests for checkpoint persistence.
 """
 
 import tempfile
+from pathlib import Path
 
 import pytest
 
 from mnemosyne.argus.checkpointing import CheckpointStore, ResearchState
+from mnemosyne.argus.research_graph import ResearchGraph
 
 
 @pytest.mark.integration
@@ -53,4 +55,27 @@ def test_list_checkpoints_returns_recent_first():
 
         results = store.list_checkpoints()
         assert results[0].query_id == "q-2"
+        assert results[0].current_node == "node-2"
         store.close()
+
+
+@pytest.mark.integration
+def test_langgraph_persists_key_nodes():
+    with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        graph = ResearchGraph(checkpoint_db_path=tmp.name)
+        state = {
+            "query_id": "graph-1",
+            "original_query": "Find notes",
+            "current_node": "start",
+            "conversation_history": [{"role": "user", "content": "Start"}],
+        }
+
+        graph.run(state)
+
+        history = graph.store.list_query_history("graph-1")
+        nodes = [item.current_node for item in history]
+
+        assert nodes == ["semantic_extraction", "search", "synthesis"]
+        assert graph.langgraph_db_path
+        assert Path(graph.langgraph_db_path).exists()
+        graph.close()

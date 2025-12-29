@@ -5,6 +5,8 @@ Unit tests for checkpointing storage.
 import tempfile
 from datetime import datetime, timedelta
 
+import pytest
+from pydantic import ValidationError
 from mnemosyne.argus.checkpointing import CheckpointStore, ResearchState
 
 
@@ -56,7 +58,7 @@ class TestCheckpointStore:
 
             old_timestamp = (datetime.utcnow() - timedelta(days=31)).isoformat()
             store._conn.execute(
-                "UPDATE checkpoints SET updated_at = ? WHERE query_id = ?",
+                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ?",
                 (old_timestamp, "q-3"),
             )
             store._conn.commit()
@@ -66,3 +68,12 @@ class TestCheckpointStore:
             assert removed == 1
             assert store.load("q-3") is None
             store.close()
+
+
+def test_research_state_requires_query_id():
+    with pytest.raises(ValidationError):
+        ResearchState(
+            query_id="",
+            original_query="Missing id",
+            current_node="start",
+        )
