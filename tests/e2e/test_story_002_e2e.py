@@ -46,13 +46,15 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
             representative_note_ids=[f"note-{i}"],
             tags=["research", category],
         )
-        for i, (topic, detail, category) in enumerate([
-            ("machine learning", "neural network architectures", "technology"),
-            ("project management", "agile sprint planning", "business"),
-            ("data science", "statistical hypothesis testing", "analytics"),
-            ("knowledge graphs", "semantic relationships", "technology"),
-            ("team collaboration", "remote work strategies", "business"),
-        ])
+        for i, (topic, detail, category) in enumerate(
+            [
+                ("machine learning", "neural network architectures", "technology"),
+                ("project management", "agile sprint planning", "business"),
+                ("data science", "statistical hypothesis testing", "analytics"),
+                ("knowledge graphs", "semantic relationships", "technology"),
+                ("team collaboration", "remote work strategies", "business"),
+            ]
+        )
     ]
 
     synthesizer = ClusterMetadataSynthesizer(ollama_client)
@@ -73,8 +75,7 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
 
     # Performance check with real LLM (5 clusters should complete reasonably fast)
     assert elapsed < 5 * 60, (
-        f"Took {elapsed:.1f}s for {len(clusters)} clusters. "
-        f"Expected <5 minutes with real LLM."
+        f"Took {elapsed:.1f}s for {len(clusters)} clusters. " f"Expected <5 minutes with real LLM."
     )
 
     # Validate real LLM output quality
@@ -84,22 +85,22 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
 
             # Check theme summary is meaningful (not empty, reasonable length)
             assert profile.theme_summary, f"Cluster {i}: Empty theme summary"
-            assert len(profile.theme_summary) > 10, (
-                f"Cluster {i}: Theme too short ({len(profile.theme_summary)} chars)"
-            )
-            assert len(profile.theme_summary) < 500, (
-                f"Cluster {i}: Theme too long ({len(profile.theme_summary)} chars)"
-            )
+            assert (
+                len(profile.theme_summary) > 10
+            ), f"Cluster {i}: Theme too short ({len(profile.theme_summary)} chars)"
+            assert (
+                len(profile.theme_summary) < 500
+            ), f"Cluster {i}: Theme too long ({len(profile.theme_summary)} chars)"
 
             # Check confidence score is valid
-            assert 0 <= profile.confidence_score <= 1, (
-                f"Cluster {i}: Invalid confidence {profile.confidence_score}"
-            )
+            assert (
+                0 <= profile.confidence_score <= 1
+            ), f"Cluster {i}: Invalid confidence {profile.confidence_score}"
 
             # Check has some extracted data
-            assert profile.key_entities or profile.dominant_topics, (
-                f"Cluster {i}: No entities or topics extracted"
-            )
+            assert (
+                profile.key_entities or profile.dominant_topics
+            ), f"Cluster {i}: No entities or topics extracted"
 
             # Store in PostgreSQL
             repo.save(profile)
@@ -160,21 +161,20 @@ def test_real_llm_identifies_themes(
 
     result = synthesizer.synthesize(cluster)
 
-    assert result.status == "success", f"Synthesis failed: {result.error_message}"
+    assert result.status == "success", f"Synthesis failed: {result.error}"
 
     # Check that theme summary contains at least one expected keyword
     theme_lower = result.profile.theme_summary.lower()
     found_keywords = [kw for kw in expected_keywords if kw in theme_lower]
 
     assert found_keywords, (
-        f"Theme '{result.profile.theme_summary}' doesn't contain "
-        f"any of {expected_keywords}"
+        f"Theme '{result.profile.theme_summary}' doesn't contain " f"any of {expected_keywords}"
     )
 
     # Check that profile has meaningful data
-    assert result.profile.key_entities or result.profile.dominant_topics, (
-        "Profile has no entities or topics"
-    )
+    assert (
+        result.profile.key_entities or result.profile.dominant_topics
+    ), "Profile has no entities or topics"
 
     # Save and verify
     repo.save(result.profile)
@@ -204,8 +204,7 @@ def test_story_002_performance_target(postgres_connection, test_config):
         ClusterData(
             cluster_id=f"perf-cluster-{i}",
             representative_notes=[
-                f"Research note {i} about topic {i % 3}. "
-                f"Contains analysis and findings."
+                f"Research note {i} about topic {i % 3}. " f"Contains analysis and findings."
             ],
             representative_note_ids=[f"note-{i}"],
             tags=["performance-test"],
@@ -223,16 +222,14 @@ def test_story_002_performance_target(postgres_connection, test_config):
     success_rate = success_count / len(results)
 
     # Acceptance: >= 95% success rate
-    assert success_rate >= 0.95, (
-        f"Success rate {success_rate:.1%} below 95% threshold"
-    )
+    assert success_rate >= 0.95, f"Success rate {success_rate:.1%} below 95% threshold"
 
     # Performance target (scaled for 10 clusters)
     # 50 clusters in 5 min = 10 clusters in 1 min
     expected_time = 60  # 1 minute for 10 clusters
-    assert elapsed < expected_time, (
-        f"Performance test failed: {elapsed:.1f}s > {expected_time}s for {num_clusters} clusters"
-    )
+    assert (
+        elapsed < expected_time
+    ), f"Performance test failed: {elapsed:.1f}s > {expected_time}s for {num_clusters} clusters"
 
     # Save all successful profiles
     for result in results:

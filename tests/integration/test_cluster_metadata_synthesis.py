@@ -48,7 +48,7 @@ def test_synthesis_and_storage_with_real_ollama(postgres_connection, test_config
     result = synthesizer.synthesize(cluster)
 
     # Validate result
-    assert result.status == "success", f"Synthesis failed: {result.error_message}"
+    assert result.status == "success", f"Synthesis failed: {result.error}"
     assert result.profile is not None
 
     # Validate profile content
@@ -96,24 +96,34 @@ def test_cluster_synthesis_from_real_weaviate_data(
 
     # STEP 1: Create test vault and ingest to Weaviate
     import tempfile
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         vault_path = Path(tmp_dir) / "test_vault"
         vault_path.mkdir()
 
         # Create realistic notes
         notes = [
-            ("ml_basics.md", """# Machine Learning Basics
+            (
+                "ml_basics.md",
+                """# Machine Learning Basics
 Neural networks and deep learning fundamentals.
 Key concepts: backpropagation, gradient descent, activation functions.
-"""),
-            ("ml_advanced.md", """# Advanced ML Topics
+""",
+            ),
+            (
+                "ml_advanced.md",
+                """# Advanced ML Topics
 Transfer learning and model optimization.
 Techniques for improving model performance.
-"""),
-            ("project_mgmt.md", """# Project Management
+""",
+            ),
+            (
+                "project_mgmt.md",
+                """# Project Management
 Agile methodologies and sprint planning.
 Team coordination and task management.
-"""),
+""",
+            ),
         ]
 
         for filename, content in notes:
@@ -142,8 +152,7 @@ Team coordination and task management.
 
     # Get chunks for ML topic (first 2 notes)
     ml_chunks = [
-        obj for obj in all_results.objects
-        if "ml_" in obj.properties.get("sourceFile", "").lower()
+        obj for obj in all_results.objects if "ml_" in obj.properties.get("sourceFile", "").lower()
     ]
     assert len(ml_chunks) >= 2, "Not enough ML chunks"
 
@@ -163,7 +172,7 @@ Team coordination and task management.
     synthesizer = ClusterMetadataSynthesizer(ollama_client)
     result = synthesizer.synthesize(cluster)
 
-    assert result.status == "success", f"Synthesis failed: {result.error_message}"
+    assert result.status == "success", f"Synthesis failed: {result.error}"
 
     # STEP 5: Validate profile extracted ML theme
     profile = result.profile
@@ -194,8 +203,7 @@ Team coordination and task management.
             ["deep learning", "neural", "pytorch", "vision"],
         ),
         (
-            "Agile development with Scrum framework. "
-            "Daily standups and sprint retrospectives.",
+            "Agile development with Scrum framework. " "Daily standups and sprint retrospectives.",
             ["agile", "scrum", "sprint"],
         ),
         (
@@ -226,7 +234,7 @@ def test_real_llm_topic_extraction(
 
     result = synthesizer.synthesize(cluster)
 
-    assert result.status == "success", f"Failed: {result.error_message}"
+    assert result.status == "success", f"Failed: {result.error}"
 
     # Check theme or topics contain expected keywords
     profile = result.profile
@@ -275,7 +283,7 @@ def test_error_handling_with_real_llm(test_config):
     assert result.status in ["success", "failed"]
 
     if result.status == "failed":
-        assert result.error_message  # Has error message
+        assert result.error  # Has error message
         assert result.profile is None
     else:
         assert result.profile is not None
