@@ -1,0 +1,15 @@
+From: billing@example.com
+To: user@example.com
+Subject: Receipt for Invoice INV-1007
+Date: Sat, 10 Feb 2024 09:45:00 -0500
+Message-ID: <receipt-006@example.com>
+Content-Type: text/plain; charset="utf-8"
+
+Invoice: INV-1007
+Date: 2024-02-10
+Total: $149.00
+Items:
+- Weaviate hosting - $99.00
+- Ollama compute - $50.00
+
+Thank you for your business.

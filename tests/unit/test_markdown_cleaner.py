@@ -13,8 +13,8 @@ Tests the ObsidianMarkdownCleaner class which removes:
 
 import pytest
 
-from src.mnemosyne.aletheia.markdown_cleaner import ObsidianMarkdownCleaner
 from mnemosyne.aletheia.structure_extractor import DocumentStructure
+from src.mnemosyne.aletheia.markdown_cleaner import ObsidianMarkdownCleaner
 
 
 class TestObsidianMarkdownCleaner:

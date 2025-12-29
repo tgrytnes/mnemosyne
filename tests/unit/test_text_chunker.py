@@ -7,12 +7,10 @@ for embedding generation using LangChain's RecursiveCharacterTextSplitter.
 
 import pytest
 
-from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 from mnemosyne.aletheia.structure_extractor import (
-    DocumentStructure,
-    HeadingNode,
     StructureExtractor,
 )
+from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 
 
 class TestTextChunker:

@@ -5,8 +5,7 @@ Uses LangChain's RecursiveCharacterTextSplitter to split text at natural
 boundaries (paragraphs, sentences, words) with configurable overlap.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -141,7 +140,6 @@ class TextChunker:
             else:
                 # For subsequent chunks, search from after the previous chunk
                 # accounting for overlap
-                prev_chunk = chunks[i - 1]
                 # Find first unique part of this chunk that wasn't in previous
                 chunk_start = text.find(chunk_text[:50], chunks[i - 1]._start_pos + 1)
                 if chunk_start == -1:

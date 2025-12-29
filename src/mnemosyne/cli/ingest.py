@@ -222,7 +222,8 @@ def re_ingest_vault(vault_path: str | None = None, force: bool = False):
         logger.info(f"Total chunks created: {stats['total_chunks']}")
         logger.info("=" * 60)
         logger.info(
-            "\n✓ All chunks now include structure metadata (headingPath, headingLevel, sectionTitle)"
+            "\n✓ All chunks now include structure metadata "
+            "(headingPath, headingLevel, sectionTitle)"
         )
 
         # Cleanup

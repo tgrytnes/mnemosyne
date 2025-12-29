@@ -5,14 +5,11 @@ Tests the complete pipeline from markdown file to Weaviate storage with
 heading metadata preserved throughout.
 """
 
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, MagicMock
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
-from mnemosyne.aletheia.markdown_cleaner import ObsidianMarkdownCleaner
-from mnemosyne.aletheia.text_chunker import TextChunker
-from mnemosyne.aletheia.structure_extractor import StructureExtractor
 
 
 class TestStructurePreservationPipeline:
@@ -348,7 +345,7 @@ Content at level 3 (deepest). """
         )
 
         # WHEN: Ingesting the file
-        chunk_count = ingestor.ingest_file(str(test_file))
+        ingestor.ingest_file(str(test_file))
 
         # THEN: Original metadata fields still present
         collection_mock = mock_weaviate_client.collections.get.return_value

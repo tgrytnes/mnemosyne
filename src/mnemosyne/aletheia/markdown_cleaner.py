@@ -6,7 +6,6 @@ Based on Project Crystal's markdown cleaning approach.
 """
 
 import re
-from typing import Tuple
 
 from mnemosyne.aletheia.structure_extractor import DocumentStructure, StructureExtractor
 
@@ -81,7 +80,7 @@ class ObsidianMarkdownCleaner:
 
         return text
 
-    def clean_with_structure(self, markdown: str) -> Tuple[str, DocumentStructure]:
+    def clean_with_structure(self, markdown: str) -> tuple[str, DocumentStructure]:
         """
         Clean markdown and extract document structure.
 
