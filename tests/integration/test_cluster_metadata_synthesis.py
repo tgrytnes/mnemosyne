@@ -4,7 +4,6 @@ Integration tests for cluster metadata synthesis with REAL Ollama and Weaviate.
 
 import ollama
 import pytest
-from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.argus.cluster_metadata_synthesis import (
@@ -89,13 +88,15 @@ def test_cluster_synthesis_from_real_weaviate_data(
     3. Synthesize profile with real Ollama
     4. Store in PostgreSQL
     """
-    import ollama
-    from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
-    from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+    import tempfile
     from pathlib import Path
 
+    import ollama
+
+    from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+    from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+
     # STEP 1: Create test vault and ingest to Weaviate
-    import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         vault_path = Path(tmp_dir) / "test_vault"
