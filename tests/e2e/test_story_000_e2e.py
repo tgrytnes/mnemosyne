@@ -188,7 +188,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/test_note.md"), limit=10
+            filters=Filter.by_property("sourceFile").like("%/test_note.md"), limit=10
         )
 
         assert len(results.objects) > 0
@@ -223,7 +223,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/advanced_note.md"), limit=10
+            filters=Filter.by_property("sourceFile").like("%/advanced_note.md"), limit=10
         )
 
         assert len(results.objects) > 0
@@ -288,7 +288,7 @@ Regular content continues here.
         # THEN: Query chunks from long document
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("*/long_note.md"), limit=100
+            filters=Filter.by_property("sourceFile").like("%/long_note.md"), limit=100
         )
 
         # Should have multiple chunks due to length
