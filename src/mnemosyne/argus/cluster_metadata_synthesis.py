@@ -67,7 +67,7 @@ class ClusterMetadataSynthesizer:
                 if isinstance(payload, dict):
                     data = payload
                 else:
-                    data = self._parse_json(payload)
+                    data = self._safe_parse_json(payload)
                 profile = self._validate_profile(cluster, data)
                 return ClusterProfileResult(status="success", profile=profile)
             except Exception as exc:
@@ -101,9 +101,9 @@ class ClusterMetadataSynthesizer:
             data["cluster_id"] = cluster.cluster_id
         if "representative_note_ids" not in data:
             data["representative_note_ids"] = cluster.representative_note_ids
-        if "tags" not in data and cluster.tags:
-            data["tags"] = cluster.tags
-        if "metadata" not in data:
+        if not isinstance(data.get("tags"), list):
+            data["tags"] = cluster.tags or []
+        if not isinstance(data.get("metadata"), dict):
             data["metadata"] = cluster.metadata or {}
         if "created_at" not in data:
             data["created_at"] = datetime.utcnow().isoformat()
@@ -117,18 +117,25 @@ class ClusterMetadataSynthesizer:
             data["key_entities"] = keywords[:3]
         if not isinstance(data.get("dominant_topics"), list):
             data["dominant_topics"] = keywords[:3]
+        if not isinstance(data.get("confidence_score"), (int, float)):
+            data["confidence_score"] = 0.5
 
         return ClusterProfile.model_validate(data)
 
-    def _parse_json(self, payload: str) -> dict[str, Any]:
+    def _safe_parse_json(self, payload: str) -> dict[str, Any]:
         try:
             return json.loads(payload)
         except json.JSONDecodeError:
             start = payload.find("{")
             end = payload.rfind("}")
             if start == -1 or end == -1 or end <= start:
-                raise
-            return json.loads(payload[start : end + 1])
+                logger.warning("LLM returned non-JSON payload; using fallback")
+                return {}
+            try:
+                return json.loads(payload[start : end + 1])
+            except json.JSONDecodeError:
+                logger.warning("LLM returned malformed JSON; using fallback")
+                return {}
 
     def _extract_keywords(self, notes: list[str], limit: int = 5) -> list[str]:
         text = " ".join(notes).lower()
