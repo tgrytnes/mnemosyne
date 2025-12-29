@@ -10,7 +10,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 DEFAULT_MAX_AGE_DAYS = 30
 
 
