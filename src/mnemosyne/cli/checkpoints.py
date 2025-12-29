@@ -63,16 +63,12 @@ def main() -> None:
 
     subparsers.add_parser("list", help="List checkpoints (latest per query)")
 
-    resume_parser = subparsers.add_parser(
-        "resume",
-        help="Load a checkpoint by query ID",
-    )
+    resume_help = "Load a checkpoint by query ID"
+    resume_parser = subparsers.add_parser("resume", help=resume_help)
     resume_parser.add_argument("query_id", help="Query ID to resume")
 
-    delete_parser = subparsers.add_parser(
-        "delete",
-        help="Delete checkpoints by query ID",
-    )
+    delete_help = "Delete checkpoints by query ID"
+    delete_parser = subparsers.add_parser("delete", help=delete_help)
     delete_parser.add_argument("query_id", help="Query ID to delete")
 
     cleanup_parser = subparsers.add_parser("cleanup", help="Delete old checkpoints")

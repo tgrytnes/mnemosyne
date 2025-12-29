@@ -22,7 +22,10 @@ class ResearchGraph:
             if langgraph_db_path is not None
             else checkpoint_db_path.replace(".db", "_langgraph.db")
         )
-        self._langgraph_conn = sqlite3.connect(self.langgraph_db_path)
+        self._langgraph_conn = sqlite3.connect(
+            self.langgraph_db_path,
+            check_same_thread=False,
+        )
         self.checkpointer = SqliteSaver(self._langgraph_conn)
         self.graph = self._build_graph()
 
