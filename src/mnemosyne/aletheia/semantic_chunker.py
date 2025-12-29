@@ -100,12 +100,11 @@ class SemanticChunker:
                 continue
 
             prompt = (
-                "You are a topic classifier.\n"
-                "Decide if the NEXT sentence starts a NEW topic.\n"
-                "Answer ONLY 'yes' or 'no'.\n\n"
+                "Do these belong to the same topic as the current chunk?\n"
+                "Answer only yes or no.\n\n"
                 f"Current chunk:\n{current_text[-800:]}\n\n"
                 f"Next sentence:\n{sentence['text']}\n\n"
-                "Does the next sentence start a new topic?"
+                "Answer:"
             )
 
             response = self.ollama_client.generate(
@@ -115,7 +114,7 @@ class SemanticChunker:
             )
 
             answer = response.get("response", "").strip().lower()
-            if answer.startswith("yes"):
+            if answer.startswith("no"):
                 boundaries.append(start_index)
                 current_text = sentence["text"]
             else:
