@@ -101,8 +101,9 @@ jobs:
           # Wait for Ollama to be ready
           timeout 30 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull embedding model (this takes 2-3 minutes)
-          docker exec ollama ollama pull qwen3-embedding:0.6b
+          # Pull required models
+          docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
+          docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
 
       - name: Install Poetry
         run: |
@@ -178,8 +179,9 @@ jobs:
           # Wait for Ollama to be ready
           timeout 30 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull embedding model (this takes 2-3 minutes)
-          docker exec ollama ollama pull qwen3-embedding:0.6b
+          # Pull required models
+          docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
+          docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
 
       - name: Install Poetry
         run: |
