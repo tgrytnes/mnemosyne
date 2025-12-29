@@ -379,4 +379,7 @@ Content at level 3 (deepest). """
         assert "headingLevel" in properties
         assert "sectionTitle" in properties
 
-        # Embedding verification is covered in test_embeddings_generated.
+        # Verify embedding was generated and stored
+        vector = results.objects[0].vector
+        assert vector is not None
+        assert len(vector.get("default", [])) == 1024  # qwen3-embedding dimension
