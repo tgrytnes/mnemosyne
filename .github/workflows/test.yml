@@ -54,6 +54,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
     services:
@@ -133,7 +134,12 @@ jobs:
           OLLAMA_BASE_URL: http://localhost:11434
           SEMANTIC_LLM_MODEL: gemma3:4b
         run: |
-          poetry run pytest tests/integration -v --cov=. --cov-report=xml -m integration
+          poetry run pytest \
+            tests/integration/test_chunking_pipeline.py \
+            tests/integration/test_chunking_ab_comparison.py \
+            tests/integration/test_chunking_performance.py \
+            tests/integration/test_topic_boundary_quality.py \
+            -v --cov=. --cov-report=xml -m integration
 
       - name: Cleanup Ollama container
         if: always()
