@@ -1,5 +1,8 @@
 """
 Unit tests for cluster metadata synthesis.
+
+NOTE: Unit tests appropriately use MOCKS to test isolated logic.
+Integration/E2E tests use REAL Ollama and Weaviate.
 """
 
 import json
@@ -11,7 +14,19 @@ from mnemosyne.argus.cluster_metadata_synthesis import (
 
 
 class TestClusterMetadataSynthesizer:
-    """Test LLM-driven cluster profile synthesis."""
+    """
+    Test LLM-driven cluster profile synthesis logic.
+
+    These unit tests use mocks to test:
+    - JSON parsing logic
+    - Retry behavior
+    - Error handling
+    - Schema validation
+
+    For real LLM testing, see:
+    - tests/integration/test_cluster_metadata_synthesis.py
+    - tests/e2e/test_story_002_e2e.py
+    """
 
     def test_synthesizes_profile_from_json(self, mocker):
         ollama_client = mocker.MagicMock()
