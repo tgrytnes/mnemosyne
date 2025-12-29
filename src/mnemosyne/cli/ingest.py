@@ -39,7 +39,7 @@ class IngestionConfig:
         self.chunking_strategy = os.getenv("CHUNKING_STRATEGY", "recursive")
         self.semantic_min_chunk_size = int(os.getenv("SEMANTIC_MIN_CHUNK_SIZE", "100"))
         self.semantic_max_chunk_size = int(os.getenv("SEMANTIC_MAX_CHUNK_SIZE", "1000"))
-        self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "qwen3:0.6b")
+        self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
         self.semantic_temperature = float(os.getenv("SEMANTIC_LLM_TEMP", "0.2"))
         self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
         self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))

@@ -53,6 +53,6 @@ More information about topic {i} goes here.
     elapsed = time.monotonic() - start
 
     assert stats["files_processed"] == 10
-    assert stats["chunks_created"] >= 10
+    assert stats["total_chunks"] >= 10
     # Real LLM calls are slower - allow 60 seconds for 10 files
     assert elapsed < 60.0, f"Took {elapsed:.2f}s, expected <60s"

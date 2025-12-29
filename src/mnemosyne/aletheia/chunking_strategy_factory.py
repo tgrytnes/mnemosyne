@@ -18,7 +18,7 @@ class ChunkingStrategyConfig:
     chunk_overlap: int = 100
     semantic_min_chunk_size: int = 100
     semantic_max_chunk_size: int = 1000
-    semantic_model: str = "qwen3:0.6b"
+    semantic_model: str = "gemma3:1b"  # Better for semantic boundary detection
     semantic_temperature: float = 0.2
     semantic_request_timeout: float = 5.0
     semantic_total_timeout: float = 30.0

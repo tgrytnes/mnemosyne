@@ -58,5 +58,5 @@ Final thoughts on note {i}.
     elapsed = time.monotonic() - start
 
     assert stats["files_processed"] == 100
-    assert stats["chunks_created"] > 100  # Should create multiple chunks
+    assert stats["total_chunks"] > 100  # Should create multiple chunks
     assert elapsed < 30 * 60  # 30 minutes max

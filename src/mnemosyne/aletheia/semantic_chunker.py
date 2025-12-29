@@ -24,10 +24,10 @@ class SemanticChunker:
         fallback_chunker: TextChunker | None = None,
         min_chunk_size: int = 100,
         max_chunk_size: int = 1000,
-        model: str = "qwen3:0.6b",
-        temperature: float = 0.2,
-        request_timeout: float = 5.0,
-        total_timeout: float = 30.0,
+        model: str = "gemma3:1b",  # Better for semantic understanding, runs on Pi
+        temperature: float = 0.1,  # Lower temperature for more consistent boundary detection
+        request_timeout: float = 10.0,  # Longer timeout for larger model
+        total_timeout: float = 60.0,
     ):
         self.ollama_client = ollama_client
         self.state_tracker = state_tracker
@@ -84,11 +84,18 @@ class SemanticChunker:
 
     def _identify_boundaries(self, text: str) -> list[int]:
         prompt = (
-            "Identify character offsets where the topic changes.\n"
-            "Return a JSON object with a 'boundaries' list.\n\n"
+            "You are a text segmentation expert. Analyze the text and "
+            "identify where the topic changes significantly.\n\n"
+            "A topic change occurs when:\n"
+            "- The subject matter shifts (e.g., technical to organizational)\n"
+            "- A new distinct concept is introduced\n"
+            "- There's a clear semantic break between paragraphs\n\n"
+            "Return character offset (position in text) where each change occurs.\n"
+            "Return JSON object with ONLY a 'boundaries' array of integers.\n\n"
             f"Text:\n{text}\n\n"
             "Output format:\n"
-            '{"boundaries": [120, 450, 980]}'
+            '{"boundaries": [120, 450, 980]}\n\n'
+            'If NO topic changes detected, return: {"boundaries": []}'
         )
 
         response = self.ollama_client.generate(
@@ -99,15 +106,27 @@ class SemanticChunker:
         )
 
         raw = response.get("response", "{}")
-        data = json.loads(raw)
-        boundaries = data.get("boundaries", [])
+        try:
+            data = json.loads(raw)
+            boundaries = data.get("boundaries", [])
 
-        if not isinstance(boundaries, list) or not all(
-            isinstance(item, int) for item in boundaries
-        ):
-            raise ValueError("Invalid boundaries response")
+            if not isinstance(boundaries, list):
+                logger.warning(f"Invalid boundaries type: {type(boundaries)}, using empty list")
+                return []
 
-        return boundaries
+            # Validate all items are integers
+            valid_boundaries = [b for b in boundaries if isinstance(b, int) and 0 < b < len(text)]
+
+            if len(valid_boundaries) != len(boundaries):
+                logger.warning(
+                    f"Filtered {len(boundaries) - len(valid_boundaries)} invalid boundaries"
+                )
+
+            return sorted(valid_boundaries)
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"Failed to parse LLM response: {e}, raw: {raw[:100]}")
+            return []
 
     def _chunks_from_boundaries(
         self, text: str, source_file: str, boundaries: list[int]
