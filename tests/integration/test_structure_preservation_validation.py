@@ -2,10 +2,11 @@
 Validation test for Story 020 - Structure Preservation Score >95%.
 
 Tests that the complete pipeline preserves >95% of document headings.
+
+USES REAL OLLAMA AND WEAVIATE (no mocks).
 """
 
-from unittest.mock import MagicMock
-
+import ollama
 import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
@@ -16,36 +17,10 @@ from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
 class TestStructurePreservationValidation:
     """Validation tests for >95% structure preservation."""
 
-    @pytest.fixture
-    def mock_weaviate_client(self):
-        """Mock Weaviate client that captures stored chunks."""
-        client = MagicMock()
-        client.collections.exists.return_value = True
-
-        # Store chunks for later analysis
-        stored_chunks = []
-
-        def capture_insert(**kwargs):
-            stored_chunks.append(kwargs["properties"])
-
-        collection_mock = MagicMock()
-        collection_mock.data.insert.side_effect = capture_insert
-        client.collections.get.return_value = collection_mock
-
-        # Attach stored_chunks for test access
-        client._stored_chunks = stored_chunks
-
-        return client
-
-    @pytest.fixture
-    def mock_ollama_client(self):
-        """Mock Ollama client."""
-        client = MagicMock()
-        client.embeddings.return_value = {"embedding": [0.1] * 1024}
-        return client
-
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_simple_document_100_percent_preservation(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test simple document achieves 100% structure preservation."""
         # GIVEN: Document with clear heading structure and enough content for multiple chunks
@@ -80,17 +55,23 @@ Nested content here. """
         # Define expected headings
         expected_headings = ["# Main Topic", "## Section One", "## Section Two", "### Subsection"]
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
         ingestor.ingest_file(str(test_file))
 
-        # THEN: Analyze structure preservation
-        stored_chunks = mock_weaviate_client._stored_chunks
+        # THEN: Fetch stored chunks from Weaviate
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        stored_chunks = [obj.properties for obj in results.objects]
 
+        # Analyze structure preservation
         analyzer = StructurePreservationAnalyzer(stored_chunks, expected_headings)
         metrics = analyzer.analyze()
 
@@ -100,8 +81,10 @@ Nested content here. """
         assert metrics.n_headings_found == 4
         assert metrics.heading_depth_accuracy == 1.0
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_complex_document_95_percent_preservation(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test complex document achieves >95% structure preservation."""
         # GIVEN: Complex document with multiple levels and enough content
@@ -197,17 +180,23 @@ Static type checking with mypy. """
             "### Type Hints",
         ]
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
         ingestor.ingest_file(str(test_file))
 
-        # THEN: Analyze structure preservation
-        stored_chunks = mock_weaviate_client._stored_chunks
+        # THEN: Fetch stored chunks from Weaviate
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        stored_chunks = [obj.properties for obj in results.objects]
 
+        # Analyze structure preservation
         analyzer = StructurePreservationAnalyzer(stored_chunks, expected_headings)
         metrics = analyzer.analyze()
 
@@ -219,8 +208,10 @@ Static type checking with mypy. """
         # Heading depth accuracy should also be high
         assert metrics.heading_depth_accuracy >= 0.95
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_large_document_95_percent_preservation(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test large document with lots of content achieves >95% preservation."""
         # GIVEN: Large document with multiple chunks per section
@@ -294,20 +285,26 @@ Static type checking with mypy. """
             "### Dimensionality Reduction",
         ]
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
         ingestor.ingest_file(str(test_file))
 
-        # THEN: Analyze structure preservation
-        stored_chunks = mock_weaviate_client._stored_chunks
+        # THEN: Fetch stored chunks from Weaviate
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        stored_chunks = [obj.properties for obj in results.objects]
 
         # Should have created many chunks
         assert len(stored_chunks) > 10
 
+        # Analyze structure preservation
         analyzer = StructurePreservationAnalyzer(stored_chunks, expected_headings)
         metrics = analyzer.analyze()
 
@@ -323,8 +320,10 @@ Static type checking with mypy. """
         print(f"  Depth Accuracy: {metrics.heading_depth_accuracy:.1%}")
         print(f"  Total Chunks: {len(stored_chunks)}")
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_preservation_across_multiple_documents(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test preservation score across multiple documents."""
         # GIVEN: Multiple documents with different structures and enough content
@@ -403,19 +402,25 @@ Final thoughts. """
 
             collect_headings(structure.root, all_expected_headings)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         # WHEN: Ingesting all documents
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         for filename in docs.keys():
             ingestor.ingest_file(str(tmp_path / filename))
 
-        # THEN: Overall preservation should be >95%
-        stored_chunks = mock_weaviate_client._stored_chunks
+        # THEN: Fetch all chunks from Weaviate
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=200)
+        stored_chunks = [obj.properties for obj in results.objects]
 
+        # Overall preservation should be >95%
         analyzer = StructurePreservationAnalyzer(stored_chunks, all_expected_headings)
         metrics = analyzer.analyze()
 

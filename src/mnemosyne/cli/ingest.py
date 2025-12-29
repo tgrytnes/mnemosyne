@@ -36,6 +36,14 @@ class IngestionConfig:
         self.state_db_path = os.getenv("INGESTION_STATE_DB", "ingestion_state.db")
         self.chunk_size = int(os.getenv("CHUNK_SIZE", "400"))
         self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "100"))
+        self.chunking_strategy = os.getenv("CHUNKING_STRATEGY", "recursive")
+        self.semantic_min_chunk_size = int(os.getenv("SEMANTIC_MIN_CHUNK_SIZE", "100"))
+        self.semantic_max_chunk_size = int(os.getenv("SEMANTIC_MAX_CHUNK_SIZE", "1000"))
+        self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
+        self.semantic_temperature = float(os.getenv("SEMANTIC_LLM_TEMP", "0.2"))
+        self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
+        self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))
+        self.section_semantic_min_length = int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000"))
         self.watch_debounce = float(os.getenv("WATCH_DEBOUNCE_SECONDS", "2.0"))
 
     def validate(self) -> bool:
@@ -95,6 +103,14 @@ def create_ingestor(config: IngestionConfig) -> ObsidianIngestor:
         state_tracker=state_tracker,
         chunk_size=config.chunk_size,
         chunk_overlap=config.chunk_overlap,
+        chunking_strategy=config.chunking_strategy,
+        semantic_min_chunk_size=config.semantic_min_chunk_size,
+        semantic_max_chunk_size=config.semantic_max_chunk_size,
+        semantic_model=config.semantic_model,
+        semantic_temperature=config.semantic_temperature,
+        semantic_request_timeout=config.semantic_request_timeout,
+        semantic_total_timeout=config.semantic_total_timeout,
+        section_semantic_min_length=config.section_semantic_min_length,
     )
 
     return ingestor

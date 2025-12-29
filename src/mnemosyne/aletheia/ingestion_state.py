@@ -5,6 +5,7 @@ Tracks which files have been ingested and their modification times
 to enable incremental updates (only re-ingest changed files).
 """
 
+import json
 import sqlite3
 from datetime import datetime
 from typing import Any
@@ -39,6 +40,18 @@ class IngestionStateTracker:
                 last_modified TIMESTAMP,
                 ingested_at TIMESTAMP,
                 chunk_count INTEGER
+            )
+        """
+        )
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS semantic_chunk_cache (
+                cache_key TEXT PRIMARY KEY,
+                boundaries_json TEXT NOT NULL,
+                model TEXT,
+                min_chunk_size INTEGER,
+                max_chunk_size INTEGER,
+                created_at TIMESTAMP
             )
         """
         )
@@ -142,6 +155,61 @@ class IngestionStateTracker:
         ).fetchone()
 
         return result["total"] or 0
+
+    def cache_semantic_boundaries(
+        self,
+        cache_key: str,
+        boundaries: list[int],
+        model: str,
+        min_chunk_size: int,
+        max_chunk_size: int,
+    ) -> None:
+        """
+        Cache semantic chunking boundaries for reuse.
+
+        Args:
+            cache_key: Deterministic key for text + model settings
+            boundaries: List of boundary indices
+            model: LLM model used
+            min_chunk_size: Minimum chunk size used
+            max_chunk_size: Maximum chunk size used
+        """
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO semantic_chunk_cache
+            (cache_key, boundaries_json, model, min_chunk_size, max_chunk_size, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                cache_key,
+                json.dumps(boundaries),
+                model,
+                min_chunk_size,
+                max_chunk_size,
+                datetime.now().isoformat(),
+            ),
+        )
+        self.conn.commit()
+
+    def get_cached_semantic_boundaries(self, cache_key: str) -> list[int] | None:
+        """
+        Retrieve cached semantic boundaries by cache key.
+
+        Args:
+            cache_key: Deterministic key for text + model settings
+
+        Returns:
+            List of boundaries if cached, otherwise None
+        """
+        result = self.conn.execute(
+            "SELECT boundaries_json FROM semantic_chunk_cache WHERE cache_key = ?",
+            (cache_key,),
+        ).fetchone()
+
+        if not result:
+            return None
+
+        return json.loads(result["boundaries_json"])
 
     def delete_file(self, file_path: str) -> None:
         """

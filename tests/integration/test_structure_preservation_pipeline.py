@@ -3,10 +3,11 @@ Integration tests for Story 020 - Hierarchical Structure Preservation.
 
 Tests the complete pipeline from markdown file to Weaviate storage with
 heading metadata preserved throughout.
+
+USES REAL OLLAMA AND WEAVIATE (no mocks).
 """
 
-from unittest.mock import MagicMock, Mock
-
+import ollama
 import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
@@ -15,26 +16,12 @@ from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 class TestStructurePreservationPipeline:
     """Integration tests for complete structure preservation pipeline."""
 
-    @pytest.fixture
-    def mock_weaviate_client(self):
-        """Mock Weaviate client."""
-        client = MagicMock()
-        client.collections.exists.return_value = True
-        client.collections.get.return_value = MagicMock()
-        return client
-
-    @pytest.fixture
-    def mock_ollama_client(self):
-        """Mock Ollama client for embeddings."""
-        client = Mock()
-        # Return a fixed 1024-dimensional embedding
-        client.embeddings.return_value = {"embedding": [0.1] * 1024}
-        return client
-
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_end_to_end_structure_preservation(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
-        """Test complete pipeline preserves heading structure end-to-end."""
+        """Test complete pipeline preserves heading structure end-to-end with REAL services."""
         # GIVEN: A markdown file with hierarchical structure
         markdown_content = """# Python Testing Guide
 
@@ -66,11 +53,14 @@ Always write tests first using TDD."""
         test_file = tmp_path / "testing.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         # Create ingestor
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -79,19 +69,15 @@ Always write tests first using TDD."""
         # THEN: File is processed successfully
         assert chunk_count >= 1
 
-        # AND: Weaviate insert was called with heading metadata
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_calls = collection_mock.data.insert.call_args_list
+        # AND: Chunks stored in Weaviate with heading metadata
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        chunks = [obj.properties for obj in results.objects]
 
-        assert len(insert_calls) == chunk_count
+        assert len(chunks) == chunk_count
 
         # Verify at least one chunk has heading metadata
-        chunks_with_headings = []
-        for call in insert_calls:
-            properties = call.kwargs["properties"]
-            if properties.get("headingPath"):
-                chunks_with_headings.append(properties)
-
+        chunks_with_headings = [c for c in chunks if c.get("headingPath")]
         assert len(chunks_with_headings) > 0
 
         # Verify heading paths are hierarchical
@@ -103,8 +89,10 @@ Always write tests first using TDD."""
         expected_sections = ["Python Testing Guide", "Unit Tests", "Integration Tests"]
         assert any(section in section_titles for section in expected_sections)
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_structure_extraction_before_cleaning(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test that structure is extracted BEFORE markdown cleaning."""
         # GIVEN: Markdown with wiki-links and headings
@@ -119,10 +107,13 @@ See also [[Another Note|with alias]]."""
         test_file = tmp_path / "linked.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -132,10 +123,9 @@ See also [[Another Note|with alias]]."""
         assert chunk_count >= 1
 
         # AND: Heading metadata is preserved (extracted before cleaning)
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_calls = collection_mock.data.insert.call_args_list
-
-        properties_list = [call.kwargs["properties"] for call in insert_calls]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        properties_list = [obj.properties for obj in results.objects]
 
         # At least one chunk should have heading metadata
         assert any(p.get("headingPath") for p in properties_list)
@@ -145,8 +135,10 @@ See also [[Another Note|with alias]]."""
             assert "[[" not in props["text"]
             assert "]]" not in props["text"]
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_chunks_assigned_to_correct_headings(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test chunks are assigned to their parent headings."""
         # GIVEN: Document with clear sections and enough content for multiple chunks
@@ -172,10 +164,13 @@ Second section content here. """
         test_file = tmp_path / "sections.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -185,10 +180,9 @@ Second section content here. """
         assert chunk_count >= 1
 
         # AND: Chunks have appropriate heading assignments
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_calls = collection_mock.data.insert.call_args_list
-
-        properties_list = [call.kwargs["properties"] for call in insert_calls]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        properties_list = [obj.properties for obj in results.objects]
 
         # Check that different chunks have different section titles
         section_titles = {p.get("sectionTitle", "") for p in properties_list}
@@ -198,8 +192,10 @@ Second section content here. """
         heading_paths = [p.get("headingPath", "") for p in properties_list]
         assert any("Main" in path for path in heading_paths)
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_nested_heading_structure_preserved(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test deeply nested heading structures are preserved."""
         # GIVEN: Document with 3-level nesting and enough content
@@ -225,10 +221,13 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "nested.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -238,10 +237,9 @@ Content at level 3 (deepest). """
         assert chunk_count >= 1
 
         # AND: At least one chunk has nested heading path
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_calls = collection_mock.data.insert.call_args_list
-
-        properties_list = [call.kwargs["properties"] for call in insert_calls]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        properties_list = [obj.properties for obj in results.objects]
 
         heading_paths = [p.get("headingPath", "") for p in properties_list]
 
@@ -253,8 +251,10 @@ Content at level 3 (deepest). """
         three_level_paths = [path for path in heading_paths if path.count(">") >= 2]
         assert len(three_level_paths) > 0
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_heading_levels_correctly_assigned(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test heading levels (0-6) are correctly assigned."""
         # GIVEN: Document with various heading levels
@@ -273,10 +273,13 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "levels.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -286,10 +289,9 @@ Content at level 3 (deepest). """
         assert chunk_count >= 1
 
         # AND: Heading levels range from 1-6
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_calls = collection_mock.data.insert.call_args_list
-
-        properties_list = [call.kwargs["properties"] for call in insert_calls]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=100)
+        properties_list = [obj.properties for obj in results.objects]
 
         heading_levels = {p.get("headingLevel", 0) for p in properties_list}
 
@@ -298,7 +300,11 @@ Content at level 3 (deepest). """
         # Should have at least some non-zero levels
         assert any(level > 0 for level in heading_levels)
 
-    def test_document_without_headings(self, tmp_path, mock_weaviate_client, mock_ollama_client):
+    @pytest.mark.integration
+    @pytest.mark.weaviate
+    def test_document_without_headings(
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
+    ):
         """Test documents without headings get default metadata."""
         # GIVEN: Plain text without headings
         markdown_content = "Just plain content without any structure or headings."
@@ -306,10 +312,13 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "plain.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
@@ -319,17 +328,18 @@ Content at level 3 (deepest). """
         assert chunk_count == 1
 
         # AND: Has default heading metadata
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_call = collection_mock.data.insert.call_args_list[0]
-
-        properties = insert_call.kwargs["properties"]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=1, include_vector=True)
+        properties = results.objects[0].properties
 
         assert properties["headingPath"] == ""
         assert properties["headingLevel"] == 0
         assert properties["sectionTitle"] == ""
 
+    @pytest.mark.integration
+    @pytest.mark.weaviate
     def test_backward_compatibility_preserved(
-        self, tmp_path, mock_weaviate_client, mock_ollama_client
+        self, tmp_path, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Test that all original metadata fields are still present."""
         # GIVEN: Any markdown file
@@ -338,20 +348,22 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "test.md"
         test_file.write_text(markdown_content)
 
+        # Use REAL Ollama client
+        ollama_client = ollama.Client(host=test_config["ollama_url"])
+
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate_client,
-            ollama_client=mock_ollama_client,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
         )
 
         # WHEN: Ingesting the file
         ingestor.ingest_file(str(test_file))
 
         # THEN: Original metadata fields still present
-        collection_mock = mock_weaviate_client.collections.get.return_value
-        insert_call = collection_mock.data.insert.call_args_list[0]
-
-        properties = insert_call.kwargs["properties"]
+        collection = weaviate_client.collections.get("TheMuses")
+        results = collection.query.fetch_objects(limit=1, include_vector=True)
+        properties = results.objects[0].properties
 
         # Story 000 fields (backward compatibility)
         assert "text" in properties
@@ -367,7 +379,7 @@ Content at level 3 (deepest). """
         assert "headingLevel" in properties
         assert "sectionTitle" in properties
 
-        # Embedding passed correctly
-        insert_call = collection_mock.data.insert.call_args
-        assert "vector" in insert_call.kwargs
-        assert len(insert_call.kwargs["vector"]) == 1024
+        # Verify embedding was generated and stored
+        vector = results.objects[0].vector
+        assert vector is not None
+        assert len(vector.get("default", [])) == 1024  # qwen3-embedding dimension

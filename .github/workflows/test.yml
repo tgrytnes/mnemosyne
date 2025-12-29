@@ -54,6 +54,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
     services:
@@ -99,10 +100,12 @@ jobs:
             ollama/ollama:latest
 
           # Wait for Ollama to be ready
-          timeout 30 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull embedding model (this takes 2-3 minutes)
-          docker exec ollama ollama pull qwen3-embedding:0.6b
+          # Pull required models
+          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
+          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
+          docker exec ollama ollama list | grep -q "gemma3:1b"
 
       - name: Install Poetry
         run: |
@@ -129,12 +132,10 @@ jobs:
           TEST_POSTGRES_USER: postgres
           TEST_POSTGRES_PASSWORD: test
           OLLAMA_BASE_URL: http://localhost:11434
+          SEMANTIC_LLM_MODEL: gemma3:1b
         run: |
           poetry run pytest tests/integration -v --cov=. --cov-report=xml -m integration
 
-      - name: Cleanup Ollama container
-        if: always()
-        run: docker rm -f ollama
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -145,6 +146,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     services:
@@ -176,10 +178,12 @@ jobs:
             ollama/ollama:latest
 
           # Wait for Ollama to be ready
-          timeout 30 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull embedding model (this takes 2-3 minutes)
-          docker exec ollama ollama pull qwen3-embedding:0.6b
+          # Pull required models
+          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
+          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
+          docker exec ollama ollama list | grep -q "gemma3:1b"
 
       - name: Install Poetry
         run: |
@@ -197,12 +201,10 @@ jobs:
       - name: Run E2E tests
         env:
           OLLAMA_BASE_URL: http://localhost:11434
+          SEMANTIC_LLM_MODEL: gemma3:1b
         run: |
           poetry run pytest tests/e2e -v --tb=short -m e2e
 
-      - name: Cleanup Ollama container
-        if: always()
-        run: docker rm -f ollama
 
   code-quality:
     name: Code Quality
