@@ -187,15 +187,24 @@ Regular content continues here.
 
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
+
+        # Debug: First get ALL objects to see what's in the database
+        all_results = collection.query.fetch_objects(limit=100)
+        print(f"DEBUG: Total objects in database: {len(all_results.objects)}")
+        for obj in all_results.objects:
+            sf = obj.properties.get('sourceFile', 'MISSING')
+            print(f"DEBUG: Found sourceFile={sf}")
+
+        # Now try the filter
         results = collection.query.fetch_objects(
             filters=Filter.by_property("sourceFile").like("%/test_note.md"), limit=10
         )
 
-        assert len(results.objects) > 0
-
-        # Debug: Print actual sourceFile values
+        print(f"DEBUG: Filtered results count: {len(results.objects)}")
         for obj in results.objects:
-            print(f"DEBUG: sourceFile={obj.properties.get('sourceFile', 'MISSING')}")
+            print(f"DEBUG: Filtered sourceFile={obj.properties.get('sourceFile', 'MISSING')}")
+
+        assert len(results.objects) > 0
 
         # Verify frontmatter removed
         all_text = " ".join([obj.properties["text"] for obj in results.objects])
