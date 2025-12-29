@@ -55,10 +55,14 @@ class TestStory000EndToEnd:
     @pytest.fixture(autouse=True)
     def cleanup_weaviate(self, weaviate_client):
         """Clean up Weaviate collection before each test to ensure isolation."""
-        # Run before test: Clear the collection
-        collection = weaviate_client.collections.get("TheMuses")
-        # Delete all objects using a filter that matches everything
-        collection.data.delete_many(where=Filter.by_property("sourceType").equal("obsidian"))
+        # Run before test: Clear the collection (if it exists)
+        try:
+            collection = weaviate_client.collections.get("TheMuses")
+            # Delete all objects using a filter that matches everything
+            collection.data.delete_many(where=Filter.by_property("sourceType").equal("obsidian"))
+        except Exception:
+            # Collection doesn't exist yet - this is fine for the first test
+            pass
         yield
         # After test: No cleanup needed (next test will clean before it runs)
 
