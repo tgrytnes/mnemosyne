@@ -18,7 +18,7 @@ class SemanticChunker:
     Split text into chunks using LLM-detected topic boundaries.
     """
 
-    BOUNDARY_VERSION = "incremental-v1"
+    BOUNDARY_VERSION = "incremental-v2"
 
     def __init__(
         self,
@@ -95,13 +95,21 @@ class SemanticChunker:
 
         boundaries: list[int] = []
         current_text = sentences[0]["text"]
+        prev_end = sentences[0]["end"]
 
         for sentence in sentences[1:]:
             start_index = sentence["start"]
 
+            if self._has_paragraph_break(text, prev_end, start_index):
+                boundaries.append(start_index)
+                current_text = sentence["text"]
+                prev_end = sentence["end"]
+                continue
+
             if len(current_text) + len(sentence["text"]) > self.max_chunk_size:
                 boundaries.append(start_index)
                 current_text = sentence["text"]
+                prev_end = sentence["end"]
                 continue
 
             prompt = (
@@ -125,6 +133,8 @@ class SemanticChunker:
             else:
                 current_text = f"{current_text} {sentence['text']}"
 
+            prev_end = sentence["end"]
+
         return boundaries
 
     def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
@@ -141,6 +151,11 @@ class SemanticChunker:
             results.append({"text": sentence, "start": start, "end": end})
             cursor = end
         return results
+
+    def _has_paragraph_break(self, text: str, prev_end: int, start: int) -> bool:
+        if start <= prev_end:
+            return False
+        return "\n\n" in text[prev_end:start]
 
     def _chunks_from_boundaries(
         self, text: str, source_file: str, boundaries: list[int]
