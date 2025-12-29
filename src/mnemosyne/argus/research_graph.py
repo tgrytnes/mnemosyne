@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import datetime
 from typing import Any
 
@@ -21,7 +22,8 @@ class ResearchGraph:
             if langgraph_db_path is not None
             else checkpoint_db_path.replace(".db", "_langgraph.db")
         )
-        self.checkpointer = SqliteSaver(self.langgraph_db_path)
+        self._langgraph_conn = sqlite3.connect(self.langgraph_db_path)
+        self.checkpointer = SqliteSaver(self._langgraph_conn)
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -37,7 +39,8 @@ class ResearchGraph:
 
     def run(self, state: dict[str, Any]) -> ResearchState:
         result = self.graph.invoke(
-            state, config={"configurable": {"thread_id": state["query_id"]}}
+            state,
+            config={"configurable": {"thread_id": state["query_id"]}},
         )
         return ResearchState.model_validate(result)
 
@@ -46,6 +49,7 @@ class ResearchGraph:
 
     def close(self) -> None:
         self.store.close()
+        self._langgraph_conn.close()
 
     def _semantic_extraction(self, state: dict[str, Any]) -> dict[str, Any]:
         updated = dict(state)
