@@ -6,26 +6,26 @@ Quick reference for all user stories with status tracking.
 
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
-| 000 | Obsidian Vault Ingestion | Critical | 8 pts | 📝 Draft | - |
+| 000 | Obsidian Vault Ingestion | Critical | 8 pts | ✅ Done | - |
 | 001 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
 | 002 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
 | 003 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 
-**Phase Total**: 42 story points
+**Phase Total**: 42 story points (8 completed)
 
 ## Phase 1: Semantic Extraction (The Graph Schema)
 
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
-| 001 | Cluster Centroid Node | High | 5 pts | 📝 Draft | - |
+| 001 | Cluster Centroid Node | High | 5 pts | ✅ Done | - |
 | 002 | Structured Metadata Synthesis | High | 8 pts | 📝 Draft | - |
 | 003 | Automated Graph Taxonomy | Medium | 8 pts | 📝 Draft | - |
-| 019 | Quality Assurance Framework | High | 8 pts | 📝 Draft | - |
-| 020 | Hierarchical Structure Preservation | High | 5 pts | 📝 Draft | - |
-| 021 | Semantic Chunking with LLM | High | 13 pts | 📝 Draft | - |
+| 019 | Quality Assurance Framework | High | 8 pts | ✅ Done | - |
+| 020 | Hierarchical Structure Preservation | High | 5 pts | ✅ Done | - |
+| 021 | Semantic Chunking with LLM | High | 13 pts | ✅ Done | - |
 | 022 | Quality Testing Matrix | Medium | 13 pts | 📝 Draft | - |
 
-**Phase Total**: 60 story points
+**Phase Total**: 60 story points (31 completed)
 
 ## Phase 2: The Efficiency Engine (Memory & Persistence)
 
@@ -64,8 +64,12 @@ Quick reference for all user stories with status tracking.
 ## Summary
 
 - **Total Stories**: 22
+- **Completed Stories**: 5 (23%)
 - **Total Story Points**: 191 points
+- **Completed Points**: 39 points (20%)
+- **Remaining Points**: 152 points
 - **Estimated Duration**: 38-48 weeks (assuming 4-5 points/week velocity)
+- **Progress**: 5 stories completed, 17 remaining
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
