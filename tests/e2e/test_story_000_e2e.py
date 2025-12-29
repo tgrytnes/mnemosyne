@@ -58,9 +58,7 @@ class TestStory000EndToEnd:
         # Run before test: Clear the collection
         collection = weaviate_client.collections.get("TheMuses")
         # Delete all objects using a filter that matches everything
-        collection.data.delete_many(
-            where=Filter.by_property("sourceType").equal("obsidian")
-        )
+        collection.data.delete_many(where=Filter.by_property("sourceType").equal("obsidian"))
         yield
         # After test: No cleanup needed (next test will clean before it runs)
 
