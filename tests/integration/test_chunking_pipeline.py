@@ -1,7 +1,8 @@
 """
-Integration tests for chunking strategies in the ingestion pipeline.
+Integration tests for chunking strategies with REAL Ollama and Weaviate.
 """
 
+import ollama
 import pytest
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
@@ -9,59 +10,76 @@ from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 
 
 def _make_vault(tmp_path):
-    note = "# Title\n\nTopic A detail.\n\n## Section\n\nTopic B detail."
+    """Create a test vault with content designed for semantic boundary detection."""
+    note = """# Title
+
+Topic A is about machine learning and neural networks. Deep learning has transformed AI.
+This section focuses on technical aspects of ML algorithms and their applications.
+
+## Section
+
+Topic B discusses project management and team collaboration. Agile methodologies are important.
+This section shifts to organizational topics completely different from the technical content above.
+"""
     (tmp_path / "note.md").write_text(note)
     return note
 
 
-def _collect_properties(mock_weaviate):
-    calls = mock_weaviate.collections.get.return_value.data.insert.call_args_list
-    return [call.kwargs["properties"] for call in calls]
+def _collect_chunks_from_weaviate(weaviate_client, collection_name="TheMuses"):
+    """Fetch all chunks from Weaviate collection."""
+    collection = weaviate_client.collections.get(collection_name)
+    results = collection.query.fetch_objects(limit=100)
+    return [obj.properties for obj in results.objects]
 
 
 @pytest.mark.integration
-def test_end_to_end_chunking_pipeline_strategies(tmp_path, mocker):
-    """Ingest same vault with all strategies and compare metadata/boundaries."""
-    text = _make_vault(tmp_path)
+@pytest.mark.weaviate
+def test_end_to_end_chunking_pipeline_strategies(
+    tmp_path, weaviate_client, clean_weaviate_collection, test_config
+):
+    """
+    REAL INTEGRATION TEST: Ingest same vault with all strategies using actual Ollama LLM.
+    Compares how different strategies handle topic boundaries and metadata.
+    """
+    _make_vault(tmp_path)
 
-    mock_weaviate = mocker.MagicMock()
-    mock_ollama = mocker.MagicMock()
-    mock_ollama.embeddings.return_value = {"embedding": [0.1] * 1024}
-    mock_ollama.generate.return_value = {
-        "response": f'{{"boundaries": [{text.index("Topic B")} ]}}'
-    }
-
-    mocker.patch(
-        "mnemosyne.aletheia.obsidian_ingestor.WeaviateSchemaManager.ensure_collection_exists",
-        return_value=None,
-    )
+    # Use REAL Ollama client
+    ollama_client = ollama.Client(host=test_config["ollama_url"])
 
     results = {}
     for strategy in ("recursive", "semantic", "hybrid"):
-        mock_weaviate.reset_mock()
+        # Clean Weaviate before each strategy
+        if weaviate_client.collections.exists("TheMuses"):
+            weaviate_client.collections.delete("TheMuses")
+
         state_tracker = IngestionStateTracker(str(tmp_path / f"{strategy}.db"))
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
-            weaviate_client=mock_weaviate,
-            ollama_client=mock_ollama,
+            weaviate_client=weaviate_client,
+            ollama_client=ollama_client,
             state_tracker=state_tracker,
             chunking_strategy=strategy,
             chunk_size=1000,
             chunk_overlap=0,
-            semantic_min_chunk_size=1,
-            section_semantic_min_length=1,
+            semantic_min_chunk_size=50,
+            section_semantic_min_length=50,
         )
-        ingestor.ingest_vault()
-        results[strategy] = _collect_properties(mock_weaviate)
+        stats = ingestor.ingest_vault()
 
-    # Semantic chunks should not carry heading metadata.
-    assert all(prop["headingPath"] == "" for prop in results["semantic"])
+        # Collect chunks from Weaviate
+        results[strategy] = _collect_chunks_from_weaviate(weaviate_client)
 
-    # Recursive and hybrid should include heading metadata.
-    assert any(prop["headingPath"] for prop in results["recursive"])
-    assert all(prop["headingPath"] for prop in results["hybrid"])
+        assert stats["files_processed"] == 1, f"{strategy} should process 1 file"
 
-    # Semantic and hybrid should split at topic boundary, recursive should be 1 chunk.
-    assert len(results["recursive"]) == 1
-    assert len(results["semantic"]) == 2
-    assert len(results["hybrid"]) == 2
+    # Semantic chunks should not carry heading metadata (pure LLM boundaries)
+    assert all(prop.get("headingPath", "") == "" for prop in results["semantic"])
+
+    # Recursive and hybrid should include heading metadata (structure-aware)
+    assert any(prop.get("headingPath") for prop in results["recursive"])
+    assert all(prop.get("headingPath") for prop in results["hybrid"])
+
+    # Semantic and hybrid should detect topic boundary and create multiple chunks
+    # Recursive with large chunk_size might create just 1 chunk
+    assert len(results["recursive"]) >= 1
+    assert len(results["semantic"]) >= 2, "Semantic should split at topic boundary"
+    assert len(results["hybrid"]) >= 2, "Hybrid should split at heading + topic boundaries"
