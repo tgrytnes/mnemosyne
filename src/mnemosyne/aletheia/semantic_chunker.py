@@ -91,15 +91,15 @@ class SemanticChunker:
             "- A topic change is when the subject matter shifts to a new, distinct concept.\n"
             "- Only return CHARACTER OFFSETS (0-based index into the text string).\n"
             "- Do NOT return line numbers or word counts.\n"
-            "- Return JSON ONLY: {\"boundaries\": [offsets...]}\n"
+            '- Return JSON ONLY: {"boundaries": [offsets...]}\n'
             "- If there is an obvious topic shift, include at least one boundary.\n"
-            "- If no topic changes exist, return {\"boundaries\": []}.\n\n"
+            '- If no topic changes exist, return {"boundaries": []}.\n\n'
             "Example:\n"
-            "Text: \"Cats are pets. Dogs are pets.\\n\\nQuantum physics studies particles.\"\n"
-            "Output: {\"boundaries\": [29]}\n\n"
+            'Text: "Cats are pets. Dogs are pets.\\n\\nQuantum physics studies particles."\n'
+            'Output: {"boundaries": [29]}\n\n'
             f"Text:\n{text}\n\n"
             "Output format:\n"
-            "{\"boundaries\": [120, 450, 980]}"
+            '{"boundaries": [120, 450, 980]}'
         )
 
         response = self.ollama_client.generate(
