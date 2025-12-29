@@ -193,6 +193,10 @@ Regular content continues here.
 
         assert len(results.objects) > 0
 
+        # Debug: Print actual sourceFile values
+        for obj in results.objects:
+            print(f"DEBUG: sourceFile={obj.properties.get('sourceFile', 'MISSING')}")
+
         # Verify frontmatter removed
         all_text = " ".join([obj.properties["text"] for obj in results.objects])
         assert "---" not in all_text
