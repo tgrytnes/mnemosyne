@@ -103,8 +103,8 @@ jobs:
 
           # Pull required models
           timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+          timeout 300 docker exec ollama ollama pull gemma3:4b  # Text generation for semantic chunking
+          docker exec ollama ollama list | grep -q "gemma3:4b"
 
       - name: Install Poetry
         run: |
@@ -131,6 +131,7 @@ jobs:
           TEST_POSTGRES_USER: postgres
           TEST_POSTGRES_PASSWORD: test
           OLLAMA_BASE_URL: http://localhost:11434
+          SEMANTIC_LLM_MODEL: gemma3:4b
         run: |
           poetry run pytest tests/integration -v --cov=. --cov-report=xml -m integration
 
@@ -182,8 +183,8 @@ jobs:
 
           # Pull required models
           timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+          timeout 300 docker exec ollama ollama pull gemma3:4b  # Text generation for semantic chunking
+          docker exec ollama ollama list | grep -q "gemma3:4b"
 
       - name: Install Poetry
         run: |
@@ -201,6 +202,7 @@ jobs:
       - name: Run E2E tests
         env:
           OLLAMA_BASE_URL: http://localhost:11434
+          SEMANTIC_LLM_MODEL: gemma3:4b
         run: |
           poetry run pytest tests/e2e -v --tb=short -m e2e
 

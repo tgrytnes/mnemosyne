@@ -5,6 +5,7 @@ Semantic chunking using LLM boundary detection.
 import hashlib
 import json
 import logging
+import os
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
@@ -24,7 +25,7 @@ class SemanticChunker:
         fallback_chunker: TextChunker | None = None,
         min_chunk_size: int = 100,
         max_chunk_size: int = 1000,
-        model: str = "gemma3:1b",  # Better for semantic understanding, runs on Pi
+        model: str | None = None,  # Better for semantic understanding, runs on Pi
         temperature: float = 0.1,  # Lower temperature for more consistent boundary detection
         request_timeout: float = 10.0,  # Longer timeout for larger model
         total_timeout: float = 60.0,
@@ -34,7 +35,7 @@ class SemanticChunker:
         self.fallback_chunker = fallback_chunker or TextChunker()
         self.min_chunk_size = min_chunk_size
         self.max_chunk_size = max_chunk_size
-        self.model = model
+        self.model = model or os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
         self.temperature = temperature
         self.request_timeout = request_timeout
         self.total_timeout = total_timeout
