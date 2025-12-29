@@ -131,9 +131,7 @@ class StructureReIngester:
             logger.error(f"Error reading {file_path}: {e}")
             return None
 
-    def extract_structure_for_chunks(
-        self, original_text: str, chunks: List[Dict]
-    ) -> List[Dict]:
+    def extract_structure_for_chunks(self, original_text: str, chunks: List[Dict]) -> List[Dict]:
         """Extract structure and assign to chunks."""
         # Extract document structure
         structure = self.structure_extractor.extract_structure(original_text)
@@ -150,9 +148,7 @@ class StructureReIngester:
 
             if chunk_start == -1:
                 # Chunk text not found in original - skip structure
-                logger.warning(
-                    f"Could not locate chunk {chunk_index} in original text"
-                )
+                logger.warning(f"Could not locate chunk {chunk_index} in original text")
                 updated_chunks.append(chunk)
                 continue
 
@@ -162,9 +158,7 @@ class StructureReIngester:
             # Update chunk properties
             updated_chunk = chunk.copy()
             if heading:
-                updated_chunk["properties"]["headingPath"] = (
-                    structure.get_heading_path(heading)
-                )
+                updated_chunk["properties"]["headingPath"] = structure.get_heading_path(heading)
                 updated_chunk["properties"]["headingLevel"] = heading.level
                 updated_chunk["properties"]["sectionTitle"] = heading.title
             else:
@@ -337,9 +331,7 @@ def main():
 
     # Exit with appropriate code
     if reingester.stats["chunks_failed"] > 0:
-        logger.warning(
-            f"\n⚠️  Completed with {reingester.stats['chunks_failed']} failures"
-        )
+        logger.warning(f"\n⚠️  Completed with {reingester.stats['chunks_failed']} failures")
         sys.exit(1)
 
 
