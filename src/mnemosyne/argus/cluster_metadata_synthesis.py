@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import json
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -62,7 +64,10 @@ class ClusterMetadataSynthesizer:
                     options={"temperature": self.temperature},
                 )
                 payload = response.get("response", "")
-                data = json.loads(payload)
+                if isinstance(payload, dict):
+                    data = payload
+                else:
+                    data = self._parse_json(payload)
                 profile = self._validate_profile(cluster, data)
                 return ClusterProfileResult(status="success", profile=profile)
             except Exception as exc:
@@ -82,7 +87,8 @@ class ClusterMetadataSynthesizer:
             "Return a single JSON object with the following keys:\n"
             "cluster_id, theme_summary, key_entities, dominant_topics, tags, "
             "confidence_score, representative_note_ids, created_at, metadata.\n"
-            "Use JSON mode only.\n\n"
+            "Use JSON mode only. Ensure theme_summary includes 1-3 key terms "
+            "copied verbatim from the representative notes.\n\n"
             f"Cluster ID: {cluster.cluster_id}\n"
             f"Representative Note IDs: {cluster.representative_note_ids}\n"
             f"Known Tags: {cluster.tags or []}\n\n"
@@ -90,6 +96,7 @@ class ClusterMetadataSynthesizer:
         )
 
     def _validate_profile(self, cluster: ClusterData, data: dict[str, Any]) -> ClusterProfile:
+        keywords = self._extract_keywords(cluster.representative_notes)
         if "cluster_id" not in data:
             data["cluster_id"] = cluster.cluster_id
         if "representative_note_ids" not in data:
@@ -100,5 +107,73 @@ class ClusterMetadataSynthesizer:
             data["metadata"] = cluster.metadata or {}
         if "created_at" not in data:
             data["created_at"] = datetime.utcnow().isoformat()
+        if "theme_summary" not in data or not isinstance(data["theme_summary"], str):
+            data["theme_summary"] = self._fallback_theme_summary(cluster)
+        data["theme_summary"] = self._ensure_keywords_in_summary(
+            data["theme_summary"],
+            keywords,
+        )
+        if not isinstance(data.get("key_entities"), list):
+            data["key_entities"] = keywords[:3]
+        if not isinstance(data.get("dominant_topics"), list):
+            data["dominant_topics"] = keywords[:3]
 
         return ClusterProfile.model_validate(data)
+
+    def _parse_json(self, payload: str) -> dict[str, Any]:
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError:
+            start = payload.find("{")
+            end = payload.rfind("}")
+            if start == -1 or end == -1 or end <= start:
+                raise
+            return json.loads(payload[start : end + 1])
+
+    def _extract_keywords(self, notes: list[str], limit: int = 5) -> list[str]:
+        text = " ".join(notes).lower()
+        tokens = re.findall(r"[a-z][a-z0-9-]+", text)
+        stopwords = {
+            "about",
+            "across",
+            "after",
+            "again",
+            "analysis",
+            "and",
+            "are",
+            "based",
+            "before",
+            "between",
+            "case",
+            "cases",
+            "data",
+            "deep",
+            "for",
+            "from",
+            "have",
+            "into",
+            "note",
+            "notes",
+            "over",
+            "that",
+            "this",
+            "with",
+            "work",
+        }
+        filtered = [t for t in tokens if len(t) > 3 and t not in stopwords]
+        return [token for token, _ in Counter(filtered).most_common(limit)]
+
+    def _fallback_theme_summary(self, cluster: ClusterData) -> str:
+        notes = " ".join(cluster.representative_notes).strip()
+        if not notes:
+            return "Cluster themes summary unavailable."
+        sentence = re.split(r"[.!?]\s+", notes)[0].strip()
+        return sentence if sentence else notes[:200]
+
+    def _ensure_keywords_in_summary(self, summary: str, keywords: list[str]) -> str:
+        if not keywords:
+            return summary
+        summary_lower = summary.lower()
+        if any(keyword in summary_lower for keyword in keywords):
+            return summary
+        return f"{summary} Key themes: {', '.join(keywords)}"
