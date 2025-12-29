@@ -8,6 +8,9 @@ Quick reference for adding tests to the Mnemosyne project.
 # Install dependencies
 poetry install --with dev
 
+# Check code quality BEFORE committing (RECOMMENDED)
+./scripts/check_quality.sh
+
 # Run all unit tests (fast, no Docker needed)
 poetry run pytest -m unit
 
@@ -20,6 +23,48 @@ docker-compose up weaviate postgres -d
 # Run integration tests
 poetry run pytest -m integration
 ```
+
+## Code Quality Checks
+
+**IMPORTANT**: Always run quality checks before pushing to avoid CI failures.
+
+### Quick Check (Recommended)
+
+```bash
+# Run both Ruff and Black checks
+./scripts/check_quality.sh
+```
+
+### Manual Checks
+
+```bash
+# Check Ruff linting
+.venv/bin/ruff check .
+
+# Check Black formatting
+.venv/bin/black --check .
+```
+
+### Auto-Fix Issues
+
+```bash
+# Fix Ruff issues automatically
+.venv/bin/ruff check --fix .
+
+# Fix Black formatting automatically
+.venv/bin/black .
+```
+
+### Pre-Push Hook (Optional)
+
+Automatically run quality checks before every `git push`:
+
+```bash
+# Enable pre-push hook (already configured)
+git config core.hooksPath .githooks
+```
+
+The hook will prevent pushes if quality checks fail, saving CI time.
 
 ## Adding New Tests
 
