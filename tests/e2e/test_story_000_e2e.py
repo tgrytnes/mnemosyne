@@ -220,9 +220,7 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
         results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").contains_any(
-                ["/advanced_note.md"]
-            ),
+            filters=Filter.by_property("sourceFile").contains_any(["/advanced_note.md"]),
             limit=10,
         )
 
