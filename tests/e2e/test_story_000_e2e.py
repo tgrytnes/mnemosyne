@@ -188,21 +188,17 @@ Regular content continues here.
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
 
-        # Debug: First get ALL objects to see what's in the database
+        # Filter for chunks from test_note.md only
+        # Use a simple approach - filter all results manually in Python
         all_results = collection.query.fetch_objects(limit=100)
-        print(f"DEBUG: Total objects in database: {len(all_results.objects)}")
-        for obj in all_results.objects:
-            sf = obj.properties.get('sourceFile', 'MISSING')
-            print(f"DEBUG: Found sourceFile={sf}")
+        results_list = [
+            obj for obj in all_results.objects
+            if obj.properties.get('sourceFile', '').endswith('/test_note.md')
+        ]
 
-        # Now try the filter
-        results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("%/test_note.md"), limit=10
-        )
-
-        print(f"DEBUG: Filtered results count: {len(results.objects)}")
-        for obj in results.objects:
-            print(f"DEBUG: Filtered sourceFile={obj.properties.get('sourceFile', 'MISSING')}")
+        # Create a mock results object
+        from types import SimpleNamespace
+        results = SimpleNamespace(objects=results_list)
 
         assert len(results.objects) > 0
 
@@ -231,9 +227,15 @@ Regular content continues here.
 
         # THEN: Query chunks and verify cleaning
         collection = weaviate_client.collections.get("TheMuses")
-        results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("%/advanced_note.md"), limit=10
-        )
+
+        # Filter manually in Python since Weaviate filters are problematic
+        from types import SimpleNamespace
+        all_results = collection.query.fetch_objects(limit=100)
+        results_list = [
+            obj for obj in all_results.objects
+            if obj.properties.get('sourceFile', '').endswith('/advanced_note.md')
+        ]
+        results = SimpleNamespace(objects=results_list)
 
         assert len(results.objects) > 0
 
@@ -296,9 +298,15 @@ Regular content continues here.
 
         # THEN: Query chunks from long document
         collection = weaviate_client.collections.get("TheMuses")
-        results = collection.query.fetch_objects(
-            filters=Filter.by_property("sourceFile").like("%/long_note.md"), limit=100
-        )
+
+        # Filter manually in Python since Weaviate filters are problematic
+        from types import SimpleNamespace
+        all_results = collection.query.fetch_objects(limit=100)
+        results_list = [
+            obj for obj in all_results.objects
+            if obj.properties.get('sourceFile', '').endswith('/long_note.md')
+        ]
+        results = SimpleNamespace(objects=results_list)
 
         # Should have multiple chunks due to length
         assert len(results.objects) > 1
