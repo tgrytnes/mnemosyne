@@ -4,6 +4,8 @@
 **I want** an agent that actively manages projects in The Ananke
 **So that** projects don't stall, deadlines are tracked, and I'm nudged to take action
 
+**Status**: On hold (planned after Stories 010/014/015/027)
+
 ## Acceptance Criteria
 - [ ] Background agent runs daily (scheduled job)
 - [ ] Checks all projects in `candidate` and `active` status

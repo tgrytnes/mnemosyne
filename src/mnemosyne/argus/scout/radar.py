@@ -1,0 +1,117 @@
+"""Latent radar scoring for Scout concept detection."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import sqrt
+from typing import Callable, Iterable
+
+
+Embedder = Callable[[str], list[float]]
+
+
+@dataclass(frozen=True)
+class ConceptPrototype:
+    """Defines a concept with positive/negative prototype texts."""
+
+    key: str
+    positive_texts: list[str]
+    negative_texts: list[str]
+    threshold: float
+
+
+@dataclass(frozen=True)
+class ClusterRepresentation:
+    """Represents a cluster summary with its embedding."""
+
+    cluster_id: str
+    text: str
+    embedding: list[float]
+
+
+@dataclass(frozen=True)
+class ConceptDetection:
+    """Result of a concept detection on a single cluster."""
+
+    concept_key: str
+    pattern_type: str
+    cluster_ids: list[str]
+    confidence_score: float
+    signals: dict[str, float]
+    embedding: list[float]
+
+
+class LatentRadar:
+    """Scores cluster representations against concept prototypes."""
+
+    def __init__(self, embedder: Embedder):
+        self._embedder = embedder
+
+    def embed_prototypes(
+        self, concept: ConceptPrototype
+    ) -> tuple[list[list[float]], list[list[float]]]:
+        positives = [self._embedder(text) for text in concept.positive_texts]
+        negatives = [self._embedder(text) for text in concept.negative_texts]
+        return positives, negatives
+
+    def detect(
+        self,
+        concept: ConceptPrototype,
+        clusters: Iterable[ClusterRepresentation],
+        pattern_type: str,
+    ) -> list[ConceptDetection]:
+        positive_vecs, negative_vecs = self.embed_prototypes(concept)
+        detections: list[ConceptDetection] = []
+
+        for cluster in clusters:
+            score, pos_max, neg_max = self.score(
+                cluster.embedding, positive_vecs, negative_vecs
+            )
+            if score < concept.threshold:
+                continue
+            detections.append(
+                ConceptDetection(
+                    concept_key=concept.key,
+                    pattern_type=pattern_type,
+                    cluster_ids=[cluster.cluster_id],
+                    confidence_score=score,
+                    signals={
+                        "positive_max": pos_max,
+                        "negative_max": neg_max,
+                        "threshold": concept.threshold,
+                    },
+                    embedding=cluster.embedding,
+                )
+            )
+
+        return detections
+
+    def score(
+        self,
+        cluster_embedding: list[float],
+        positive_vecs: list[list[float]],
+        negative_vecs: list[list[float]],
+    ) -> tuple[float, float, float]:
+        pos_max = max(
+            (cosine_similarity(cluster_embedding, vec) for vec in positive_vecs),
+            default=0.0,
+        )
+        neg_max = max(
+            (cosine_similarity(cluster_embedding, vec) for vec in negative_vecs),
+            default=0.0,
+        )
+        return pos_max - neg_max, pos_max, neg_max
+
+
+def cosine_similarity(a: list[float], b: list[float]) -> float:
+    if not a or not b:
+        return 0.0
+    if len(a) != len(b):
+        raise ValueError("Vectors must be same length for cosine similarity.")
+
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sqrt(sum(x * x for x in a))
+    norm_b = sqrt(sum(y * y for y in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
