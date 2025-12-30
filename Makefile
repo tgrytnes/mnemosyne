@@ -1,6 +1,6 @@
 # Mnemosyne Test Automation Makefile
 
-.PHONY: help install test test-unit test-integration test-e2e test-all coverage clean services services-up services-down lint format check env-dev env-test env-prod
+.PHONY: help install test test-unit test-integration test-e2e test-all coverage clean services services-up services-down lint format check env-dev env-test env-prod stories-index stories-index-local stories-sync-linear stories-sync-status stories-sync
 
 # Default target
 help:
@@ -35,6 +35,13 @@ help:
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean            Remove test artifacts and cache"
+	@echo ""
+	@echo "Stories (Linear + local index):"
+	@echo "  make stories-index       Build local JSON index (uses Linear if configured)"
+	@echo "  make stories-index-local Build local JSON index without Linear lookup"
+	@echo "  make stories-sync-linear Sync local stories to Linear (titles/labels/etc)"
+	@echo "  make stories-sync-status Sync status from Linear to IMPLEMENTATION_PLAN.md"
+	@echo "  make stories-sync        Sync to Linear then rebuild local JSON index"
 
 # Installation
 install:
@@ -147,3 +154,18 @@ env-prod:
 	@echo "  Services: Docker network"
 	@echo ""
 	@echo "⚠️  WARNING: Make sure to update secrets in .env.production!"
+
+# Story sync helpers
+stories-index:
+	@.venv/bin/python scripts/build_story_index.py
+
+stories-index-local:
+	@.venv/bin/python scripts/build_story_index.py --no-linear
+
+stories-sync-linear:
+	@.venv/bin/python scripts/sync_to_linear.py
+
+stories-sync-status:
+	@.venv/bin/python scripts/sync_from_linear.py
+
+stories-sync: stories-sync-linear stories-index

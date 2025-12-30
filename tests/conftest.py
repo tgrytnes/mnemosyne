@@ -31,6 +31,7 @@ def test_config():
         "ollama_url": os.getenv(
             "OLLAMA_BASE_URL", os.getenv("TEST_OLLAMA_URL", "http://localhost:11434")
         ),
+        "ollama_timeout": int(os.getenv("TEST_OLLAMA_TIMEOUT", "120")),
         "telegram_bot_token": os.getenv("TEST_TELEGRAM_BOT_TOKEN", "test_token"),
     }
 
@@ -176,7 +177,7 @@ def ollama_client(test_config):
 @pytest.fixture
 def clean_weaviate_collection(weaviate_client):
     """Clean up test collections before and after tests"""
-    test_collections = ["TestCollection", "TheMuses_Test", "TheLethe_Test"]
+    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe_Test"]
 
     # Clean before
     for collection_name in test_collections:

@@ -12,9 +12,9 @@ from pathlib import Path
 import ollama
 import weaviate
 
-from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
 def _env_int(name: str, default: int) -> int:

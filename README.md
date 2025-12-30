@@ -73,9 +73,9 @@ Layer 1: Aletheia        (Input Processing)
 **Current Phase**: Phase 0 - Ingestion & Hygiene (Week 1-2)
 
 - [ ] Story 000: Obsidian Vault Ingestion
-- [ ] Story 001: Email Archive Ingestion
-- [ ] Story 002: Shadow Copy & Hygiene
-- [ ] Story 003: PDF/OCR Ingestion
+- [ ] Story 024: Email Archive Ingestion
+- [ ] Story 025: Shadow Copy & Hygiene
+- [ ] Story 026: PDF/OCR Ingestion
 
 **Progress**: 0/18 stories completed (0%)
 

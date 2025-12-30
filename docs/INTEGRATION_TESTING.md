@@ -229,7 +229,7 @@ After integration tests pass:
 1. **Deploy to Staging** - Raspberry Pi staging environment
 2. **Real Vault Testing** - Test with actual Obsidian vault
 3. **Performance Profiling** - Measure ingestion speed
-4. **Story 001** - Email archive ingestion
+4. **Story 024** - Email archive ingestion
 
 ---
 

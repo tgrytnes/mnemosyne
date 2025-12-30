@@ -32,9 +32,9 @@ LINEAR_API_URL = "https://api.linear.app/graphql"
 STORY_FILES = [
     # Phase 0: Ingestion & Hygiene (Week 1-2)
     ("user-stories/phase-0-ingestion-hygiene/story-000-obsidian-vault-ingestion.md", "Phase 0", 1),
-    ("user-stories/phase-0-ingestion-hygiene/story-001-email-archive-ingestion.md", "Phase 0", 1),
-    ("user-stories/phase-0-ingestion-hygiene/story-002-shadow-copy-hygiene.md", "Phase 0", 1),
-    ("user-stories/phase-0-ingestion-hygiene/story-003-pdf-ocr-ingestion.md", "Phase 0", 2),
+    ("user-stories/phase-0-ingestion-hygiene/story-024-email-archive-ingestion.md", "Phase 0", 1),
+    ("user-stories/phase-0-ingestion-hygiene/story-025-shadow-copy-hygiene.md", "Phase 0", 1),
+    ("user-stories/phase-0-ingestion-hygiene/story-026-pdf-ocr-ingestion.md", "Phase 0", 2),
     # Phase 1: Semantic Extraction (Week 3-4)
     ("user-stories/phase-1-semantic-extraction/story-001-cluster-centroid-node.md", "Phase 1", 3),
     (
