@@ -26,7 +26,6 @@ from mnemosyne.argus.scout.radar import (
     LatentRadar,
 )
 
-
 Embedder = Callable[[str], list[float]]
 
 

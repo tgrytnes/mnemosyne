@@ -6,7 +6,6 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from math import sqrt
 
-
 Embedder = Callable[[str], list[float]]
 
 
