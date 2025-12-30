@@ -10,6 +10,7 @@ Coordinates the complete ingestion pipeline:
 6. Track state in SQLite
 """
 
+import hashlib
 import logging
 import os
 from datetime import datetime
@@ -305,6 +306,7 @@ class ObsidianIngestor:
         properties = {
             "text": chunk_data["text"],
             "sourceFile": chunk_data["source_file"],
+            "sourceFileId": self._source_file_id(chunk_data["source_file"]),
             "sourceType": chunk_data["source_type"],
             "chunkIndex": chunk_data["chunk_index"],
             "ingestedAt": datetime.now(),
@@ -325,8 +327,9 @@ class ObsidianIngestor:
         from weaviate.classes.query import Filter
 
         collection = self.weaviate_client.collections.get(self.collection_name)
+        file_id = self._source_file_id(file_path)
         delete_result = collection.data.delete_many(
-            where=Filter.by_property("sourceFile").equal(file_path)
+            where=Filter.by_property("sourceFileId").equal(file_id)
             & Filter.by_property("sourceType").equal("obsidian")
         )
         logger.info(
@@ -336,3 +339,7 @@ class ObsidianIngestor:
             delete_result.successful,
             delete_result.failed,
         )
+
+    def _source_file_id(self, file_path: str) -> str:
+        """Create a stable, exact-match identifier for a source file path."""
+        return hashlib.sha1(file_path.encode("utf-8")).hexdigest()
