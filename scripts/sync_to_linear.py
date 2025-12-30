@@ -261,9 +261,7 @@ class LinearSyncer:
         }
         """
         data = self.graphql_query(query, {"teamId": self.team_id})
-        self.label_ids = {
-            label["name"]: label["id"] for label in data["team"]["labels"]["nodes"]
-        }
+        self.label_ids = {label["name"]: label["id"] for label in data["team"]["labels"]["nodes"]}
 
     def create_label(self, name: str) -> str:
         color = LABEL_COLORS.get(name, "#4E5AEC")
