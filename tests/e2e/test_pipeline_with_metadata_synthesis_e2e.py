@@ -350,7 +350,7 @@ Lamination requires precision and patience.
                 assert fetched.key_entities == original_profile.key_entities
 
             print("\n=== PIPELINE TEST COMPLETE ===")
-            print(f"Successfully validated full pipeline:")
+            print("Successfully validated full pipeline:")
             print(f"  - {stats['files_processed']} files ingested")
             print(f"  - {stats['total_chunks']} chunks created")
             print(f"  - {n_clusters} clusters formed")
@@ -486,9 +486,10 @@ Shawarma wraps spiced meat.
                     ]
                 )
 
-                assert (
-                    is_python or is_food
-                ), f"Cluster {cluster_id} should identify clear topic.\nTheme: {profile.theme_summary}\nEntities: {profile.key_entities}"
+                assert is_python or is_food, (
+                    f"Cluster {cluster_id} should identify clear topic.\n"
+                    f"Theme: {profile.theme_summary}\nEntities: {profile.key_entities}"
+                )
 
                 # Coherent clusters should have higher confidence
                 assert (
@@ -499,9 +500,8 @@ Shawarma wraps spiced meat.
                 print(f"  Theme: {profile.theme_summary}")
                 print(f"  Entities: {profile.key_entities}")
                 print(f"  Confidence: {profile.confidence_score:.2f}")
-                print(
-                    f"  Topic detected: {'Python' if is_python else 'Food' if is_food else 'Unknown'}"
-                )
+                topic = "Python" if is_python else "Food" if is_food else "Unknown"
+                print(f"  Topic detected: {topic}")
 
     def test_pipeline_handles_mixed_quality_clusters(
         self, weaviate_client, clean_weaviate_collection, postgres_connection, test_config
@@ -607,7 +607,7 @@ Asian stir-fry techniques.
             successful = [p for p in profiles if p[2] == "success"]
             assert len(successful) > 0, "At least some clusters should synthesize successfully"
 
-            print(f"\nMixed Quality Results:")
+            print("\nMixed Quality Results:")
             print(f"  Total clusters: {len(profiles)}")
             print(f"  Successful: {len(successful)}")
             print(f"  Failed: {len([p for p in profiles if p[2] == 'failed'])}")
