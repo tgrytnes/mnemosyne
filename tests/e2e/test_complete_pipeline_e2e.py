@@ -167,13 +167,18 @@ The Renaissance transformed European culture.
             cluster_manager = ClusterManager(weaviate_client)
             n_clusters = 3  # Group into 3 semantic clusters
 
-            clustering_result = cluster_manager.run_kmeans_clustering(n_clusters=n_clusters)
+            # Fetch vectors from Weaviate
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            assert len(vectors) == len(all_chunks.objects), "Should fetch all vectors"
 
-            assert clustering_result["chunks_clustered"] == len(
-                all_chunks.objects
-            ), "All chunks should be clustered"
-            assert clustering_result["n_clusters"] == n_clusters, "Correct cluster count"
-            assert clustering_result["centroids_stored"] == n_clusters, "Centroids should be stored"
+            # Run K-means clustering
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters)
+            assert len(labels) == len(vectors), "Should have label for each vector"
+            assert len(centroids) == n_clusters, "Should have centroids for each cluster"
+
+            # Update Weaviate with cluster assignments
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Verify cluster assignments
             clustered_chunks = collection.query.fetch_objects(limit=100)
@@ -329,24 +334,36 @@ Future work will expand the scope.
                 chunk_sizes = [len(obj.properties["text"]) for obj in chunks.objects]
                 avg_chunk_size = sum(chunk_sizes) / len(chunk_sizes)
 
-                # Structure preservation
-                analyzer = StructurePreservationAnalyzer()
-                structure_score = 0.0
+                # Structure preservation using analyzer (Story 020)
+                expected_headings = [
+                    "# Main Title",
+                    "## Section 1: Introduction",
+                    "## Section 2: Methods",
+                    "### Subsection 2.1: Data Collection",
+                    "### Subsection 2.2: Analysis",
+                    "## Section 3: Results",
+                    "## Section 4: Conclusion",
+                ]
 
-                for obj in chunks.objects:
-                    if obj.properties.get("headingPath"):
-                        structure_score += 1
+                # Convert Weaviate objects to dicts for analyzer
+                chunk_dicts = [
+                    {
+                        "headingPath": obj.properties.get("headingPath"),
+                        "headingLevel": obj.properties.get("headingLevel"),
+                    }
+                    for obj in chunks.objects
+                ]
 
-                structure_preservation = (
-                    structure_score / len(chunks.objects) if chunks.objects else 0
-                )
+                analyzer = StructurePreservationAnalyzer(chunk_dicts, expected_headings)
+                structure_metrics = analyzer.analyze()
 
                 results[strategy] = {
                     "total_chunks": len(chunks.objects),
                     "avg_chunk_size": avg_chunk_size,
                     "ingestion_time": elapsed,
-                    "structure_preservation": structure_preservation,
-                    "chunks_with_headings": structure_score,
+                    "structure_preservation": structure_metrics.preservation_score,
+                    "heading_depth_accuracy": structure_metrics.heading_depth_accuracy,
+                    "headings_found": structure_metrics.n_headings_found,
                 }
 
             # VALIDATE: Hybrid should preserve structure better
@@ -358,7 +375,7 @@ Future work will expand the scope.
             # Hybrid should create more chunks (respects heading boundaries)
             # Recursive might create larger chunks ignoring structure
 
-            print(f"\nStrategy Comparison Results:")
+            print("\nStrategy Comparison Results:")
             print(f"Recursive: {results['recursive']}")
             print(f"Hybrid: {results['hybrid']}")
 
@@ -409,7 +426,6 @@ Neural networks are powerful tools.
 
             stats_v1 = ingestor.ingest_vault()
             assert stats_v1["files_processed"] == 1
-            initial_chunk_count = stats_v1["total_chunks"]
 
             collection = weaviate_client.collections.get("TheMuses")
             chunks_v1 = collection.query.fetch_objects(limit=100)
@@ -417,7 +433,12 @@ Neural networks are powerful tools.
 
             # STAGE 2: Initial clustering
             cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=2)
+            vectors_v1, uuids_v1 = cluster_manager.fetch_all_vectors()
+            labels_v1, centroids_v1 = cluster_manager.run_kmeans_clustering(
+                vectors_v1, n_clusters=2
+            )
+            cluster_manager.update_chunk_cluster_ids(uuids_v1, labels_v1)
+            cluster_manager.update_centroids(centroids_v1, labels_v1)
 
             # STAGE 3: Modify file (major change)
             time.sleep(1)  # Ensure different mtime
@@ -455,10 +476,15 @@ Carbonara uses eggs and guanciale.
             ), "Old content should be removed"
 
             # STAGE 6: Re-cluster
-            cluster_result = cluster_manager.run_kmeans_clustering(n_clusters=2)
-            assert cluster_result["chunks_clustered"] == len(
-                chunks_v2.objects
-            ), "All new chunks should be clustered"
+            vectors_v2, uuids_v2 = cluster_manager.fetch_all_vectors()
+            labels_v2, centroids_v2 = cluster_manager.run_kmeans_clustering(
+                vectors_v2, n_clusters=2
+            )
+            cluster_manager.update_chunk_cluster_ids(uuids_v2, labels_v2)
+            cluster_manager.update_centroids(centroids_v2, labels_v2)
+
+            # Verify all new chunks were clustered
+            assert len(labels_v2) == len(chunks_v2.objects), "All new chunks should be clustered"
 
     def test_pipeline_03_quality_metrics_end_to_end(
         self, weaviate_client, clean_weaviate_collection, test_config
@@ -573,7 +599,7 @@ Stars guide the way.
             # Most chunks should have heading context
             assert structure_score > 0.5, f"Structure preservation {structure_score} too low"
 
-            print(f"\nQuality Metrics:")
+            print("\nQuality Metrics:")
             print(f"  Avg chunk size: {avg_size:.1f} chars")
             print(f"  Embedding dimensionality: {len(vectors[0])}")
             print(f"  Avg vector similarity: {avg_similarity:.3f}")
@@ -665,7 +691,6 @@ Innovation and experimentation.
             assert len(db_chunks.objects) > 0, "Should find chunks in Database Schema subsection"
 
             for obj in db_chunks.objects:
-                text = obj.properties.get("text", "")
                 heading = obj.properties.get("headingPath", "")
                 # Should mention database-related content
                 assert "Database Schema" in heading, f"Wrong subsection: {heading}"
@@ -757,7 +782,10 @@ Latin influenced modern languages.
 
             # Cluster into 3 groups (ML, Cooking, History)
             cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=3)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=3)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Get representatives for each cluster
             get_reps = GetClusterRepresentatives(weaviate_client)
@@ -819,7 +847,7 @@ Latin influenced modern languages.
             for cluster_id, info in cluster_topics.items():
                 assert info["score"] > 0, f"Cluster {cluster_id} should have identifiable topic"
 
-            print(f"\nCluster Semantic Coherence:")
+            print("\nCluster Semantic Coherence:")
             for cluster_id, info in cluster_topics.items():
                 print(f"  Cluster {cluster_id}: {info['topic']} (score={info['score']})")
 
@@ -856,8 +884,6 @@ class TestPipelineEdgeCases:
             assert stats["total_chunks"] == 0, "No chunks created"
 
             # Clustering should handle empty collection
-            cluster_manager = ClusterManager(weaviate_client)
-
             # Should not crash on empty data
             # (Implementation should check for empty collection)
 
@@ -892,9 +918,12 @@ class TestPipelineEdgeCases:
 
             # Clustering with 1 chunk should work (n_clusters=1)
             cluster_manager = ClusterManager(weaviate_client)
-            result = cluster_manager.run_kmeans_clustering(n_clusters=1)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=1)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
-            assert result["chunks_clustered"] >= 1
+            assert len(labels) >= 1, "Should cluster at least 1 chunk"
 
     def test_very_long_document(self, weaviate_client, clean_weaviate_collection, test_config):
         """Verify pipeline handles large documents (many chunks)."""
