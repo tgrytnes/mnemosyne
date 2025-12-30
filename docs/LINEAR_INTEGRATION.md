@@ -49,9 +49,9 @@ Output:
 
 Phase 0: 2/4 completed, 1 in progress
   ✅ [PRO-5] Story 000: Obsidian Vault Ingestion
-  🔄 [PRO-6] Story 001: Email Archive Ingestion
-  ⬜ [PRO-7] Story 002: Shadow Copy & Hygiene
-  ⬜ [PRO-8] Story 003: PDF & OCR Ingestion
+  🔄 [PRO-6] Story 024: Email Archive Ingestion
+  ⬜ [PRO-7] Story 025: Shadow Copy & Hygiene
+  ⬜ [PRO-8] Story 026: PDF & OCR Ingestion
 
 📈 Overall Progress: 8/18 completed (44.4%)
 ```
@@ -170,8 +170,8 @@ Each Linear issue includes:
 
 Based on critical path:
 - **P0 (Highest)**: PRO-5 (Story 000)
-- **P0**: PRO-6 (Story 001)
-- **P0**: PRO-7 (Story 002)
+- **P0**: PRO-6 (Story 024)
+- **P0**: PRO-7 (Story 025)
 - **P1**: PRO-18 (Story 010 - Scout)
 - **P1**: PRO-22 (Story 014 - SQL Gatekeeper)
 - **P1**: PRO-24 (Story 016 - Project Manager)
@@ -299,7 +299,9 @@ Mnemosyne/
 ├── user-stories/                 # Detailed specifications
 │   ├── phase-0-ingestion-hygiene/
 │   │   ├── story-000-*.md
-│   │   ├── story-001-*.md
+│   │   ├── story-024-*.md
+│   │   ├── story-025-*.md
+│   │   ├── story-026-*.md
 │   │   └── ...
 │   └── ...
 │

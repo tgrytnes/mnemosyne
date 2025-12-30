@@ -1,4 +1,4 @@
-# Story 002: Shadow Copy & Hygiene Layer (Obsidian Gatekeeper)
+# Story 025: Shadow Copy & Hygiene Layer (Obsidian Gatekeeper)
 
 **As a** user
 **I want** all automated edits to happen in a shadow copy of my vault

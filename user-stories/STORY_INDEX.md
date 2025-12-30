@@ -7,9 +7,9 @@ Quick reference for all user stories with status tracking.
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
 | 000 | Obsidian Vault Ingestion | Critical | 8 pts | ✅ Done | - |
-| 001 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
-| 002 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
-| 003 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
+| 024 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
+| 025 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
+| 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 
 **Phase Total**: 42 story points (8 completed)
 
@@ -24,8 +24,9 @@ Quick reference for all user stories with status tracking.
 | 020 | Hierarchical Structure Preservation | High | 5 pts | ✅ Done | - |
 | 021 | Semantic Chunking with LLM | High | 13 pts | ✅ Done | - |
 | 022 | Quality Testing Matrix | Medium | 13 pts | 📝 Draft | - |
+| 023 | Configurable Clustering Strategy | Medium | 8 pts | 📝 Draft | - |
 
-**Phase Total**: 60 story points (31 completed)
+**Phase Total**: 68 story points (31 completed)
 
 ## Phase 2: The Efficiency Engine (Memory & Persistence)
 
@@ -63,13 +64,13 @@ Quick reference for all user stories with status tracking.
 
 ## Summary
 
-- **Total Stories**: 22
-- **Completed Stories**: 5 (23%)
-- **Total Story Points**: 191 points
+- **Total Stories**: 23
+- **Completed Stories**: 5 (22%)
+- **Total Story Points**: 199 points
 - **Completed Points**: 39 points (20%)
-- **Remaining Points**: 152 points
-- **Estimated Duration**: 38-48 weeks (assuming 4-5 points/week velocity)
-- **Progress**: 5 stories completed, 17 remaining
+- **Remaining Points**: 160 points
+- **Estimated Duration**: 40-50 weeks (assuming 4-5 points/week velocity)
+- **Progress**: 5 stories completed, 18 remaining
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
@@ -99,9 +100,9 @@ Quick reference for all user stories with status tracking.
 ```
 Phase 0 Foundation (MUST complete first):
 000 (Vault Ingestion) ─┬→ Phase 1+
-002 (Shadow Copy)      ─┤
-001 (Email Ingestion)  ─┤  Optional, parallel
-003 (PDF/OCR)          ─┘  Optional, parallel
+025 (Shadow Copy)      ─┤
+024 (Email Ingestion)  ─┤  Optional, parallel
+026 (PDF/OCR)          ─┘  Optional, parallel
 
 Phase 1 Foundation (Required for all semantic features):
 [Phase 0] → 001 (Cluster Centroids) → 002 (Metadata Synthesis) → 003 (Graph Taxonomy)
@@ -172,9 +173,9 @@ Phase 4 Latent Scout (Runs parallel to Phases 2-3):
 
 ### Sprint 1-3 (Phase 0): Ingestion Foundation
 1. **Story 000: Obsidian Vault Ingestion** (CRITICAL - blocks everything)
-2. **Story 002: Shadow Copy & Hygiene** (safety layer)
-3. Story 001: Email Archive Ingestion (optional, parallel)
-4. Story 003: PDF/OCR Ingestion (optional, parallel)
+2. **Story 025: Shadow Copy & Hygiene** (safety layer)
+3. Story 024: Email Archive Ingestion (optional, parallel)
+4. Story 026: PDF/OCR Ingestion (optional, parallel)
 
 ### Sprint 4-6 (Phase 1): Semantic Foundation
 1. Story 001: Cluster Centroid Node (renumbered from old 001)
