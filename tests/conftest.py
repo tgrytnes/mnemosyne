@@ -89,6 +89,16 @@ def temp_shadow_vault(tmp_path: Path) -> Generator[Path, None, None]:
     yield shadow
 
 
+@pytest.fixture(scope="session")
+def fake_vault_path() -> Path:
+    """Return path to the committed fake vault test data."""
+    repo_root = Path(__file__).resolve().parents[1]
+    fake_vault = repo_root / "test_data" / "fake_vault"
+    if not fake_vault.exists():
+        pytest.fail("Fake vault test data is missing")
+    return fake_vault
+
+
 @pytest.fixture
 def sample_markdown_file(tmp_path: Path) -> Path:
     """Create a sample markdown file for testing"""
