@@ -85,14 +85,14 @@ class TestCheckpointStore:
             state_two.current_node = "synthesis"
             store.save(state_two)
 
-            store._conn.execute(
-                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
-                ("2020-01-01T00:00:00", "q-4", "semantic_extraction"),
+            update_sql = (
+                f"UPDATE {store.table_name} SET updated_at = ? "
+                "WHERE query_id = ? AND current_node = ?"
             )
             store._conn.execute(
-                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
-                ("2020-01-02T00:00:00", "q-4", "synthesis"),
+                update_sql, ("2020-01-01T00:00:00", "q-4", "semantic_extraction")
             )
+            store._conn.execute(update_sql, ("2020-01-02T00:00:00", "q-4", "synthesis"))
             store._conn.commit()
 
             history = store.list_query_history("q-4")
@@ -113,14 +113,12 @@ class TestCheckpointStore:
             state_two.current_node = "synthesis"
             store.save(state_two)
 
-            store._conn.execute(
-                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
-                ("2020-01-01T00:00:00", "q-5", "search"),
+            update_sql = (
+                f"UPDATE {store.table_name} SET updated_at = ? "
+                "WHERE query_id = ? AND current_node = ?"
             )
-            store._conn.execute(
-                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
-                ("2020-01-02T00:00:00", "q-5", "synthesis"),
-            )
+            store._conn.execute(update_sql, ("2020-01-01T00:00:00", "q-5", "search"))
+            store._conn.execute(update_sql, ("2020-01-02T00:00:00", "q-5", "synthesis"))
             store._conn.commit()
 
             checkpoints = store.list_checkpoints()
