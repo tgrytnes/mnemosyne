@@ -147,6 +147,5 @@ def test_story_001_cluster_quality_with_fake_vault(weaviate_client, fake_vault_p
         dominant_domains.append(dominant_domain)
 
     assert len(set(dominant_domains)) >= 2, (
-        "Expected at least two distinct domains across clusters "
-        f"(got {set(dominant_domains)})"
+        "Expected at least two distinct domains across clusters " f"(got {set(dominant_domains)})"
     )
