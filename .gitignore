@@ -32,6 +32,9 @@ htmlcov/
 tests/pytest.log
 *.log
 
+# Generated story index
+user-stories/stories.json
+
 # Ingestion state (local development databases)
 ingestion_state.db
 *.db

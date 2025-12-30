@@ -115,6 +115,49 @@ git push
 - Checkboxes in IMPLEMENTATION_PLAN.md
 - Creates automatic backup before changes
 
+### Sync to Linear
+
+**File**: `scripts/sync_to_linear.py`
+
+**Purpose**: Update Linear issue titles/descriptions/labels from local story files.
+
+**Usage**:
+```bash
+.venv/bin/python scripts/sync_to_linear.py
+```
+
+**Notes**:
+- Keeps the local markdown as the source of truth for content.
+- Linear is still the source of truth for status.
+
+### Build Local JSON Index
+
+**File**: `scripts/build_story_index.py`
+
+**Purpose**: Generate a machine-readable index of stories for local tooling (VS Code, scripts).
+
+**Usage**:
+```bash
+# Build index with Linear status (if LINEAR_API_KEY is set)
+.venv/bin/python scripts/build_story_index.py
+
+# Build index without Linear lookup
+.venv/bin/python scripts/build_story_index.py --no-linear
+```
+
+**Output**:
+- `user-stories/stories.json`
+
+## Quick Commands (Makefile)
+
+```bash
+make stories-index         # Build local JSON index (uses Linear if configured)
+make stories-index-local   # Build local JSON index without Linear lookup
+make stories-sync-linear   # Sync local stories to Linear
+make stories-sync-status   # Sync Linear status to IMPLEMENTATION_PLAN.md
+make stories-sync          # Sync to Linear, then rebuild JSON index
+```
+
 ## Linear Organization
 
 ### Labels
