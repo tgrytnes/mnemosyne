@@ -89,9 +89,7 @@ class TestCheckpointStore:
                 f"UPDATE {store.table_name} SET updated_at = ? "
                 "WHERE query_id = ? AND current_node = ?"
             )
-            store._conn.execute(
-                update_sql, ("2020-01-01T00:00:00", "q-4", "semantic_extraction")
-            )
+            store._conn.execute(update_sql, ("2020-01-01T00:00:00", "q-4", "semantic_extraction"))
             store._conn.execute(update_sql, ("2020-01-02T00:00:00", "q-4", "synthesis"))
             store._conn.commit()
 

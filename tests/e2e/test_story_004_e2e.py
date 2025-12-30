@@ -19,9 +19,9 @@ def _run_cli(args: list[str], db_path: Path) -> str:
     repo_root = Path(__file__).resolve().parents[2]
     env = os.environ.copy()
     env["CHECKPOINT_DB_PATH"] = str(db_path)
-    env["PYTHONPATH"] = os.pathsep.join(
-        [str(repo_root / "src"), env.get("PYTHONPATH", "")]
-    ).strip(os.pathsep)
+    env["PYTHONPATH"] = os.pathsep.join([str(repo_root / "src"), env.get("PYTHONPATH", "")]).strip(
+        os.pathsep
+    )
 
     result = subprocess.run(
         [sys.executable, "-m", "mnemosyne.cli.checkpoints", *args],
