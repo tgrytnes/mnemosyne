@@ -28,8 +28,6 @@ from mnemosyne.argus.nodes.cluster_representatives import (
     GetClusterRepresentatives,
 )
 from mnemosyne.cli.cluster import ClusterManager
-from mnemosyne.iris.chunking_quality import ChunkingQualityAnalyzer
-from mnemosyne.iris.embedding_quality import EmbeddingQualityAnalyzer
 from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
 
 
@@ -320,7 +318,7 @@ Future work will expand the scope.
                 )
 
                 start_time = time.monotonic()
-                stats = ingestor.ingest_vault()
+                ingestor.ingest_vault()
                 elapsed = time.monotonic() - start_time
 
                 # Collect quality metrics
