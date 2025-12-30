@@ -4,8 +4,6 @@ Integration tests for ObsidianIngestor using real Ollama and Weaviate.
 Precondition: Use a fresh TheMuses collection for ingestion-focused checks.
 """
 
-from pathlib import Path
-
 import pytest
 
 from src.mnemosyne.aletheia.ingestion_state import IngestionStateTracker

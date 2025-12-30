@@ -7,8 +7,8 @@ from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
 
-import pytest
 import ollama
+import pytest
 import weaviate
 
 # ============================================================================

@@ -5,7 +5,6 @@ Precondition: Ollama is running with qwen3-embedding:0.6b available.
 """
 
 import tempfile
-import time
 
 import pytest
 
