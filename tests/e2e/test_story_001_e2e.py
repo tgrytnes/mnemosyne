@@ -36,7 +36,7 @@ def clean_collections_before_test(weaviate_client, weaviate_collections):
         weaviate_client.collections.delete(ClusterCentroidCollection.collection_name)
 
 
-def test_story_001_full_pipeline(weaviate_client, fake_vault_path):
+def test_story_001_full_pipeline(weaviate_client, fake_vault_path, tmp_path):
     """
     Tests the full E2E pipeline for Story 001:
     1. Ingest a vault.
@@ -44,8 +44,17 @@ def test_story_001_full_pipeline(weaviate_client, fake_vault_path):
     3. Use a LangGraph to get representative chunks.
     """
     os.environ["OBSIDIAN_VAULT_PATH"] = str(fake_vault_path)
+    state_db_path = tmp_path / "ingestion_state_story_001.db"
+    original_state_db = os.environ.get("INGESTION_STATE_DB")
+    os.environ["INGESTION_STATE_DB"] = str(state_db_path)
 
-    ingest_once()
+    try:
+        ingest_once()
+    finally:
+        if original_state_db is None:
+            os.environ.pop("INGESTION_STATE_DB", None)
+        else:
+            os.environ["INGESTION_STATE_DB"] = original_state_db
 
     muses_collection = weaviate_client.collections.get(TheMuses.collection_name)
     total_chunks = muses_collection.aggregate.over_all(total_count=True).total_count
@@ -84,13 +93,22 @@ def test_story_001_full_pipeline(weaviate_client, fake_vault_path):
     assert len(representative_chunks) <= 5
 
 
-def test_story_001_cluster_quality_with_fake_vault(weaviate_client, fake_vault_path):
+def test_story_001_cluster_quality_with_fake_vault(weaviate_client, fake_vault_path, tmp_path):
     """
     Validate clustering quality on the realistic fake vault and access reps via LangGraph.
     """
     os.environ["OBSIDIAN_VAULT_PATH"] = str(fake_vault_path)
+    state_db_path = tmp_path / "ingestion_state_story_001_quality.db"
+    original_state_db = os.environ.get("INGESTION_STATE_DB")
+    os.environ["INGESTION_STATE_DB"] = str(state_db_path)
 
-    ingest_once()
+    try:
+        ingest_once()
+    finally:
+        if original_state_db is None:
+            os.environ.pop("INGESTION_STATE_DB", None)
+        else:
+            os.environ["INGESTION_STATE_DB"] = original_state_db
 
     n_clusters = 3
     run_clustering(n_clusters=n_clusters)
