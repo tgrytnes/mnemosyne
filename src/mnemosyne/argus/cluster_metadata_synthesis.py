@@ -181,6 +181,7 @@ class ClusterMetadataSynthesizer:
         if not keywords:
             return summary
         summary_lower = summary.lower()
-        if any(keyword in summary_lower for keyword in keywords):
+        missing = [keyword for keyword in keywords if keyword not in summary_lower]
+        if not missing:
             return summary
-        return f"{summary} Key themes: {', '.join(keywords)}"
+        return f"{summary} Key themes: {', '.join(missing[:3])}"
