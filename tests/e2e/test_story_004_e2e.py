@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.argus.research_graph import ResearchGraph
 
 
@@ -100,3 +102,65 @@ def test_story_004_cleanup_removes_old_checkpoints(tmp_path: Path):
 
     list_output = _run_cli(["list"], db_path)
     assert "e2e-004-old" not in list_output
+
+
+@pytest.mark.e2e
+@pytest.mark.weaviate
+def test_story_004_system_resume_with_real_services(
+    tmp_path: Path,
+    weaviate_client,
+    ollama_client,
+    fake_vault_path: Path,
+    clean_weaviate_collection,
+):
+    """
+    REAL E2E TEST: Ingest real vault data, run checkpointed graph, then resume.
+    """
+    state_tracker = IngestionStateTracker(str(tmp_path / "ingestion_state.db"))
+    ingestor = ObsidianIngestor(
+        vault_path=str(fake_vault_path),
+        weaviate_client=weaviate_client,
+        ollama_client=ollama_client,
+        state_tracker=state_tracker,
+        chunking_strategy="recursive",
+        chunk_size=400,
+        chunk_overlap=100,
+    )
+
+    stats = ingestor.ingest_vault()
+    assert stats["total_chunks"] > 0
+
+    collection = weaviate_client.collections.get("TheMuses")
+    results = collection.query.fetch_objects(limit=1)
+    assert results.objects, "No chunks stored in TheMuses"
+
+    props = results.objects[0].properties
+    source_file = props.get("sourceFile")
+    chunk_index = props.get("chunkIndex")
+    chunk_text = props.get("text")
+
+    assert source_file
+    assert chunk_index is not None
+    assert chunk_text
+
+    db_path = tmp_path / "checkpoints.db"
+    graph = ResearchGraph(checkpoint_db_path=str(db_path))
+    query_id = "e2e-004-system"
+    state = {
+        "query_id": query_id,
+        "original_query": f"Resume notes from {source_file}",
+        "current_node": "start",
+        "conversation_history": [{"role": "user", "content": "Start"}],
+        "intermediate_results": [{"source_file": source_file, "text": chunk_text[:200]}],
+        "search_results": [{"source_file": source_file, "chunk_index": chunk_index}],
+    }
+    graph.run(state)
+    graph.close()
+    state_tracker.close()
+
+    resume_output = _run_cli(["resume", query_id], db_path)
+    resumed = json.loads(resume_output)
+
+    assert resumed["current_node"] == "synthesis"
+    assert any(item.get("source_file") == source_file for item in resumed["intermediate_results"])
+    assert any(item.get("chunk_index") == chunk_index for item in resumed["search_results"])
