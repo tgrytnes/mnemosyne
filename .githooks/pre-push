@@ -1,0 +1,23 @@
+#!/bin/bash
+# Pre-push hook: Run linting checks before pushing
+
+echo "Running pre-push checks..."
+
+# Run Ruff linter
+echo "→ Running Ruff linter..."
+.venv/bin/ruff check .
+if [ $? -ne 0 ]; then
+    echo "❌ Ruff linting failed. Fix errors with: .venv/bin/ruff check --fix ."
+    exit 1
+fi
+
+# Run Black formatter check
+echo "→ Running Black formatter check..."
+.venv/bin/black --check .
+if [ $? -ne 0 ]; then
+    echo "❌ Black formatting failed. Fix with: .venv/bin/black ."
+    exit 1
+fi
+
+echo "✅ All pre-push checks passed!"
+exit 0

@@ -67,12 +67,12 @@ class ObsidianIngestor:
             # 3. Clean markdown
             cleaned = self.clean_markdown(file_path)
 
-            # 4. Chunk
-            chunks = self.chunk_text(cleaned, chunk_size=400, overlap=100)
+        # 4. Chunk (first pass)
+        chunks = self.chunk_text(cleaned, chunk_size=400, overlap=100)
 
-            # 5. Embed via Ollama
-            for chunk in chunks:
-                embedding = self.get_embedding(chunk.text)
+        # 5. Embed via Ollama (second pass)
+        for chunk in chunks:
+            embedding = self.get_embedding(chunk.text)
 
                 # 6. Store in Weaviate (TheMuses ONLY)
                 self.store_chunk({
@@ -158,6 +158,12 @@ def clean_markdown_content(text: str) -> str:
 ```
 
 ### Chunking Strategy
+
+**Two-pass ingestion (performance)**:
+1. Chunk all eligible files first.
+2. Embed and store chunks in a second pass.
+
+This avoids frequent model switching on resource-constrained devices (e.g., Pi 5).
 
 ```python
 from langchain.text_splitter import RecursiveCharacterTextSplitter

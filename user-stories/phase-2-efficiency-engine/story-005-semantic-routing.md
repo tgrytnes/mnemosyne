@@ -19,6 +19,10 @@ Iris is the user-facing intelligence layer that provides semantic search and que
 - [ ] Metrics: cache hit rate logged
 - [ ] Performance: Routing decision completes in <100ms
 - [ ] Fallback: Always route to Weaviate if cache is stale or uncertain
+- [ ] Cache schema defined with indices for lookup by query hash and last_accessed
+- [ ] Similarity threshold configurable (default 0.95)
+- [ ] API surface defined for routing (`route(query)`, `invalidate_cache`, `get_cache_stats`)
+- [ ] Tests: unit tests for routing decisions + integration test for cache persistence + e2e test for end-to-end routing path
 
 ## Technical Notes
 

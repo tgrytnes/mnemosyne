@@ -1,4 +1,4 @@
-# Story 001: Email Archive Ingestion (The Lethe)
+# Story 024: Email Archive Ingestion (The Lethe)
 
 **As a** user with large email archives
 **I want** my emails cleaned, clustered, and stored in The Lethe (archive DB)

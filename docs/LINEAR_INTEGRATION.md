@@ -49,9 +49,9 @@ Output:
 
 Phase 0: 2/4 completed, 1 in progress
   ✅ [PRO-5] Story 000: Obsidian Vault Ingestion
-  🔄 [PRO-6] Story 001: Email Archive Ingestion
-  ⬜ [PRO-7] Story 002: Shadow Copy & Hygiene
-  ⬜ [PRO-8] Story 003: PDF & OCR Ingestion
+  🔄 [PRO-6] Story 024: Email Archive Ingestion
+  ⬜ [PRO-7] Story 025: Shadow Copy & Hygiene
+  ⬜ [PRO-8] Story 026: PDF & OCR Ingestion
 
 📈 Overall Progress: 8/18 completed (44.4%)
 ```
@@ -115,6 +115,49 @@ git push
 - Checkboxes in IMPLEMENTATION_PLAN.md
 - Creates automatic backup before changes
 
+### Sync to Linear
+
+**File**: `scripts/sync_to_linear.py`
+
+**Purpose**: Update Linear issue titles/descriptions/labels from local story files.
+
+**Usage**:
+```bash
+.venv/bin/python scripts/sync_to_linear.py
+```
+
+**Notes**:
+- Keeps the local markdown as the source of truth for content.
+- Linear is still the source of truth for status.
+
+### Build Local JSON Index
+
+**File**: `scripts/build_story_index.py`
+
+**Purpose**: Generate a machine-readable index of stories for local tooling (VS Code, scripts).
+
+**Usage**:
+```bash
+# Build index with Linear status (if LINEAR_API_KEY is set)
+.venv/bin/python scripts/build_story_index.py
+
+# Build index without Linear lookup
+.venv/bin/python scripts/build_story_index.py --no-linear
+```
+
+**Output**:
+- `user-stories/stories.json`
+
+## Quick Commands (Makefile)
+
+```bash
+make stories-index         # Build local JSON index (uses Linear if configured)
+make stories-index-local   # Build local JSON index without Linear lookup
+make stories-sync-linear   # Sync local stories to Linear
+make stories-sync-status   # Sync Linear status to IMPLEMENTATION_PLAN.md
+make stories-sync          # Sync to Linear, then rebuild JSON index
+```
+
 ## Linear Organization
 
 ### Labels
@@ -170,8 +213,8 @@ Each Linear issue includes:
 
 Based on critical path:
 - **P0 (Highest)**: PRO-5 (Story 000)
-- **P0**: PRO-6 (Story 001)
-- **P0**: PRO-7 (Story 002)
+- **P0**: PRO-6 (Story 024)
+- **P0**: PRO-7 (Story 025)
 - **P1**: PRO-18 (Story 010 - Scout)
 - **P1**: PRO-22 (Story 014 - SQL Gatekeeper)
 - **P1**: PRO-24 (Story 016 - Project Manager)
@@ -299,7 +342,9 @@ Mnemosyne/
 ├── user-stories/                 # Detailed specifications
 │   ├── phase-0-ingestion-hygiene/
 │   │   ├── story-000-*.md
-│   │   ├── story-001-*.md
+│   │   ├── story-024-*.md
+│   │   ├── story-025-*.md
+│   │   ├── story-026-*.md
 │   │   └── ...
 │   └── ...
 │

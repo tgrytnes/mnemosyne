@@ -616,7 +616,7 @@ The Curator (Story 017)
     ↓ User approves via /approve_curation
 The Editor (Story 018)
     ↓ Creates shadow copy with changes
-Obsidian Gatekeeper (Story 002)
+Obsidian Gatekeeper (Story 025)
     ↓ User reviews diff
 Obsidian Vault
     ↓ Final approval applies changes
@@ -694,7 +694,7 @@ def cmd_configure_curator(message, setting: str, value: str):
 - Discovery Vector DB - stores curation proposals
 - The Liaison (Hermes) - sends suggestions via Telegram
 - The Editor (Story 018) - executes approved changes
-- Obsidian Gatekeeper (Story 002) - final approval layer
+- Obsidian Gatekeeper (Story 025) - final approval layer
 
 ## Affected Components
 - **Argus**: The Curator as new analysis agent
@@ -712,7 +712,7 @@ def cmd_configure_curator(message, setting: str, value: str):
 `phase-5`, `vault-curation`, `argus`, `curator`, `vault-hygiene`, `proactive`
 
 ## Related Stories
-- Story 002: Obsidian Gatekeeper (final approval of changes)
+- Story 025: Obsidian Gatekeeper (final approval of changes)
 - Story 010: Scout (similar proactive pattern in Argus)
 - Story 018: The Editor (executes curation changes)
 

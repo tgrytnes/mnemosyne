@@ -38,6 +38,26 @@ Building a personal knowledge management system with AI-powered pattern discover
 
 ## 📋 Implementation Order & Checklist
 
+### Incremental E2E Pipeline Plan (Current Focus)
+
+This plan follows your sequence: vault data → embeddings DB → scout + project manager → Telegram, with E2E tests at each step.
+
+1. **Vault ingestion + embeddings DB working (Story 000)**  
+   Goal: reliable ingestion, chunking, embeddings, and Weaviate writes/reads.  
+   E2E: `test_vault_to_muses.py` (ingest → query).
+2. **Cluster + profile pipeline (Phase 1 Stories 001-002)**  
+   Goal: embeddings → clusters → profiles stored in Postgres.  
+   E2E: `test_clustering_pipeline.py` (ingest → cluster → profile).
+3. **Checkpointed knowledge + semantic routing (Stories 004-005)**  
+   Goal: LangGraph state persistence + routing decisions for Iris.  
+   E2E: `test_checkpointed_state.py`, `test_semantic_router.py`.
+4. **Scout + Gatekeeper + Project Manager (Stories 010, 014, 016) - local output first**  
+   Goal: discoveries + project records without Telegram; log/CLI output OK.  
+   E2E: `test_scout_discovery.py`, `test_gatekeeper_workflow.py`, `test_project_manager_integration.py`.
+5. **Telegram communication layer (Story 012, plus hooks into 010/014/016)**  
+   Goal: notifications, approvals, and commands via Hermes.  
+   E2E: new end-to-end tests for notifications + approval flows.
+
 ### Phase 0: Foundation & Ingestion (Weeks 1-2)
 
 #### ✅ Story 000: Obsidian Vault Ingestion (The Muses)
@@ -63,7 +83,7 @@ Building a personal knowledge management system with AI-powered pattern discover
 
 ---
 
-#### ⬜ Story 001: Email Archive Ingestion (The Lethe)
+#### ⬜ Story 024: Email Archive Ingestion (The Lethe)
 **Priority: HIGH - Large dataset for retrieval**
 - [ ] Create EmailIngestor class
 - [ ] Parse .eml files from `/mnt/sda1/digital_vault/raw_email_archive/Posteo/`
@@ -82,7 +102,7 @@ Building a personal knowledge management system with AI-powered pattern discover
 
 ---
 
-#### ⬜ Story 002: Shadow Copy & Hygiene (Obsidian Gatekeeper)
+#### ⬜ Story 025: Shadow Copy & Hygiene (Obsidian Gatekeeper)
 **Priority: CRITICAL - Safety for automated edits**
 - [ ] Create shadow vault directory: `/mnt/sda1/digital_vault/02_active/notes/Obsidian_Shadow/`
 - [ ] Implement Janitor service
@@ -104,7 +124,7 @@ Building a personal knowledge management system with AI-powered pattern discover
 
 ---
 
-#### ⬜ Story 003: PDF/OCR Ingestion (The Lethe)
+#### ⬜ Story 026: PDF/OCR Ingestion (The Lethe)
 **Priority: MEDIUM - Small dataset**
 - [ ] Create PDFIngestor class
 - [ ] OCR support (Tesseract or similar)
@@ -385,27 +405,31 @@ Building a personal knowledge management system with AI-powered pattern discover
 
 ## 📅 Suggested Timeline (10 Weeks)
 
-### Weeks 1-2: Foundation
+### Weeks 1-2: Vault + Embeddings DB
 - ✅ Story 000: Obsidian ingestion (TheMuses)
-- ⬜ Story 001: Email ingestion (TheLethe)
-- ⬜ Story 002: Shadow copy & Gatekeeper
+- ⬜ Stabilize chunking + embeddings writes/reads
+- ⬜ E2E: vault → muses ingestion + query
 
-### Weeks 3-4: Intelligence
+### Weeks 3-4: Cluster + Profile Pipeline
 - ⬜ Story 001 (Phase 1): Clustering
 - ⬜ Story 002 (Phase 1): Cluster profiles
-- ⬜ Story 004: LangGraph state
-- ⬜ Story 005: Semantic routing
+- ⬜ E2E: ingest → cluster → profile
 
-### Week 5-6: User Interface
-- ⬜ Story 007: Multi-turn reasoning
-- ⬜ Story 012: Telegram integration
-
-### Weeks 7-8: Pattern Discovery
+### Weeks 5-6: Scout + Project Flow (Local Output)
 - ⬜ Story 010: Scout (CRITICAL)
 - ⬜ Story 014: SQL Gatekeeper
 - ⬜ Story 016: Project Manager
+- ⬜ E2E: scout discovery → gatekeeper → project manager
 
-### Weeks 9-10: Polish
+### Weeks 7-8: Telegram Communication Layer
+- ⬜ Story 012: Telegram integration
+- ⬜ Add Hermes commands + notification flows for Scout/Project Manager
+- ⬜ E2E: notification + approval workflows
+
+### Weeks 9-10: Expansion
+- ⬜ Story 024: Email ingestion (TheLethe)
+- ⬜ Story 025: Shadow copy & Gatekeeper
+- ⬜ Story 026: PDF/OCR ingestion (The Lethe)
 - ⬜ Story 015: Monitor
 - ⬜ Story 017: Curator
 - ⬜ Story 018: Editor
@@ -415,14 +439,14 @@ Building a personal knowledge management system with AI-powered pattern discover
 ```
 Mnemosyne/
 ├── Aletheia/              Layer 1: Input Processing
-│   ├── ingestor.py       Story 000, 001, 003
-│   ├── janitor.py        Story 002
-│   └── tagger.py         Story 002
+│   ├── ingestor.py       Story 000, 024, 026
+│   ├── janitor.py        Story 025
+│   └── tagger.py         Story 025
 │
 ├── Alexandria/            Layer 2: Storage & Governance
 │   ├── weaviate_client.py
 │   ├── postgres_client.py
-│   ├── obsidian_gatekeeper.py  Story 002
+│   ├── obsidian_gatekeeper.py  Story 025
 │   └── sql_gatekeeper.py       Story 014
 │
 ├── Argus/                 Layer 3: Subconscious
@@ -494,6 +518,7 @@ pytest tests/unit/test_ingestor.py -v
 4. **Story 010** → Scout discovers patterns
 5. **Story 014** → Gatekeeper controls writes
 6. **Story 016** → Project Manager tracks commitments
+7. **Story 012** → Telegram communication layer
 
 All other stories can be done in parallel or skipped initially.
 
@@ -574,7 +599,7 @@ No need to start new containers - use existing ones!
 4. **Test with 10 files first**: Don't ingest all 512 immediately
 5. **Run unit tests**: Verify implementation works
 6. **Full ingestion**: Process entire vault
-7. **Move to Story 001**: Email ingestion
+7. **Move to clustering + profiling**: Stories 001-002 (Phase 1)
 
 ---
 
@@ -668,7 +693,7 @@ For each story, follow this testing sequence:
 
 ---
 
-#### Story 001: Email Archive Ingestion
+#### Story 024: Email Archive Ingestion
 
 **Week 2, Day 1: Unit Tests**
 - [ ] Write `test_parse_tsv_row()`
@@ -691,7 +716,7 @@ For each story, follow this testing sequence:
 
 ---
 
-#### Story 002: Shadow Copy & Gatekeeper
+#### Story 025: Shadow Copy & Gatekeeper
 
 **Week 2, Day 4: Unit Tests**
 - [ ] Write `test_sync_to_shadow()`
@@ -1011,4 +1036,3 @@ Dependencies: Ollama, Weaviate
 ---
 
 **Next**: Follow this testing strategy for each story implementation. Start with Story 000 unit tests!
-

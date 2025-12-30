@@ -1,0 +1,28 @@
+From: alice@example.com
+To: team@example.com
+Subject: Project Alpha - Weekly Update
+Date: Tue, 06 Feb 2024 09:15:00 -0500
+Message-ID: <update-001@example.com>
+Content-Type: text/plain; charset="utf-8"
+
+Hi team,
+
+Progress this week:
+- Ingested the fake vault
+- Verified chunk boundaries
+- Logged baseline metrics
+
+Next steps:
+- Compare retrieval metrics
+- Review weaviate schema changes
+
+Thanks,
+Alice
+
+--
+Alice Example
+Senior Engineer
+
+On Mon, 05 Feb 2024 16:22:00 -0500 Bob <bob@example.com> wrote:
+> Can you confirm the ingestion logs are attached?
+> Also, check if the LLM model version is pinned.
