@@ -162,6 +162,13 @@ def clean_weaviate_collection(weaviate_client):
         if weaviate_client.collections.exists(collection_name):
             weaviate_client.collections.delete(collection_name)
 
+    yield
+
+    # Clean after
+    for collection_name in test_collections:
+        if weaviate_client.collections.exists(collection_name):
+            weaviate_client.collections.delete(collection_name)
+
 
 # ============================================================================
 # Ollama Fixtures
@@ -180,13 +187,6 @@ def ollama_client(test_config):
     except Exception as e:
         pytest.skip(f"Could not connect to Ollama: {e}")
     return client
-
-    yield
-
-    # Clean after
-    for collection_name in test_collections:
-        if weaviate_client.collections.exists(collection_name):
-            weaviate_client.collections.delete(collection_name)
 
 
 # ============================================================================
