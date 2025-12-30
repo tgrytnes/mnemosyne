@@ -195,14 +195,14 @@ Pasta alle vongole pairs spaghetti with fresh clams, garlic, white wine, and par
 Regional variations showcase local ingredients and centuries of culinary tradition.
 
 ## Pizza Making Techniques
-Neapolitan pizza follows strict DOC (Denominazione di Origine Controllata) certification requirements.
+Neapolitan pizza follows strict DOC (Denominazione di Origine Controllata) requirements.
 High-temperature wood-fired ovens reach 900°F for rapid cooking that creates signature char.
 Thin crust with puffy cornicione (rim) results from proper dough fermentation and stretching.
 Margherita pizza showcases simplicity with tomato sauce, mozzarella, and fresh basil leaves.
 San Marzano tomatoes from volcanic soil near Mount Vesuvius provide ideal flavor and acidity.
 
 ## Risotto Preparation
-Arborio rice with high starch content creates the creamy texture characteristic of authentic risotto.
+Arborio rice with high starch content creates the creamy texture of authentic risotto.
 Constant stirring during cooking releases starch gradually for optimal consistency.
 Hot stock added gradually in small increments allows controlled absorption and even cooking.
 Mantecatura (vigorous stirring with butter and cheese) creates luxurious final texture.
