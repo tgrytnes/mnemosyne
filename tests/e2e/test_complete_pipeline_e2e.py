@@ -481,13 +481,28 @@ Future work will expand the scope.
             vault_path = Path(tmp_dir) / "vault"
             vault_path.mkdir()
 
-            # Initial content
+            # Initial content (expanded to generate 2+ chunks for clustering)
             test_file = vault_path / "test_note.md"
             test_file.write_text(
-                """# Original Title
+                """# Machine Learning Fundamentals
 
-This is the original content about machine learning.
-Neural networks are powerful tools.
+## Neural Network Basics
+Neural networks are powerful computational tools inspired by biological neurons.
+They consist of interconnected layers that process information through weighted connections.
+Each neuron applies an activation function to produce outputs.
+Backpropagation enables learning by adjusting weights based on errors.
+
+## Training Process
+Training involves iterative optimization to minimize a loss function.
+The learning rate controls how quickly the model adapts to new patterns.
+Gradient descent algorithms update weights to improve performance.
+Regularization techniques prevent overfitting to the training data.
+Early stopping monitors validation performance to avoid overtraining.
+
+## Common Architectures
+Convolutional neural networks excel at image processing tasks.
+Recurrent networks handle sequential data like time series.
+Transformers revolutionized natural language processing with attention mechanisms.
 """
             )
 
@@ -822,44 +837,89 @@ Innovation and experimentation.
             vault_path = Path(tmp_dir) / "vault"
             vault_path.mkdir()
 
-            # Create 3 topically distinct documents
+            # Create 3 topically distinct documents (expanded for better semantic separation)
             (vault_path / "ml_doc1.md").write_text(
-                """# Machine Learning Basics
-Neural networks use backpropagation.
-Gradient descent optimizes weights.
-Supervised learning requires labeled data.
+                """# Machine Learning Fundamentals
+
+## Neural Network Architecture
+Neural networks use backpropagation algorithms to learn from data.
+Gradient descent optimizes network weights through iterative updates.
+Deep learning models stack multiple layers for hierarchical feature extraction.
+Activation functions introduce non-linearity into neural computations.
+
+## Training and Optimization
+Supervised learning requires labeled datasets for model training.
+Cross-validation techniques assess model generalization performance.
+Regularization methods prevent overfitting to training data.
+Learning rate schedules improve convergence during gradient descent.
 """
             )
 
             (vault_path / "ml_doc2.md").write_text(
-                """# Deep Learning
-Convolutional networks process images.
-Recurrent networks handle sequences.
-Transformers revolutionized NLP.
+                """# Deep Learning Applications
+
+## Computer Vision
+Convolutional neural networks process images through learned filters.
+CNNs detect spatial hierarchies and visual patterns automatically.
+Image classification tasks benefit from deep convolutional architectures.
+Transfer learning leverages pre-trained models for new vision tasks.
+
+## Natural Language Processing
+Recurrent neural networks handle sequential text data effectively.
+Transformers revolutionized NLP with attention mechanisms and parallelization.
+BERT and GPT models demonstrate the power of large-scale pre-training.
+Word embeddings capture semantic relationships between terms.
 """
             )
 
             (vault_path / "cooking_doc1.md").write_text(
-                """# Italian Cooking
-Pasta carbonara uses eggs and guanciale.
-Pizza margherita is simple perfection.
-Risotto requires patience and stirring.
+                """# Italian Cuisine Masterclass
+
+## Pasta Making
+Traditional pasta carbonara uses eggs, guanciale, and pecorino romano.
+Fresh pasta dough requires proper kneading and resting time.
+Al dente cooking preserves pasta texture and flavor.
+Authentic Italian recipes emphasize simplicity and quality ingredients.
+
+## Pizza and Risotto
+Pizza margherita showcases the perfect balance of dough, sauce, and cheese.
+Neapolitan pizza requires high-temperature wood-fired ovens.
+Risotto demands patience, constant stirring, and gradual broth addition.
+Arborio rice releases starch for creamy risotto consistency.
 """
             )
 
             (vault_path / "cooking_doc2.md").write_text(
-                """# Baking Techniques
-Bread dough needs proper kneading.
-Yeast activation requires warm water.
-Proofing develops flavor and texture.
+                """# Artisan Baking Techniques
+
+## Bread Fundamentals
+Bread dough development requires proper kneading and gluten formation.
+Yeast activation needs warm water temperature and sugar for feeding.
+Proofing allows fermentation to develop complex flavors and textures.
+Scoring bread dough controls oven spring expansion patterns.
+
+## Advanced Baking
+Sourdough starter cultivation creates natural leavening cultures.
+Baking temperature and steam affect crust formation and color.
+Whole grain flours add nutritional value and rustic character.
+Cold fermentation enhances bread flavor through extended rising times.
 """
             )
 
             (vault_path / "history_doc.md").write_text(
-                """# Ancient Rome
-The Roman Empire spanned continents.
-Julius Caesar transformed the republic.
-Latin influenced modern languages.
+                """# Ancient Roman Civilization
+
+## Imperial Expansion
+The Roman Empire spanned three continents at its height.
+Julius Caesar transformed the Roman Republic through military conquests.
+Roman legions employed advanced tactics and engineering capabilities.
+Provincial governance integrated diverse cultures into imperial administration.
+
+## Cultural Legacy
+Latin language influenced modern Romance languages profoundly.
+Roman law established legal principles still used today.
+Ancient architecture inspired neoclassical design movements.
+Roman engineering achievements include aqueducts and road networks.
 """
             )
 

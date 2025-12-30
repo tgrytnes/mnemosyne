@@ -99,6 +99,7 @@ jobs:
           # Pull required models
           timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
           timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
+          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
           docker exec ollama ollama list | grep -q "gemma3:1b"
 
           # Pull generation model for cluster metadata synthesis
@@ -189,6 +190,7 @@ jobs:
           # Pull required models
           timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
           timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
+          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
           docker exec ollama ollama list | grep -q "gemma3:1b"
 
       - name: Install Poetry

@@ -78,110 +78,158 @@ class TestCompletePipelineWithMetadataSynthesis:
             vault_path = Path(tmp_dir) / "realistic_vault"
             vault_path.mkdir()
 
-            # Create realistic vault with distinct knowledge domains
+            # Create realistic vault with distinct knowledge domains (expanded to >20 chunks)
             vault_notes = {
                 "ml_fundamentals.md": """# Machine Learning Fundamentals
 
-## Neural Networks
-Neural networks are computational models inspired by biological neurons.
-They consist of layers of interconnected nodes that process information.
+## Neural Network Architecture
+Neural networks are computational models inspired by biological neurons in the brain.
+They consist of interconnected layers of nodes that process and transform information.
+Each connection has an associated weight that determines signal strength.
+The network learns by adjusting these weights through training algorithms.
 
-### Backpropagation
-Training uses backpropagation to compute gradients.
-Weights are updated through gradient descent optimization.
+### Backpropagation Algorithm
+Training neural networks uses backpropagation to compute error gradients efficiently.
+Gradients flow backward through the network from output to input layers.
+Weights are updated iteratively through gradient descent optimization methods.
+The learning rate parameter controls how quickly the network adapts to new patterns.
+Momentum techniques accelerate convergence and escape local minima.
 
 ### Activation Functions
-ReLU, sigmoid, and tanh are common activation functions.
-They introduce non-linearity into the network.
+Activation functions introduce non-linearity into neural network computations.
+ReLU (Rectified Linear Unit) is computationally efficient and reduces vanishing gradients.
+Sigmoid and tanh functions squash outputs to bounded ranges for classification.
+Modern architectures often use variants like Leaky ReLU or ELU for improved performance.
+Choosing appropriate activation functions significantly impacts model training dynamics.
 
-## Deep Learning
-Deep learning uses multi-layer neural networks.
-CNNs excel at computer vision tasks.
-RNNs and transformers handle sequential data.
+## Deep Learning Architectures
+Deep learning leverages multi-layer neural networks for hierarchical feature extraction.
+Convolutional Neural Networks (CNNs) excel at computer vision and image processing tasks.
+Recurrent Neural Networks (RNNs) handle sequential data like time series or text.
+Transformers revolutionized NLP with attention mechanisms that capture long-range dependencies.
+Modern architectures combine multiple techniques for state-of-the-art performance.
 """,
                 "ml_applications.md": """# Machine Learning Applications
 
 ## Computer Vision
-Image classification identifies objects in photos.
-Object detection locates items with bounding boxes.
+Image classification assigns categorical labels to visual input automatically.
+Object detection identifies and localizes multiple items within images using bounding boxes.
+Semantic segmentation classifies each pixel for detailed scene understanding.
+Transfer learning leverages pre-trained models like ResNet or VGG for new vision tasks.
+Data augmentation techniques improve model robustness to variations in lighting and perspective.
 
 ## Natural Language Processing
-Transformers revolutionized language understanding.
-BERT and GPT enable semantic comprehension.
+Transformer architectures revolutionized language understanding with self-attention mechanisms.
+BERT (Bidirectional Encoder Representations from Transformers) enables contextual word embeddings.
+GPT models demonstrate impressive text generation capabilities through large-scale pre-training.
+Named entity recognition extracts structured information from unstructured text documents.
+Machine translation systems achieve near-human performance for many language pairs.
 
 ## Recommender Systems
-Collaborative filtering suggests items based on user behavior.
-Content-based filtering uses item features.
+Collaborative filtering suggests items based on patterns in user behavior and preferences.
+Content-based filtering uses item features and attributes for personalized recommendations.
+Hybrid approaches combine multiple techniques for improved accuracy and coverage.
+Matrix factorization techniques decompose user-item interaction matrices efficiently.
+Deep learning models capture complex non-linear patterns in recommendation scenarios.
 """,
                 "project_management_agile.md": """# Agile Project Management
 
-## Scrum Framework
-Scrum organizes work into time-boxed sprints.
-Daily standups keep team synchronized.
+## Scrum Framework Fundamentals
+Scrum organizes software development work into time-boxed sprints typically lasting 2-4 weeks.
+Cross-functional teams collaborate closely to deliver potentially shippable product increments.
+Daily standup meetings keep team members synchronized and identify impediments quickly.
+The product owner prioritizes backlog items based on business value and stakeholder needs.
+Sprint reviews demonstrate completed work and gather feedback from stakeholders.
 
-### Sprint Planning
-Team commits to deliverables for the sprint.
-Estimation uses story points or ideal days.
+### Sprint Planning Process
+Sprint planning sessions define goals and select work items from the prioritized product backlog.
+Team members estimate effort using story points based on relative complexity and uncertainty.
+Capacity planning ensures the team commits to achievable goals for the upcoming sprint.
+Tasks are broken down into smaller units to enable better tracking and coordination.
+Definition of Done criteria ensure consistent quality standards across all deliverables.
 
-### Retrospectives
-Reflect on process improvements.
-Identify what worked and what needs change.
+### Retrospective Meetings
+Retrospectives provide dedicated time for teams to reflect on process improvements.
+Team members identify what worked well and should be continued in future sprints.
+Action items address specific pain points and impediments to team effectiveness.
+Psychological safety enables honest and constructive feedback for continuous improvement.
+Regular retrospectives foster a culture of learning and adaptation within the team.
 
-## Kanban Method
-Visualize workflow with board columns.
-Limit work in progress to prevent bottlenecks.
-Continuous delivery without fixed iterations.
+## Kanban Methodology
+Kanban visualizes workflow stages using board columns to track work items in progress.
+Work-in-progress (WIP) limits prevent context switching and reduce multitasking overhead.
+Continuous delivery enables teams to ship features without fixed iteration boundaries.
+Explicit policies define when work items can move between different workflow stages.
+Cumulative flow diagrams help identify bottlenecks and optimize throughput over time.
 """,
-                "project_management_tools.md": """# Project Management Tools
+                "project_management_tools.md": """# Project Management Tools and Platforms
 
-## Issue Tracking
-Jira for enterprise teams.
-Linear for modern software development.
-GitHub Issues for open source.
+## Issue Tracking Systems
+Jira provides comprehensive issue tracking features for enterprise software development teams.
+Linear offers a modern, streamlined interface optimized for fast-moving product teams.
+GitHub Issues integrates seamlessly with code repositories for open source project coordination.
+Customizable workflows adapt to diverse team processes and organizational requirements.
+Advanced filtering and search capabilities enable efficient backlog management at scale.
 
-## Documentation
-Confluence for knowledge bases.
-Notion for flexible workspaces.
-Obsidian for linked thinking.
+## Documentation Platforms
+Confluence serves as a centralized knowledge base for technical and business documentation.
+Notion provides flexible workspaces combining databases, wikis, and project management features.
+Obsidian enables linked thinking through bidirectional connections between markdown notes.
+Version control integration ensures documentation stays synchronized with code changes.
+Collaborative editing features enable real-time teamwork on shared documents.
 
-## Communication
-Slack for team chat.
-Discord for community building.
-Teams for corporate environments.
+## Communication and Collaboration
+Slack facilitates asynchronous team communication through organized channels and threads.
+Discord supports community building with voice channels and customizable role permissions.
+Microsoft Teams integrates deeply with Office 365 for corporate enterprise environments.
+Screen sharing and video conferencing enable remote pair programming and code reviews.
+Integration ecosystems connect communication tools with development workflows seamlessly.
 """,
-                "cooking_italian.md": """# Italian Cuisine
+                "cooking_italian.md": """# Italian Cuisine Traditions
 
-## Pasta Dishes
-Carbonara uses eggs, guanciale, and pecorino.
-Amatriciana features tomato and guanciale.
-Cacio e pepe is simple: pasta, cheese, pepper.
+## Classic Pasta Dishes
+Traditional carbonara combines eggs, guanciale (cured pork jowl), and pecorino romano cheese.
+Amatriciana sauce features tomatoes, guanciale, and pecorino for a rich savory flavor profile.
+Cacio e pepe demonstrates Italian minimalism: pasta, pecorino cheese, and black pepper only.
+Pasta alle vongole pairs spaghetti with fresh clams, garlic, white wine, and parsley.
+Regional variations showcase local ingredients and centuries of culinary tradition.
 
-## Pizza
-Neapolitan pizza has strict DOC requirements.
-Thin crust, high heat, minimal toppings.
-Margherita showcases simplicity.
+## Pizza Making Techniques
+Neapolitan pizza follows strict DOC (Denominazione di Origine Controllata) certification requirements.
+High-temperature wood-fired ovens reach 900°F for rapid cooking that creates signature char.
+Thin crust with puffy cornicione (rim) results from proper dough fermentation and stretching.
+Margherita pizza showcases simplicity with tomato sauce, mozzarella, and fresh basil leaves.
+San Marzano tomatoes from volcanic soil near Mount Vesuvius provide ideal flavor and acidity.
 
-## Risotto
-Arborio rice creates creamy texture.
-Constant stirring releases starch.
-Add stock gradually for best results.
+## Risotto Preparation
+Arborio rice with high starch content creates the creamy texture characteristic of authentic risotto.
+Constant stirring during cooking releases starch gradually for optimal consistency.
+Hot stock added gradually in small increments allows controlled absorption and even cooking.
+Mantecatura (vigorous stirring with butter and cheese) creates luxurious final texture.
+Proper timing achieves al dente rice with flowing but not soupy overall consistency.
 """,
-                "cooking_baking.md": """# Baking Fundamentals
+                "cooking_baking.md": """# Artisan Baking Fundamentals
 
-## Bread Making
-Yeast requires warm water for activation.
-Kneading develops gluten structure.
-Proofing allows dough to rise.
+## Bread Making Techniques
+Bread dough requires proper gluten development through kneading or extended fermentation time.
+Yeast activation needs warm water (105-115°F) and sugar for optimal metabolic activity.
+Bulk fermentation allows flavor compounds to develop and dough structure to strengthen.
+Proofing (final rise) gives shaped loaves volume before baking in a hot oven.
+Steam during initial baking creates crispy crusts through gelatinization of surface starches.
 
-### Sourdough
-Wild yeast and bacteria ferment dough.
-Starter culture must be fed regularly.
-Long fermentation develops complex flavor.
+### Sourdough Cultivation
+Wild yeast and lactic acid bacteria naturally ferment sourdough starter cultures.
+Regular feeding maintains starter vitality with consistent ratios of flour and water.
+Long cold fermentation (12-48 hours) develops complex flavor profiles and digestibility.
+Proper hydration levels (65-85%) significantly impact final crumb structure and texture.
+Scoring patterns control expansion direction and create distinctive visual appearances.
 
-## Pastry
-Butter creates flaky layers in croissants.
-Cold ingredients prevent gluten development.
-Lamination requires precision and patience.
+## Pastry and Lamination
+Butter creates flaky layers in croissants and puff pastry through lamination technique.
+Cold ingredients prevent premature gluten development that would toughen delicate pastries.
+Multiple folding iterations create hundreds of thin alternating layers of dough and butter.
+Precision temperature control maintains butter plasticity without melting or breaking.
+Proper resting periods between folds allow gluten to relax for easier rolling and shaping.
 """,
             }
 
@@ -215,17 +263,31 @@ Lamination requires precision and patience.
 
             # STAGE 2: Run clustering (3 semantic groups: ML, PM, Cooking)
             print("\n=== STAGE 2: Clustering chunks ===")
+
+            # Ensure ClusterCentroid collection exists
+            from mnemosyne.alexandria.weaviate_schema import (
+                ClusterCentroidCollection,
+                WeaviateSchemaManager,
+            )
+
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
             cluster_manager = ClusterManager(weaviate_client)
             n_clusters = 3
 
-            cluster_result = cluster_manager.run_kmeans_clustering(n_clusters=n_clusters)
+            # 4-step clustering process
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
-            print(f"Chunks clustered: {cluster_result['chunks_clustered']}")
-            print(f"Clusters created: {cluster_result['n_clusters']}")
-            print(f"Centroids stored: {cluster_result['centroids_stored']}")
+            print(f"Chunks clustered: {len(uuids)}")
+            print(f"Clusters created: {n_clusters}")
+            print(f"Centroids stored: {len(centroids)}")
 
-            assert cluster_result["n_clusters"] == n_clusters
-            assert cluster_result["chunks_clustered"] == stats["total_chunks"]
+            assert len(centroids) == n_clusters
+            assert len(uuids) == stats["total_chunks"]
 
             # STAGE 3: Get representatives for each cluster
             print("\n=== STAGE 3: Getting cluster representatives ===")
@@ -441,8 +503,20 @@ Shawarma wraps spiced meat.
             ingestor.ingest_vault()
 
             # Cluster (2 clear groups)
+            # Ensure ClusterCentroid collection exists
+            from mnemosyne.alexandria.weaviate_schema import (
+                ClusterCentroidCollection,
+                WeaviateSchemaManager,
+            )
+
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
             cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=2)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=2)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Get representatives and synthesize
             synthesizer = ClusterMetadataSynthesizer(ollama_client)
@@ -565,8 +639,20 @@ Asian stir-fry techniques.
 
             ingestor.ingest_vault()
 
+            # Ensure ClusterCentroid collection exists
+            from mnemosyne.alexandria.weaviate_schema import (
+                ClusterCentroidCollection,
+                WeaviateSchemaManager,
+            )
+
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
             cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=3)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=3)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Synthesize for all clusters
             synthesizer = ClusterMetadataSynthesizer(ollama_client)
