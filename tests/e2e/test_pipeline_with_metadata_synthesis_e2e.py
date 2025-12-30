@@ -337,9 +337,7 @@ Lamination requires precision and patience.
 
             # Should identify at least 2 distinct topics
             topics_found = {info["topic"] for info in profile_topics.values()}
-            assert (
-                len(topics_found) >= 2
-            ), f"Should identify multiple topics: {profile_topics}"
+            assert len(topics_found) >= 2, f"Should identify multiple topics: {profile_topics}"
 
             # STAGE 7: Verify persistence and retrieval
             print("\n=== STAGE 7: Verifying persistence ===")
