@@ -154,6 +154,20 @@ jobs:
           DEFAULT_VECTORIZER_MODULE: 'none'
           CLUSTER_HOSTNAME: 'node1'
 
+      postgres:
+        image: postgres:15-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: mnemosyne
+          POSTGRES_PASSWORD: mnemosyne_test_password
+          POSTGRES_DB: mnemosyne_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -194,6 +208,11 @@ jobs:
         env:
           OLLAMA_BASE_URL: http://localhost:11434
           SEMANTIC_LLM_MODEL: gemma3:1b
+          TEST_POSTGRES_HOST: localhost
+          TEST_POSTGRES_PORT: 5432
+          TEST_POSTGRES_DB: mnemosyne_test
+          TEST_POSTGRES_USER: mnemosyne
+          TEST_POSTGRES_PASSWORD: mnemosyne_test_password
         run: |
           poetry run pytest tests/e2e -v --tb=short -m e2e
 
