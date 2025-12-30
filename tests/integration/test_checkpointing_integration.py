@@ -2,8 +2,8 @@
 Integration tests for checkpoint persistence.
 """
 
-import time
 import tempfile
+import time
 from pathlib import Path
 
 import pytest
