@@ -11,6 +11,7 @@ import pytest
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.iris.router_node import RouterNode
 from mnemosyne.iris.semantic_router import QueryCacheStore, SemanticRouter
 
 
@@ -28,13 +29,14 @@ def test_story_005_end_to_end_routing_flow(ollama_client):
             cache_store=cache,
         )
 
-        first_decision = router.route(
-            "What is semantic routing?", result={"answer": "Semantic routing"}
+        node = RouterNode(router)
+        first_state = node(
+            {"query": "What is semantic routing?", "result": {"answer": "Semantic routing"}}
         )
-        second_decision = router.route("What is semantic routing?")
+        second_state = node({"query": "What is semantic routing?"})
 
-        assert first_decision.cache_hit is False
-        assert second_decision.cache_hit is True
+        assert first_state["cache_hit"] is False
+        assert second_state["cache_hit"] is True
         cache.close()
 
 
@@ -79,15 +81,16 @@ def test_story_005_system_routing_with_real_services(
         cache_store=cache,
     )
 
-    decision = router.route(query, result=result_payload)
-    assert decision.cache_hit is False
-    assert decision.route == "weaviate"
-    assert decision.result["matches"]
+    node = RouterNode(router)
+    decision_state = node({"query": query, "result": result_payload})
+    assert decision_state["cache_hit"] is False
+    assert decision_state["route"] == "weaviate"
+    assert decision_state["result"]["matches"]
 
-    cached_decision = router.route(query)
-    assert cached_decision.cache_hit is True
-    assert cached_decision.source == "cache"
-    assert cached_decision.result["matches"]
+    cached_state = node({"query": query})
+    assert cached_state["cache_hit"] is True
+    assert cached_state["route_source"] == "cache"
+    assert cached_state["result"]["matches"]
 
     cache.close()
     state_tracker.close()
