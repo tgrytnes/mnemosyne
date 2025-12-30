@@ -20,9 +20,7 @@ def test_detect_emerging_themes():
         ClusterStats(cluster_id="1", recent_notes=3, previous_notes=0, total_notes=3),
         ClusterStats(cluster_id="2", recent_notes=1, previous_notes=2, total_notes=3),
     ]
-    detections = detect_emerging_themes(
-        stats, reps, min_recent_notes=2, max_previous_notes=0
-    )
+    detections = detect_emerging_themes(stats, reps, min_recent_notes=2, max_previous_notes=0)
 
     assert len(detections) == 1
     assert detections[0].cluster_ids == ["1"]

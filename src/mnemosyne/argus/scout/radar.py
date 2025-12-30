@@ -63,9 +63,7 @@ class LatentRadar:
         detections: list[ConceptDetection] = []
 
         for cluster in clusters:
-            score, pos_max, neg_max = self.score(
-                cluster.embedding, positive_vecs, negative_vecs
-            )
+            score, pos_max, neg_max = self.score(cluster.embedding, positive_vecs, negative_vecs)
             if score < concept.threshold:
                 continue
             detections.append(
