@@ -184,19 +184,11 @@ Team coordination and task management.
     # STEP 5: Validate profile extracted ML theme
     profile = result.profile
     theme_lower = profile.theme_summary.lower()
-    entities_lower = " ".join(profile.key_entities).lower()
-    topics_lower = " ".join(profile.dominant_topics).lower()
 
-    # Should recognize ML content across summary/entities/topics
+    # Should recognize ML content
     ml_keywords = ["machine", "learning", "neural", "model"]
-    combined = " ".join([theme_lower, entities_lower, topics_lower])
-    found = any(kw in combined for kw in ml_keywords)
-    assert found, (
-        "Theme/entities/topics should mention ML concepts. "
-        f"Theme: {profile.theme_summary}. "
-        f"Entities: {profile.key_entities}. "
-        f"Topics: {profile.dominant_topics}."
-    )
+    found = any(kw in theme_lower for kw in ml_keywords)
+    assert found, f"Theme '{profile.theme_summary}' doesn't mention ML concepts"
 
     # STEP 6: Save to PostgreSQL and verify
     repo = ClusterProfileRepository(postgres_connection)

@@ -41,7 +41,7 @@ class ClusterMetadataSynthesizer:
     def __init__(
         self,
         ollama_client,
-        model: str = "qwen3:0.6b",
+        model: str = "gemma3:1b",
         temperature: float = 0.3,
         max_retries: int = 1,
     ):
