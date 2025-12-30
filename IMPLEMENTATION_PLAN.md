@@ -48,10 +48,13 @@ This plan follows your sequence: vault data → embeddings DB → scout + projec
 2. **Cluster + profile pipeline (Phase 1 Stories 001-002)**  
    Goal: embeddings → clusters → profiles stored in Postgres.  
    E2E: `test_clustering_pipeline.py` (ingest → cluster → profile).
-3. **Scout + Gatekeeper + Project Manager (Stories 010, 014, 016) - local output first**  
+3. **Checkpointed knowledge + semantic routing (Stories 004-005)**  
+   Goal: LangGraph state persistence + routing decisions for Iris.  
+   E2E: `test_checkpointed_state.py`, `test_semantic_router.py`.
+4. **Scout + Gatekeeper + Project Manager (Stories 010, 014, 016) - local output first**  
    Goal: discoveries + project records without Telegram; log/CLI output OK.  
    E2E: `test_scout_discovery.py`, `test_gatekeeper_workflow.py`, `test_project_manager_integration.py`.
-4. **Telegram communication layer (Story 012, plus hooks into 010/014/016)**  
+5. **Telegram communication layer (Story 012, plus hooks into 010/014/016)**  
    Goal: notifications, approvals, and commands via Hermes.  
    E2E: new end-to-end tests for notifications + approval flows.
 
