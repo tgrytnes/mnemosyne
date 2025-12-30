@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Iterable
 
 from mnemosyne.argus.scout.radar import ClusterRepresentation, ConceptDetection, cosine_similarity
 
@@ -104,7 +104,8 @@ def detect_contradictions(
 
             confidence = min(1.0, similarity * polarity_gap)
             avg_embedding = [
-                (l + r) / 2 for l, r in zip(left.embedding, right.embedding)
+                (left_value + right_value) / 2
+                for left_value, right_value in zip(left.embedding, right.embedding)
             ]
             detections.append(
                 ConceptDetection(

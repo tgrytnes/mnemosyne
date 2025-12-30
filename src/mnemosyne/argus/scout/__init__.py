@@ -8,7 +8,7 @@ from mnemosyne.argus.scout.radar import (
     ConceptPrototype,
     LatentRadar,
 )
-from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunSummary, ScoutRunner
+from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner, ScoutRunSummary
 
 __all__ = [
     "ClusterRepresentation",

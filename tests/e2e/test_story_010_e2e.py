@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.argus.scout.discovery_store import DiscoveryStore, RunMetadata
 from mnemosyne.argus.scout.radar import (
     ClusterRepresentation,
@@ -15,8 +17,6 @@ from mnemosyne.argus.scout.radar import (
     LatentRadar,
 )
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
-from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
-from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.cli.cluster import run_clustering
 
 

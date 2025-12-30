@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Iterable
 
 import weaviate
 from weaviate.classes.query import Filter
@@ -70,7 +70,9 @@ class ScoutRunner:
         self._muses_collection = client.collections.get(TheMuses.collection_name)
         self._representatives = GetClusterRepresentatives(client=client)
         self._radar = LatentRadar(embedder)
-        self._store = DiscoveryStore(client, dedup_similarity_threshold=config.dedup_similarity_threshold)
+        self._store = DiscoveryStore(
+            client, dedup_similarity_threshold=config.dedup_similarity_threshold
+        )
 
     def run(
         self,
