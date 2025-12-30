@@ -119,6 +119,18 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:8080/v1/.well-known/ready; do sleep 2; done'
           timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 2; done'
 
+      - name: Seed Weaviate with fake vault
+        env:
+          TEST_VAULT_PATH: test_data/fake_vault
+          WEAVIATE_HTTP_HOST: localhost
+          WEAVIATE_HTTP_PORT: 8080
+          WEAVIATE_GRPC_PORT: 50051
+          OLLAMA_BASE_URL: http://localhost:11434
+          INGESTION_STATE_DB: /tmp/ingestion_state_test.db
+          RESET_COLLECTION: "true"
+        run: |
+          poetry run python scripts/seed_test_data.py
+
       - name: Run integration tests
         env:
           TEST_WEAVIATE_HOST: localhost

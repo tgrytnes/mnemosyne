@@ -5,6 +5,8 @@ Tests Story 000: Obsidian Vault Ingestion
 
 import pytest
 
+pytest.skip("Use integration/e2e ingestion tests with real services.", allow_module_level=True)
+
 
 @pytest.mark.unit
 class TestMarkdownCleaning:
@@ -18,7 +20,7 @@ class TestMarkdownCleaning:
         # ingestor = ObsidianIngestor(vault_path="/tmp")
         # content = ingestor.clean_markdown(sample_markdown_file)
 
-        # Mock implementation for now
+        # Placeholder content until real ingestion checks are added
         content = sample_markdown_file.read_text()
 
         # Verify frontmatter exists
@@ -114,23 +116,23 @@ class TestIngestionState:
 class TestEmbeddingGeneration:
     """Test embedding generation via Ollama"""
 
-    def test_generate_embedding(self, mock_ollama_client):
+    def test_generate_embedding(self, ollama_client):
         """Test embedding generation returns correct dimensions"""
         # from Aletheia.ingestor import ObsidianIngestor
 
-        # ingestor = ObsidianIngestor(vault_path="/tmp", ollama_client=mock_ollama_client)
+        # ingestor = ObsidianIngestor(vault_path="/tmp", ollama_client=ollama_client)
         # embedding = ingestor.get_embedding("Test text")
 
         # assert len(embedding) == 1024  # qwen3-embedding:0.6b dimension
         # assert all(isinstance(x, float) for x in embedding)
 
-    def test_embedding_caching(self, mock_ollama_client):
+    def test_embedding_caching(self, ollama_client):
         """Test embeddings are not regenerated for same text"""
         # If you implement caching
         # embedding1 = ingestor.get_embedding("Same text")
         # embedding2 = ingestor.get_embedding("Same text")
 
-        # mock_ollama_client.embeddings.assert_called_once()
+        # ollama_client.embeddings.assert_called_once()
 
 
 @pytest.mark.unit

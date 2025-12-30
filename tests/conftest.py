@@ -6,8 +6,8 @@ import os
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
 
+import ollama
 import pytest
 import weaviate
 
@@ -28,7 +28,9 @@ def test_config():
         "postgres_db": os.getenv("TEST_POSTGRES_DB", "ananke_test"),
         "postgres_user": os.getenv("TEST_POSTGRES_USER", "postgres"),
         "postgres_password": os.getenv("TEST_POSTGRES_PASSWORD", "test"),
-        "ollama_url": os.getenv("TEST_OLLAMA_URL", "http://localhost:11434"),
+        "ollama_url": os.getenv(
+            "OLLAMA_BASE_URL", os.getenv("TEST_OLLAMA_URL", "http://localhost:11434")
+        ),
         "ollama_timeout": int(os.getenv("TEST_OLLAMA_TIMEOUT", "120")),
         "telegram_bot_token": os.getenv("TEST_TELEGRAM_BOT_TOKEN", "test_token"),
     }
@@ -119,6 +121,12 @@ This document has multiple sections for chunking tests.
     return file_path
 
 
+@pytest.fixture(scope="session")
+def fake_vault_path() -> Path:
+    """Path to the synthetic Obsidian vault used for tests."""
+    return Path("test_data/fake_vault")
+
+
 # ============================================================================
 # Weaviate Fixtures
 # ============================================================================
@@ -149,6 +157,21 @@ def weaviate_client(test_config):
         client.close()
     except Exception as e:
         pytest.skip(f"Could not connect to Weaviate: {e}")
+
+
+@pytest.fixture(scope="session")
+def ollama_client(test_config):
+    """
+    Create Ollama client for integration/e2e tests.
+    Requires Ollama to be running.
+    """
+    base_url = test_config["ollama_url"]
+    client = ollama.Client(host=base_url)
+    try:
+        client.list()
+    except Exception as e:
+        pytest.skip(f"Could not connect to Ollama: {e}")
+    return client
 
 
 @pytest.fixture
@@ -250,64 +273,6 @@ def ananke_test_db(postgres_connection):
 
 
 # ============================================================================
-# Mock Fixtures
-# ============================================================================
-
-
-@pytest.fixture
-def mock_ollama_client():
-    """Mock Ollama client for unit tests"""
-    client = Mock()
-
-    # Mock embedding generation
-    client.embeddings.return_value = {"embedding": [0.1] * 1024}  # 1024-dimensional mock vector
-
-    # Mock text generation
-    client.generate.return_value = {"response": "Mocked LLM response"}
-
-    return client
-
-
-@pytest.fixture
-def mock_telegram_bot():
-    """Mock Telegram bot for unit tests"""
-    bot = Mock()
-    bot.send_message.return_value = Mock(message_id=1)
-    return bot
-
-
-@pytest.fixture
-def mock_discovery():
-    """Mock discovery record for testing"""
-    return Mock(
-        id="test-discovery-123",
-        title="Test Project Candidate",
-        description="A test project discovered by Scout",
-        confidence_score=0.85,
-        cluster_ids=["cluster-1", "cluster-2"],
-        metadata={
-            "sources": ["note1.md", "note2.md"],
-            "evidence": ["Goal: Complete Phase 1", "Timeline: Week 1-3"],
-        },
-        detected_at=datetime(2024, 1, 15, 10, 0, 0),
-    )
-
-
-@pytest.fixture
-def mock_cluster():
-    """Mock cluster metadata"""
-    return Mock(
-        id="cluster-1",
-        profile=Mock(
-            theme_summary="Project management and deadlines",
-            tags=["project", "deadline", "tracking"],
-            note_count=15,
-            centroid_embedding=[0.2] * 1024,
-        ),
-    )
-
-
-# ============================================================================
 # Data Fixtures
 # ============================================================================
 
@@ -363,14 +328,6 @@ Sender
 # ============================================================================
 # Utility Fixtures
 # ============================================================================
-
-
-@pytest.fixture
-def freeze_time():
-    """Import freezegun for time mocking"""
-    from freezegun import freeze_time
-
-    return freeze_time
 
 
 @pytest.fixture(autouse=True)

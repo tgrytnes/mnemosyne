@@ -13,6 +13,7 @@ from mnemosyne.aletheia.structure_extractor import (
 from src.mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
 
 
+@pytest.mark.unit
 class TestTextChunker:
     """Test text chunking for embedding generation"""
 
@@ -198,7 +199,7 @@ Third paragraph with more information."""
 Testing is crucial for software quality. Here are key principles:
 
 Unit tests should be fast and isolated. They test individual functions
-without external dependencies. Use mocks for databases and APIs.
+without external dependencies. Integration tests use real services.
 
 Integration tests verify that components work together correctly.
 They test real database connections and API calls.

@@ -27,7 +27,6 @@ Unit tests for ComponentName
 Tests Story XXX: Story Title
 """
 import pytest
-from unittest.mock import Mock
 
 @pytest.mark.unit
 class TestComponentName:
@@ -53,19 +52,15 @@ temp_vault              # Temporary Obsidian vault
 temp_shadow_vault       # Temporary shadow vault
 sample_markdown_file    # Sample .md file
 
-# Mocks
-mock_ollama_client      # Mocked Ollama
-mock_telegram_bot       # Mocked Telegram
-mock_discovery          # Mock discovery record
-mock_cluster            # Mock cluster metadata
-
 # Real services
 weaviate_client         # Real Weaviate connection
 ananke_test_db          # PostgreSQL test DB
+ollama_client           # Real Ollama client
 
 # Data
 sample_chunks           # Sample text chunks
 sample_email            # Sample email data
+fake_vault_path         # Synthetic Obsidian vault
 ```
 
 ## Test Markers
@@ -107,22 +102,6 @@ pytest --cov=.
 ```
 
 ## Common Patterns
-
-### Mock Database
-
-```python
-db = Mock()
-db.cursor().fetchall.return_value = [(1, "Project", 0.85)]
-```
-
-### Freeze Time
-
-```python
-def test_with_time(freeze_time):
-    with freeze_time("2024-01-15 08:00:00"):
-        # Time is frozen
-        pass
-```
 
 ### Test File Operations
 
