@@ -175,9 +175,7 @@ The Renaissance transformed European culture.
                 all_chunks.objects
             ), "All chunks should be clustered"
             assert clustering_result["n_clusters"] == n_clusters, "Correct cluster count"
-            assert (
-                clustering_result["centroids_stored"] == n_clusters
-            ), "Centroids should be stored"
+            assert clustering_result["centroids_stored"] == n_clusters, "Centroids should be stored"
 
             # Verify cluster assignments
             clustered_chunks = collection.query.fetch_objects(limit=100)
@@ -188,9 +186,7 @@ The Renaissance transformed European culture.
             ]
 
             assert len(cluster_ids) > 0, "Chunks should have cluster IDs"
-            assert all(
-                0 <= cid < n_clusters for cid in cluster_ids
-            ), "Cluster IDs should be valid"
+            assert all(0 <= cid < n_clusters for cid in cluster_ids), "Cluster IDs should be valid"
 
             # STAGE 5: Query cluster representatives via LangGraph
             get_reps_node = GetClusterRepresentatives(weaviate_client)
@@ -219,17 +215,19 @@ The Renaissance transformed European culture.
                     assert rep.chunk_id, "Representative should have chunk_id"
                     assert rep.text, "Representative should have text"
                     assert rep.source_file, "Representative should have source_file"
-                    assert (
-                        rep.distance_from_centroid is not None
-                    ), "Should have distance metric"
+                    assert rep.distance_from_centroid is not None, "Should have distance metric"
 
                 all_representatives.extend(representatives)
 
             # STAGE 6: Validate semantic clustering quality
             # Representatives should be semantically related within clusters
 
-            assert len(all_representatives) >= n_clusters, "Should have representatives from all clusters"
-            assert len(all_representatives) <= n_clusters * 5, "Should not exceed max representatives"
+            assert (
+                len(all_representatives) >= n_clusters
+            ), "Should have representatives from all clusters"
+            assert (
+                len(all_representatives) <= n_clusters * 5
+            ), "Should not exceed max representatives"
 
             # Check that representatives are ordered by distance
             for cluster_id in range(n_clusters):
@@ -308,9 +306,7 @@ Future work will expand the scope.
                     collection.data.delete_many(where=None)
 
                 # Ingest with strategy
-                state_tracker = IngestionStateTracker(
-                    str(vault_path / f"state_{strategy}.db")
-                )
+                state_tracker = IngestionStateTracker(str(vault_path / f"state_{strategy}.db"))
 
                 import os
 
@@ -343,7 +339,9 @@ Future work will expand the scope.
                     if obj.properties.get("headingPath"):
                         structure_score += 1
 
-                structure_preservation = structure_score / len(chunks.objects) if chunks.objects else 0
+                structure_preservation = (
+                    structure_score / len(chunks.objects) if chunks.objects else 0
+                )
 
                 results[strategy] = {
                     "total_chunks": len(chunks.objects),
@@ -821,9 +819,7 @@ Latin influenced modern languages.
 
             # Each cluster should have coherent topic (dominant score > 0)
             for cluster_id, info in cluster_topics.items():
-                assert (
-                    info["score"] > 0
-                ), f"Cluster {cluster_id} should have identifiable topic"
+                assert info["score"] > 0, f"Cluster {cluster_id} should have identifiable topic"
 
             print(f"\nCluster Semantic Coherence:")
             for cluster_id, info in cluster_topics.items():

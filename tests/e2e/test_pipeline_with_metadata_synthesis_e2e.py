@@ -337,9 +337,7 @@ Lamination requires precision and patience.
 
             # Should identify at least 2 distinct topics
             topics_found = {info["topic"] for info in profile_topics.values()}
-            assert (
-                len(topics_found) >= 2
-            ), f"Should identify multiple topics: {profile_topics}"
+            assert len(topics_found) >= 2, f"Should identify multiple topics: {profile_topics}"
 
             # STAGE 7: Verify persistence and retrieval
             print("\n=== STAGE 7: Verifying persistence ===")
@@ -501,7 +499,9 @@ Shawarma wraps spiced meat.
                 print(f"  Theme: {profile.theme_summary}")
                 print(f"  Entities: {profile.key_entities}")
                 print(f"  Confidence: {profile.confidence_score:.2f}")
-                print(f"  Topic detected: {'Python' if is_python else 'Food' if is_food else 'Unknown'}")
+                print(
+                    f"  Topic detected: {'Python' if is_python else 'Food' if is_food else 'Unknown'}"
+                )
 
     def test_pipeline_handles_mixed_quality_clusters(
         self, weaviate_client, clean_weaviate_collection, postgres_connection, test_config
@@ -538,8 +538,12 @@ Model training and evaluation.
 
             # Scattered random notes (will form low-quality cluster)
             (vault_path / "random_1.md").write_text("# Todo\nBuy milk. Call dentist. Fix bug.")
-            (vault_path / "random_2.md").write_text("# Thoughts\nWeather nice today. Project deadline approaching.")
-            (vault_path / "random_3.md").write_text("# Notes\nMeeting at 3pm. Remember to email Sarah.")
+            (vault_path / "random_2.md").write_text(
+                "# Thoughts\nWeather nice today. Project deadline approaching."
+            )
+            (vault_path / "random_3.md").write_text(
+                "# Notes\nMeeting at 3pm. Remember to email Sarah."
+            )
 
             # Another coherent topic (cooking)
             (vault_path / "cooking_coherent.md").write_text(

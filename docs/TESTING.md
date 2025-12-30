@@ -8,6 +8,9 @@ Quick reference for adding tests to the Mnemosyne project.
 # Install dependencies
 poetry install --with dev
 
+# Check code quality BEFORE committing (RECOMMENDED)
+./scripts/check_quality.sh
+
 # Run all unit tests (fast, no Docker needed)
 poetry run pytest -m unit
 
@@ -20,6 +23,48 @@ docker-compose up weaviate postgres -d
 # Run integration tests
 poetry run pytest -m integration
 ```
+
+## Code Quality Checks
+
+**IMPORTANT**: Always run quality checks before pushing to avoid CI failures.
+
+### Quick Check (Recommended)
+
+```bash
+# Run both Ruff and Black checks
+./scripts/check_quality.sh
+```
+
+### Manual Checks
+
+```bash
+# Check Ruff linting
+.venv/bin/ruff check .
+
+# Check Black formatting
+.venv/bin/black --check .
+```
+
+### Auto-Fix Issues
+
+```bash
+# Fix Ruff issues automatically
+.venv/bin/ruff check --fix .
+
+# Fix Black formatting automatically
+.venv/bin/black .
+```
+
+### Pre-Push Hook (Optional)
+
+Automatically run quality checks before every `git push`:
+
+```bash
+# Enable pre-push hook (already configured)
+git config core.hooksPath .githooks
+```
+
+The hook will prevent pushes if quality checks fail, saving CI time.
 
 ## Adding New Tests
 
@@ -266,6 +311,210 @@ Tests run automatically on:
 - **Manual trigger** (`workflow_dispatch`)
 
 See [`.github/workflows/test.yml`](.github/workflows/test.yml) for configuration.
+
+## Test Data Management
+
+### Fake Test Data (`test_data/`)
+
+The project maintains a collection of realistic test data for integration and E2E tests:
+
+**Location**: `test_data/` (in `.gitignore`, must be force-added)
+
+**Structure**:
+```
+test_data/
+├── fake_vault/          # Obsidian markdown files
+│   ├── knowledge/
+│   │   ├── dirty_note.md         # Has wiki-links, HTML, emojis
+│   │   ├── project_alpha.md      # Multi-level headings
+│   │   └── weaviate_schema.md    # Technical documentation
+│   ├── dailies/
+│   └── ...
+├── fake_emails/         # Email test data
+│   ├── spam_001.eml
+│   ├── valid_email.eml
+│   └── ...
+└── fake_pdfs/           # PDF test documents
+    ├── research_paper.pdf
+    └── ...
+```
+
+**Usage in Tests**:
+```python
+# Use the fake vault in your tests
+@pytest.fixture
+def test_vault():
+    """Use the real fake_vault test data"""
+    return Path("test_data/fake_vault")
+
+# Or create programmatic test data
+@pytest.fixture
+def test_vault(tmp_path):
+    """Create vault on the fly"""
+    vault = tmp_path / "test_vault"
+    vault.mkdir()
+
+    doc = vault / "test_note.md"
+    doc.write_text("""---
+title: Test Note
+---
+# Test Content
+""")
+    return vault
+```
+
+**When to Use Each Approach**:
+- **Use `test_data/fake_vault`**: For integration/E2E tests that need realistic, complex data
+- **Create programmatic data**: For unit tests with specific, controlled test cases
+
+**Adding Test Data to Git**:
+```bash
+# test_data/ is in .gitignore, so force-add it
+git add -f test_data/fake_vault/
+git add -f test_data/fake_emails/
+git add -f test_data/fake_pdfs/
+
+# Commit
+git commit -m "test: Add realistic test data for E2E tests"
+```
+
+**Copying Test Data from Other Branches**:
+```bash
+# If test data exists in another feature branch
+git checkout feature/005-semantic-routing -- test_data/fake_vault
+git add -f test_data/fake_vault/
+git commit -m "test: Copy fake test data from feature/005"
+```
+
+### Cleanup Between Test Sessions
+
+**CRITICAL**: E2E tests MUST clean up data between test runs to prevent pollution.
+
+#### Pattern 1: `autouse` Cleanup Fixture (Recommended)
+
+```python
+@pytest.fixture(autouse=True)
+def cleanup_weaviate(self, weaviate_client):
+    """Clean up Weaviate collection BEFORE each test."""
+    # Run BEFORE test
+    try:
+        collection = weaviate_client.collections.get("TheMuses")
+        collection.data.delete_many(
+            where=Filter.by_property("sourceType").equal("obsidian")
+        )
+    except Exception:
+        # Collection doesn't exist yet - this is fine for first test
+        pass
+    yield
+    # No cleanup after - next test will clean before it runs
+```
+
+**Why This Works**:
+- Cleans BEFORE each test (ensures isolation)
+- Handles missing collection gracefully
+- `autouse=True` runs automatically for every test
+- No cleanup after test (next test will handle it)
+
+#### Pattern 2: Manual Cleanup in Setup
+
+```python
+def setup_method(self):
+    """Run before each test method"""
+    self.cleanup_database()
+
+def cleanup_database(self):
+    """Delete all test data"""
+    collection = self.weaviate_client.collections.get("TheMuses")
+    collection.data.delete_many(
+        where=Filter.by_property("sourceType").equal("obsidian")
+    )
+```
+
+#### Pattern 3: Unique Test Identifiers
+
+```python
+@pytest.fixture
+def test_vault(tmp_path):
+    """Create unique vault per test"""
+    # tmp_path is unique per test automatically
+    vault = tmp_path / "test_vault_000"
+    vault.mkdir()
+    return vault
+```
+
+**When to Use Each**:
+- **Pattern 1 (autouse)**: E2E tests with shared Weaviate collections
+- **Pattern 2 (manual)**: Complex setup/teardown sequences
+- **Pattern 3 (unique IDs)**: When you want data from all tests visible at once
+
+### Common Cleanup Mistakes
+
+❌ **WRONG: Only cleanup after tests**
+```python
+yield
+# Cleanup after test - TOO LATE!
+collection.data.delete_many(...)
+```
+**Problem**: Next test sees previous test's data
+
+❌ **WRONG: No exception handling**
+```python
+collection = client.collections.get("TheMuses")
+collection.data.delete_many(...)  # Fails if collection doesn't exist!
+```
+**Problem**: First test run fails
+
+❌ **WRONG: Delete entire collection**
+```python
+client.collections.delete("TheMuses")
+client.collections.create("TheMuses", ...)
+```
+**Problem**: Slow! Schema recreation is expensive
+
+✅ **CORRECT: Cleanup before, handle exceptions**
+```python
+try:
+    collection = client.collections.get("TheMuses")
+    collection.data.delete_many(where=Filter.by_property("sourceType").equal("test"))
+except Exception:
+    pass  # Collection doesn't exist yet
+yield
+# No cleanup after
+```
+
+### Testing with Python-Side Filtering
+
+**Context**: Weaviate filters (`.like()`, `.contains_any()`) have unexpected behavior (see [WEAVIATE_GOTCHAS.md](WEAVIATE_GOTCHAS.md)).
+
+**Workaround for E2E Tests**:
+```python
+from types import SimpleNamespace
+
+# Fetch all, filter in Python
+all_results = collection.query.fetch_objects(limit=100)
+results_list = [
+    obj for obj in all_results.objects
+    if obj.properties.get('sourceFile', '').endswith('/test_note.md')
+]
+
+# Create mock results object for compatibility
+results = SimpleNamespace(objects=results_list)
+
+# Now use results.objects as normal
+assert len(results.objects) > 0
+```
+
+**When to Use**:
+- Small to medium datasets (< 1000 objects)
+- E2E/integration tests
+- When Weaviate filters don't work as expected
+
+**When to Avoid**:
+- Large datasets (> 10k objects)
+- Production code
+- Performance-critical queries
+
+See [WEAVIATE_GOTCHAS.md](WEAVIATE_GOTCHAS.md) for detailed troubleshooting.
 
 ## Docker Services for Testing
 

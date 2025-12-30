@@ -29,6 +29,12 @@ build/
 htmlcov/
 .coverage
 *.backup
+tests/pytest.log
+*.log
+
+# Ingestion state (local development databases)
+ingestion_state.db
+*.db
 
 # IDEs
 .vscode/

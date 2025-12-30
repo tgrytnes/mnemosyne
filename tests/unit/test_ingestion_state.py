@@ -198,6 +198,27 @@ class TestIngestionStateTracker:
         assert "/vault/old.md" in needs_update
         assert "/vault/current.md" not in needs_update
 
+    def test_cache_semantic_boundaries_roundtrip(self, tracker):
+        """Should store and retrieve semantic boundary cache entries"""
+        cache_key = "doc:hash:abc123"
+        boundaries = [10, 25, 40]
+
+        tracker.cache_semantic_boundaries(
+            cache_key=cache_key,
+            boundaries=boundaries,
+            model="qwen3:0.6b",
+            min_chunk_size=100,
+            max_chunk_size=1000,
+        )
+
+        cached = tracker.get_cached_semantic_boundaries(cache_key)
+
+        assert cached == boundaries
+
+    def test_missing_semantic_cache_returns_none(self, tracker):
+        """Should return None for missing semantic cache entries"""
+        assert tracker.get_cached_semantic_boundaries("missing-key") is None
+
     def test_persistent_state(self, temp_db):
         """Should persist state across tracker instances"""
         # GIVEN: File ingested with first tracker

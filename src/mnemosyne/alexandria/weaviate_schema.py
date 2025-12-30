@@ -61,6 +61,58 @@ class TheMuses:
             "dataType": ["date"],
             "description": "Last modified time of source file",
         },
+        {
+            "name": "headingPath",
+            "dataType": ["text"],
+            "description": "Full heading path (e.g., '# Main > ## Section > ### Subsection')",
+        },
+        {
+            "name": "headingLevel",
+            "dataType": ["int"],
+            "description": "Heading level: 0 (no heading), 1-6 (# to ######)",
+        },
+        {
+            "name": "sectionTitle",
+            "dataType": ["text"],
+            "description": "Immediate parent heading title",
+        },
+        {
+            "name": "clusterId",
+            "dataType": ["int"],
+            "description": "ID of the cluster this chunk belongs to",
+        },
+    ]
+
+
+class ClusterCentroidCollection:
+    """
+    Schema for ClusterCentroid collection.
+
+    Stores the calculated centroid for each cluster.
+    """
+
+    collection_name = "ClusterCentroid"
+
+    description = "Stores the calculated centroid vector and metadata for each cluster."
+
+    vectorizer = "none"  # We provide vectors
+
+    properties = [
+        {
+            "name": "clusterId",
+            "dataType": ["int"],
+            "description": "The ID of the cluster.",
+        },
+        {
+            "name": "clusterSize",
+            "dataType": ["int"],
+            "description": "Number of items in the cluster.",
+        },
+        {
+            "name": "lastUpdated",
+            "dataType": ["date"],
+            "description": "Timestamp when the centroid was last calculated.",
+        },
     ]
 
 
@@ -94,6 +146,8 @@ class WeaviateSchemaManager:
         # Get schema for this collection
         if collection_name == "TheMuses":
             self._create_themuses_collection()
+        elif collection_name == ClusterCentroidCollection.collection_name:
+            self._create_clustercentroid_collection()
         else:
             raise ValueError(f"Unknown collection: {collection_name}")
 
@@ -114,6 +168,24 @@ class WeaviateSchemaManager:
             name=TheMuses.collection_name,
             description=TheMuses.description,
             vectorizer_config=Configure.Vectorizer.none(),  # Manual vectors via Ollama
+            properties=properties,
+        )
+
+    def _create_clustercentroid_collection(self) -> None:
+        """Create ClusterCentroid collection with proper schema"""
+        properties = [
+            Property(
+                name=prop["name"],
+                data_type=self._map_datatype(prop["dataType"][0]),
+                description=prop.get("description", ""),
+            )
+            for prop in ClusterCentroidCollection.properties
+        ]
+
+        self.client.collections.create(
+            name=ClusterCentroidCollection.collection_name,
+            description=ClusterCentroidCollection.description,
+            vectorizer_config=Configure.Vectorizer.none(),
             properties=properties,
         )
 
