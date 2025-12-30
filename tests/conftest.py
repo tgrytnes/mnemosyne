@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
 
+import ollama
 import pytest
 import weaviate
 
@@ -160,6 +161,25 @@ def clean_weaviate_collection(weaviate_client):
     for collection_name in test_collections:
         if weaviate_client.collections.exists(collection_name):
             weaviate_client.collections.delete(collection_name)
+
+
+# ============================================================================
+# Ollama Fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def ollama_client(test_config):
+    """Create Ollama client for integration/e2e tests."""
+    client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
+    try:
+        client.list()
+    except Exception as e:
+        pytest.skip(f"Could not connect to Ollama: {e}")
+    return client
 
     yield
 
