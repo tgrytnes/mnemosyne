@@ -7,7 +7,7 @@ on curated knowledge only.
 """
 
 import weaviate
-from weaviate.classes.config import Configure, DataType, Property
+from weaviate.classes.config import Configure, DataType, Property, Tokenization
 
 
 class TheMuses:
@@ -40,6 +40,12 @@ class TheMuses:
             "name": "sourceFile",
             "dataType": ["text"],
             "description": "Original Obsidian file path (absolute)",
+        },
+        {
+            "name": "sourceFileId",
+            "dataType": ["text"],
+            "description": "Stable hash of sourceFile for exact-match deletes",
+            "tokenization": Tokenization.FIELD,
         },
         {
             "name": "sourceType",
@@ -159,6 +165,7 @@ class WeaviateSchemaManager:
                 name=prop["name"],
                 data_type=self._map_datatype(prop["dataType"][0]),
                 description=prop.get("description", ""),
+                tokenization=prop.get("tokenization"),
             )
             for prop in TheMuses.properties
         ]

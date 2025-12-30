@@ -23,11 +23,16 @@ from langgraph.graph import END, START, StateGraph
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.alexandria.weaviate_schema import (
+    ClusterCentroidCollection,
+    WeaviateSchemaManager,
+)
 from mnemosyne.argus.nodes.cluster_representatives import (
     ClusterRepresentativesState,
     GetClusterRepresentatives,
 )
 from mnemosyne.cli.cluster import ClusterManager
+from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
 
 
 @pytest.mark.e2e
@@ -64,68 +69,131 @@ class TestCompleteEndToEndPipeline:
             vault_path = Path(tmp_dir) / "test_vault"
             vault_path.mkdir()
 
-            # Create diverse, realistic notes
+            # Create diverse, realistic notes (expanded to generate >10 chunks)
             notes = {
                 "machine_learning.md": """# Machine Learning Fundamentals
 
 ## Neural Networks
-Deep learning architectures use layered neural networks.
-Backpropagation optimizes weights through gradient descent.
+Deep learning architectures use layered neural networks to model complex patterns.
+Each layer extracts increasingly abstract features from the input data.
+Backpropagation optimizes weights through gradient descent algorithms.
+The learning rate controls how quickly the model adapts to new information.
 
 ## Model Training
-Training involves iterative optimization:
-- Forward pass computes predictions
-- Backward pass updates weights
-- Validation checks generalization
+Training involves iterative optimization over multiple epochs.
+Each epoch processes the entire training dataset:
+- Forward pass computes predictions from current weights
+- Loss function measures prediction errors
+- Backward pass updates weights via gradient descent
+- Validation set checks generalization performance
+- Early stopping prevents overfitting to training data
 
 ## Common Architectures
-CNNs excel at image tasks.
-RNNs handle sequential data.
-Transformers revolutionized NLP.
+Convolutional Neural Networks (CNNs) excel at image classification tasks.
+They use convolution layers to detect spatial patterns and features.
+Recurrent Neural Networks (RNNs) handle sequential data like time series.
+Long Short-Term Memory (LSTM) networks address vanishing gradient problems.
+Transformers revolutionized Natural Language Processing with attention mechanisms.
+BERT and GPT models demonstrate the power of large-scale pre-training.
+
+## Optimization Techniques
+Stochastic Gradient Descent (SGD) updates weights using mini-batches.
+Adam optimizer adapts learning rates for each parameter dynamically.
+Momentum accelerates convergence by accumulating gradient history.
+Learning rate scheduling adjusts rates during training for better convergence.
 """,
                 "project_management.md": """# Agile Project Management
 
 ## Sprint Planning
-Weekly sprints organize work into manageable chunks.
-Daily standups keep team aligned.
+Weekly or bi-weekly sprints organize work into manageable time-boxed chunks.
+Sprint planning sessions define goals and select backlog items.
+Daily standups keep team aligned and identify blockers quickly.
+Each team member shares progress, plans, and impediments.
+
+## User Stories
+User stories capture requirements from the end-user perspective.
+They follow the format: As a [role], I want [feature], so that [benefit].
+Acceptance criteria define what "done" means for each story.
+Story points estimate relative complexity using Fibonacci numbers.
 
 ## Retrospectives
-Review what worked and what didn't.
-Continuous improvement mindset.
+Retrospectives review what worked well and what needs improvement.
+Teams identify action items to implement in the next sprint.
+Continuous improvement mindset drives process refinement over time.
+Psychological safety enables honest and constructive feedback.
 
 ## Kanban Boards
-Visualize workflow stages:
-- Todo
-- In Progress
-- Done
+Kanban boards visualize workflow stages and work in progress.
+Common columns include:
+- Backlog: Prioritized work waiting to start
+- Todo: Work ready for the current sprint
+- In Progress: Active development tasks
+- Code Review: Awaiting peer feedback
+- Testing: Quality assurance validation
+- Done: Completed and deployed features
+
+Work-in-progress (WIP) limits prevent team overload and context switching.
 """,
                 "cooking_recipes.md": """# Italian Cuisine
 
 ## Pasta Carbonara
-Traditional Roman dish with eggs and guanciale.
+Traditional Roman dish combining eggs, guanciale, and Pecorino Romano cheese.
+The heat from freshly cooked pasta cooks the eggs into a creamy sauce.
 
 ### Ingredients
-- Spaghetti
-- Eggs
-- Guanciale
-- Pecorino Romano
+- 400g spaghetti or rigatoni
+- 4 large egg yolks plus 1 whole egg
+- 200g guanciale (cured pork jowl)
+- 100g Pecorino Romano cheese, finely grated
+- Freshly ground black pepper
+- Salt for pasta water
+
+### Preparation Steps
+1. Bring large pot of salted water to boil for pasta
+2. Cut guanciale into small strips and render in pan
+3. Beat eggs with grated Pecorino and black pepper
+4. Cook pasta until al dente, reserve cup of pasta water
+5. Combine hot pasta with guanciale off heat
+6. Add egg mixture quickly while tossing to create creamy sauce
+7. Add pasta water if needed to achieve silky consistency
 
 ## Pizza Margherita
-Simple but perfect: tomato, mozzarella, basil.
+Simple Neapolitan pizza showcasing quality ingredients: tomato, mozzarella, and basil.
+Named after Queen Margherita, representing Italian flag colors.
+High-temperature wood-fired ovens create the characteristic charred crust.
 
-## Risotto
-Creamy rice dish requiring patience and stirring.
+## Risotto alla Milanese
+Creamy Lombard rice dish requiring patience and constant stirring.
+Arborio or Carnaroli rice releases starch for signature creaminess.
+Saffron threads provide golden color and distinctive flavor.
+Mantecatura final step adds butter and Parmesan for luxurious texture.
 """,
                 "mixed_content.md": """# Diverse Topics
 
 ## Philosophy
-Existentialism questions meaning and purpose.
+Existentialism emphasizes individual freedom, choice, and personal responsibility.
+Sartre argued that existence precedes essence - we define ourselves through actions.
+Camus explored absurdism and the search for meaning in an indifferent universe.
+The existential question "Why is there something rather than nothing?" remains fundamental.
 
 ## Technology
-Kubernetes orchestrates containerized applications.
+Kubernetes orchestrates containerized applications across distributed clusters.
+It handles deployment, scaling, and management of microservices automatically.
+Container orchestration enables cloud-native architectures and DevOps practices.
+Service mesh technologies like Istio add observability and traffic management.
 
 ## History
-The Renaissance transformed European culture.
+The Renaissance transformed European culture from 14th to 17th centuries.
+Humanism emphasized classical learning and individual potential.
+Artists like Leonardo da Vinci and Michelangelo redefined artistic expression.
+Scientific revolution challenged medieval worldviews with empirical observation.
+Printing press democratized knowledge and accelerated cultural change.
+
+## Economics
+Supply and demand curves determine market equilibrium prices.
+Monetary policy influences inflation through interest rate adjustments.
+Fiscal policy uses government spending and taxation to manage economy.
+Behavioral economics examines psychological factors in economic decisions.
 """,
             }
 
@@ -145,7 +213,9 @@ The Renaissance transformed European culture.
 
             # Validate ingestion
             assert ingestion_stats["files_processed"] == 4, "All files should be processed"
-            assert ingestion_stats["total_chunks"] > 10, "Should create multiple chunks"
+            assert (
+                ingestion_stats["total_chunks"] >= 15
+            ), f"Should create 15+ chunks from ~5000 chars, got {ingestion_stats['total_chunks']}"
             assert ingestion_stats["files_skipped"] == 0, "No files should be skipped"
 
             # STAGE 3: Verify chunks in Weaviate
@@ -163,16 +233,25 @@ The Renaissance transformed European culture.
             assert sample_chunk.vector is not None, "Chunk should have embedding vector"
 
             # STAGE 4: Run clustering
+            # Ensure ClusterCentroid collection exists
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
             cluster_manager = ClusterManager(weaviate_client)
             n_clusters = 3  # Group into 3 semantic clusters
 
-            clustering_result = cluster_manager.run_kmeans_clustering(n_clusters=n_clusters)
+            # Fetch vectors from Weaviate
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            assert len(vectors) == len(all_chunks.objects), "Should fetch all vectors"
 
-            assert clustering_result["chunks_clustered"] == len(
-                all_chunks.objects
-            ), "All chunks should be clustered"
-            assert clustering_result["n_clusters"] == n_clusters, "Correct cluster count"
-            assert clustering_result["centroids_stored"] == n_clusters, "Centroids should be stored"
+            # Run K-means clustering
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters)
+            assert len(labels) == len(vectors), "Should have label for each vector"
+            assert len(centroids) == n_clusters, "Should have centroids for each cluster"
+
+            # Update Weaviate with cluster assignments
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Verify cluster assignments
             clustered_chunks = collection.query.fetch_objects(limit=100)
@@ -299,8 +378,11 @@ Future work will expand the scope.
             for strategy in ["recursive", "hybrid"]:
                 # Clear collection between runs
                 if strategy == "hybrid":
+                    from weaviate.classes.query import Filter
+
                     collection = weaviate_client.collections.get("TheMuses")
-                    collection.data.delete_many(where=None)
+                    # Delete all objects by filtering for any sourceFile
+                    collection.data.delete_many(where=Filter.by_property("sourceFile").like("*"))
 
                 # Ingest with strategy
                 state_tracker = IngestionStateTracker(str(vault_path / f"state_{strategy}.db"))
@@ -328,23 +410,36 @@ Future work will expand the scope.
                 chunk_sizes = [len(obj.properties["text"]) for obj in chunks.objects]
                 avg_chunk_size = sum(chunk_sizes) / len(chunk_sizes)
 
-                # Structure preservation
-                structure_score = 0.0
+                # Structure preservation using analyzer (Story 020)
+                expected_headings = [
+                    "# Main Title",
+                    "## Section 1: Introduction",
+                    "## Section 2: Methods",
+                    "### Subsection 2.1: Data Collection",
+                    "### Subsection 2.2: Analysis",
+                    "## Section 3: Results",
+                    "## Section 4: Conclusion",
+                ]
 
-                for obj in chunks.objects:
-                    if obj.properties.get("headingPath"):
-                        structure_score += 1
+                # Convert Weaviate objects to dicts for analyzer
+                chunk_dicts = [
+                    {
+                        "headingPath": obj.properties.get("headingPath"),
+                        "headingLevel": obj.properties.get("headingLevel"),
+                    }
+                    for obj in chunks.objects
+                ]
 
-                structure_preservation = (
-                    structure_score / len(chunks.objects) if chunks.objects else 0
-                )
+                analyzer = StructurePreservationAnalyzer(chunk_dicts, expected_headings)
+                structure_metrics = analyzer.analyze()
 
                 results[strategy] = {
                     "total_chunks": len(chunks.objects),
                     "avg_chunk_size": avg_chunk_size,
                     "ingestion_time": elapsed,
-                    "structure_preservation": structure_preservation,
-                    "chunks_with_headings": structure_score,
+                    "structure_preservation": structure_metrics.preservation_score,
+                    "heading_depth_accuracy": structure_metrics.heading_depth_accuracy,
+                    "headings_found": structure_metrics.n_headings_found,
                 }
 
             # VALIDATE: Hybrid should preserve structure better
@@ -386,13 +481,28 @@ Future work will expand the scope.
             vault_path = Path(tmp_dir) / "vault"
             vault_path.mkdir()
 
-            # Initial content
+            # Initial content (expanded to generate 2+ chunks for clustering)
             test_file = vault_path / "test_note.md"
             test_file.write_text(
-                """# Original Title
+                """# Machine Learning Fundamentals
 
-This is the original content about machine learning.
-Neural networks are powerful tools.
+## Neural Network Basics
+Neural networks are powerful computational tools inspired by biological neurons.
+They consist of interconnected layers that process information through weighted connections.
+Each neuron applies an activation function to produce outputs.
+Backpropagation enables learning by adjusting weights based on errors.
+
+## Training Process
+Training involves iterative optimization to minimize a loss function.
+The learning rate controls how quickly the model adapts to new patterns.
+Gradient descent algorithms update weights to improve performance.
+Regularization techniques prevent overfitting to the training data.
+Early stopping monitors validation performance to avoid overtraining.
+
+## Common Architectures
+Convolutional neural networks excel at image processing tasks.
+Recurrent networks handle sequential data like time series.
+Transformers revolutionized natural language processing with attention mechanisms.
 """
             )
 
@@ -407,22 +517,44 @@ Neural networks are powerful tools.
 
             stats_v1 = ingestor.ingest_vault()
             assert stats_v1["files_processed"] == 1
+
             collection = weaviate_client.collections.get("TheMuses")
             chunks_v1 = collection.query.fetch_objects(limit=100)
             initial_uuids = {obj.uuid for obj in chunks_v1.objects}
 
             # STAGE 2: Initial clustering
-            cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=2)
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
 
-            # STAGE 3: Modify file (major change)
+            cluster_manager = ClusterManager(weaviate_client)
+            vectors_v1, uuids_v1 = cluster_manager.fetch_all_vectors()
+            labels_v1, centroids_v1 = cluster_manager.run_kmeans_clustering(
+                vectors_v1, n_clusters=2
+            )
+            cluster_manager.update_chunk_cluster_ids(uuids_v1, labels_v1)
+            cluster_manager.update_centroids(centroids_v1, labels_v1)
+
+            # STAGE 3: Modify file (major change - ensure multiple chunks)
             time.sleep(1)  # Ensure different mtime
             test_file.write_text(
-                """# Updated Title
+                """# Italian Cooking Guide
 
-This is completely new content about cooking recipes.
-Italian pasta is delicious.
-Carbonara uses eggs and guanciale.
+## Pasta Techniques
+Making fresh pasta requires practice and patience.
+Knead the dough until smooth and elastic.
+Let it rest for at least 30 minutes before rolling.
+Roll the dough thin but not too thin to avoid tearing.
+
+## Classic Carbonara
+Traditional Roman carbonara uses only eggs, guanciale, pecorino, and black pepper.
+No cream is used in authentic carbonara.
+The heat from the pasta cooks the eggs into a silky sauce.
+Timing is critical to avoid scrambled eggs.
+
+## Pizza Dough
+High-protein flour creates better gluten structure for pizza.
+Cold fermentation develops flavor over 24-48 hours.
+Stretch the dough gently to preserve air bubbles.
 """
             )
 
@@ -451,10 +583,17 @@ Carbonara uses eggs and guanciale.
             ), "Old content should be removed"
 
             # STAGE 6: Re-cluster
-            cluster_result = cluster_manager.run_kmeans_clustering(n_clusters=2)
-            assert cluster_result["chunks_clustered"] == len(
-                chunks_v2.objects
-            ), "All new chunks should be clustered"
+            vectors_v2, uuids_v2 = cluster_manager.fetch_all_vectors()
+            assert len(vectors_v2) >= 2, "Should have at least 2 chunks from expanded content"
+
+            labels_v2, centroids_v2 = cluster_manager.run_kmeans_clustering(
+                vectors_v2, n_clusters=2
+            )
+            cluster_manager.update_chunk_cluster_ids(uuids_v2, labels_v2)
+            cluster_manager.update_centroids(centroids_v2, labels_v2)
+
+            # Verify all new chunks were clustered
+            assert len(labels_v2) == len(chunks_v2.objects), "All new chunks should be clustered"
 
     def test_pipeline_03_quality_metrics_end_to_end(
         self, weaviate_client, clean_weaviate_collection, test_config
@@ -698,44 +837,89 @@ Innovation and experimentation.
             vault_path = Path(tmp_dir) / "vault"
             vault_path.mkdir()
 
-            # Create 3 topically distinct documents
+            # Create 3 topically distinct documents (expanded for better semantic separation)
             (vault_path / "ml_doc1.md").write_text(
-                """# Machine Learning Basics
-Neural networks use backpropagation.
-Gradient descent optimizes weights.
-Supervised learning requires labeled data.
+                """# Machine Learning Fundamentals
+
+## Neural Network Architecture
+Neural networks use backpropagation algorithms to learn from data.
+Gradient descent optimizes network weights through iterative updates.
+Deep learning models stack multiple layers for hierarchical feature extraction.
+Activation functions introduce non-linearity into neural computations.
+
+## Training and Optimization
+Supervised learning requires labeled datasets for model training.
+Cross-validation techniques assess model generalization performance.
+Regularization methods prevent overfitting to training data.
+Learning rate schedules improve convergence during gradient descent.
 """
             )
 
             (vault_path / "ml_doc2.md").write_text(
-                """# Deep Learning
-Convolutional networks process images.
-Recurrent networks handle sequences.
-Transformers revolutionized NLP.
+                """# Deep Learning Applications
+
+## Computer Vision
+Convolutional neural networks process images through learned filters.
+CNNs detect spatial hierarchies and visual patterns automatically.
+Image classification tasks benefit from deep convolutional architectures.
+Transfer learning leverages pre-trained models for new vision tasks.
+
+## Natural Language Processing
+Recurrent neural networks handle sequential text data effectively.
+Transformers revolutionized NLP with attention mechanisms and parallelization.
+BERT and GPT models demonstrate the power of large-scale pre-training.
+Word embeddings capture semantic relationships between terms.
 """
             )
 
             (vault_path / "cooking_doc1.md").write_text(
-                """# Italian Cooking
-Pasta carbonara uses eggs and guanciale.
-Pizza margherita is simple perfection.
-Risotto requires patience and stirring.
+                """# Italian Cuisine Masterclass
+
+## Pasta Making
+Traditional pasta carbonara uses eggs, guanciale, and pecorino romano.
+Fresh pasta dough requires proper kneading and resting time.
+Al dente cooking preserves pasta texture and flavor.
+Authentic Italian recipes emphasize simplicity and quality ingredients.
+
+## Pizza and Risotto
+Pizza margherita showcases the perfect balance of dough, sauce, and cheese.
+Neapolitan pizza requires high-temperature wood-fired ovens.
+Risotto demands patience, constant stirring, and gradual broth addition.
+Arborio rice releases starch for creamy risotto consistency.
 """
             )
 
             (vault_path / "cooking_doc2.md").write_text(
-                """# Baking Techniques
-Bread dough needs proper kneading.
-Yeast activation requires warm water.
-Proofing develops flavor and texture.
+                """# Artisan Baking Techniques
+
+## Bread Fundamentals
+Bread dough development requires proper kneading and gluten formation.
+Yeast activation needs warm water temperature and sugar for feeding.
+Proofing allows fermentation to develop complex flavors and textures.
+Scoring bread dough controls oven spring expansion patterns.
+
+## Advanced Baking
+Sourdough starter cultivation creates natural leavening cultures.
+Baking temperature and steam affect crust formation and color.
+Whole grain flours add nutritional value and rustic character.
+Cold fermentation enhances bread flavor through extended rising times.
 """
             )
 
             (vault_path / "history_doc.md").write_text(
-                """# Ancient Rome
-The Roman Empire spanned continents.
-Julius Caesar transformed the republic.
-Latin influenced modern languages.
+                """# Ancient Roman Civilization
+
+## Imperial Expansion
+The Roman Empire spanned three continents at its height.
+Julius Caesar transformed the Roman Republic through military conquests.
+Roman legions employed advanced tactics and engineering capabilities.
+Provincial governance integrated diverse cultures into imperial administration.
+
+## Cultural Legacy
+Latin language influenced modern Romance languages profoundly.
+Roman law established legal principles still used today.
+Ancient architecture inspired neoclassical design movements.
+Roman engineering achievements include aqueducts and road networks.
 """
             )
 
@@ -751,8 +935,14 @@ Latin influenced modern languages.
             ingestor.ingest_vault()
 
             # Cluster into 3 groups (ML, Cooking, History)
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
             cluster_manager = ClusterManager(weaviate_client)
-            cluster_manager.run_kmeans_clustering(n_clusters=3)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=3)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
 
             # Get representatives for each cluster
             get_reps = GetClusterRepresentatives(weaviate_client)
@@ -884,10 +1074,16 @@ class TestPipelineEdgeCases:
             assert stats["total_chunks"] >= 1, "Should create at least 1 chunk"
 
             # Clustering with 1 chunk should work (n_clusters=1)
-            cluster_manager = ClusterManager(weaviate_client)
-            result = cluster_manager.run_kmeans_clustering(n_clusters=1)
+            schema_manager = WeaviateSchemaManager(weaviate_client)
+            schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
 
-            assert result["chunks_clustered"] >= 1
+            cluster_manager = ClusterManager(weaviate_client)
+            vectors, uuids = cluster_manager.fetch_all_vectors()
+            labels, centroids = cluster_manager.run_kmeans_clustering(vectors, n_clusters=1)
+            cluster_manager.update_chunk_cluster_ids(uuids, labels)
+            cluster_manager.update_centroids(centroids, labels)
+
+            assert len(labels) >= 1, "Should cluster at least 1 chunk"
 
     def test_very_long_document(self, weaviate_client, clean_weaviate_collection, test_config):
         """Verify pipeline handles large documents (many chunks)."""

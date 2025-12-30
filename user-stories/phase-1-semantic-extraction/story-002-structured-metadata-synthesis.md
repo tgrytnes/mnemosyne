@@ -10,7 +10,7 @@
 - [ ] Cluster Profile schema defined (using Pydantic)
 - [ ] Profile includes: theme summary, key entities, tags, confidence scores
 - [ ] Profiles stored in The Ananke (PostgreSQL registry) with a defined table name and unique constraint on `cluster_id`
-- [ ] Validation uses Pydantic models from The Gates (specify exact module path)
+- [ ] Validation uses Pydantic models from The Gates (`mnemosyne.alexandria.the_gates.cluster_profile.ClusterProfile`)
 - [ ] Error handling for malformed JSON responses (retry once, then log and mark profile as failed)
 - [ ] Success threshold: >= 95% of clusters produce valid profiles in a full run
 - [ ] Performance target: process 50 clusters in <= 5 minutes on RPi 5

@@ -29,6 +29,7 @@ def test_config():
         "postgres_user": os.getenv("TEST_POSTGRES_USER", "postgres"),
         "postgres_password": os.getenv("TEST_POSTGRES_PASSWORD", "test"),
         "ollama_url": os.getenv("TEST_OLLAMA_URL", "http://localhost:11434"),
+        "ollama_timeout": int(os.getenv("TEST_OLLAMA_TIMEOUT", "120")),
         "telegram_bot_token": os.getenv("TEST_TELEGRAM_BOT_TOKEN", "test_token"),
     }
 
