@@ -80,7 +80,7 @@ class QueryCacheStore:
     ) -> None:
         query_hash = self._hash_query(query_text)
         payload = json.dumps(embedding)
-        result_json = json.dumps(result)
+        result_json = json.dumps(result, default=str)
         now = datetime.utcnow().isoformat()
 
         self._conn.execute(
