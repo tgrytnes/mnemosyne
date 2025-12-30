@@ -57,7 +57,7 @@ jobs:
           docker exec ollama ollama pull qwen3-embedding:0.6b
 
           # Pull generation model for cluster metadata synthesis
-          docker exec ollama ollama pull qwen3:0.6b
+          docker exec ollama ollama pull gemma3:1b
 
       - name: Install Poetry
         run: |
