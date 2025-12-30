@@ -159,7 +159,7 @@ Each user story should have corresponding tests:
 | Story | Test File | Focus |
 |-------|-----------|-------|
 | Story 000: Obsidian Vault Ingestion | `test_ingestor.py` | Markdown cleaning, chunking, embeddings |
-| Story 002: Obsidian Gatekeeper | `test_gatekeeper.py` | Shadow copy workflow |
+| Story 025: Obsidian Gatekeeper | `test_gatekeeper.py` | Shadow copy workflow |
 | Story 005: Semantic Routing | `test_router.py` | Cache hits, routing decisions |
 | Story 010: Scout Pattern Detection | `test_scout.py` | Pattern detection, confidence scoring |
 | Story 014: SQL Project Gatekeeper | `test_gatekeeper.py` | Approval workflow, SQL writes |

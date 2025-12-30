@@ -1,4 +1,4 @@
-# Story 003: PDF & OCR Document Ingestion
+# Story 026: PDF & OCR Document Ingestion
 
 **As a** user with scanned documents and PDFs
 **I want** text extracted via OCR and stored in my knowledge base
@@ -364,7 +364,7 @@ services:
 
 ## Related Stories
 - Story 000: Obsidian Vault Ingestion (similar embedding workflow)
-- Story 001: Email Archive Ingestion (similar cleaning pipeline)
+- Story 024: Email Archive Ingestion (similar cleaning pipeline)
 - Aletheia README mentions Tika, OCRmyPDF, Unstructured.io
 
 ## References

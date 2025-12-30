@@ -156,6 +156,7 @@ class ObsidianIngestor:
                 logger.info(f"No chunks created for: {file_path}")
                 return 0
 
+            self._delete_existing_chunks(file_path)
             for chunk in chunks:
                 embedding = self._generate_embedding(chunk.text)
                 self._store_chunk(
@@ -216,6 +217,7 @@ class ObsidianIngestor:
             total_chunks += len(chunks)
 
         for file_path, mod_time, chunks in prepared_files:
+            self._delete_existing_chunks(file_path)
             for chunk in chunks:
                 embedding = self._generate_embedding(chunk.text)
                 self._store_chunk(
@@ -316,4 +318,21 @@ class ObsidianIngestor:
         collection.data.insert(
             properties=properties,
             vector=chunk_data["embedding"],
+        )
+
+    def _delete_existing_chunks(self, file_path: str) -> None:
+        """Remove previously ingested chunks for a file before re-ingesting."""
+        from weaviate.classes.query import Filter
+
+        collection = self.weaviate_client.collections.get(self.collection_name)
+        delete_result = collection.data.delete_many(
+            where=Filter.by_property("sourceFile").equal(file_path)
+            & Filter.by_property("sourceType").equal("obsidian")
+        )
+        logger.info(
+            "Deleted %s existing chunks for %s (successful: %s, failed: %s)",
+            delete_result.matches,
+            file_path,
+            delete_result.successful,
+            delete_result.failed,
         )

@@ -177,7 +177,7 @@ main (production)
        └─ develop (integration)
             ↑
             ├─ feature/story-000-obsidian-ingestion
-            ├─ feature/story-001-email-ingestion
+            ├─ feature/story-024-email-ingestion
             ├─ bugfix/fix-weaviate-connection
             └─ hotfix/critical-telegram-bug
 ```

@@ -8,7 +8,7 @@
 
 **This story implements The Editor, an execution agent that works with the Obsidian Gatekeeper.**
 
-The Editor bridges The Curator's suggestions (Story 017) and the Obsidian Gatekeeper (Story 002). It translates high-level curation proposals into concrete file edits in the shadow copy, which you then review and approve.
+The Editor bridges The Curator's suggestions (Story 017) and the Obsidian Gatekeeper (Story 025). It translates high-level curation proposals into concrete file edits in the shadow copy, which you then review and approve.
 
 **Workflow**: User approves curation → The Editor → Shadow copy edits → Obsidian Gatekeeper → User final approval → Vault
 
@@ -371,7 +371,7 @@ class VaultEditorAgent:
     def __init__(self, vault_path: str, shadow_vault_path: str, gatekeeper):
         self.vault_path = Path(vault_path)
         self.shadow_vault_path = Path(shadow_vault_path)
-        self.gatekeeper = gatekeeper  # Obsidian Gatekeeper (Story 002)
+        self.gatekeeper = gatekeeper  # Obsidian Gatekeeper (Story 025)
 
         # Execution strategies
         self.backlink_editor = BacklinkEditor(shadow_vault_path)
@@ -474,7 +474,7 @@ class VaultEditorAgent:
 ## Integration with Obsidian Gatekeeper
 
 ```python
-# In Obsidian Gatekeeper (Story 002)
+# In Obsidian Gatekeeper (Story 025)
 
 def submit_for_approval(self, edit_source: str, proposal_id: str, diff: str, affected_files: List[str]):
     """
@@ -717,10 +717,10 @@ CREATE INDEX idx_edit_timestamp ON edit_operations(executed_at);
 ---
 
 ## Dependencies
-- Obsidian Gatekeeper (Story 002) - final approval workflow
+- Obsidian Gatekeeper (Story 025) - final approval workflow
 - The Curator (Story 017) - source of curation proposals
 - The Liaison (Hermes) - user communication
-- Shadow copy infrastructure from Story 002
+- Shadow copy infrastructure from Story 025
 
 ## Affected Components
 - **The Gates**: Obsidian Gatekeeper (extended for curator workflow)
@@ -737,7 +737,7 @@ CREATE INDEX idx_edit_timestamp ON edit_operations(executed_at);
 `phase-5`, `vault-curation`, `editor`, `shadow-copy`, `file-operations`
 
 ## Related Stories
-- Story 002: Obsidian Gatekeeper (approval workflow foundation)
+- Story 025: Obsidian Gatekeeper (approval workflow foundation)
 - Story 017: The Curator (provides curation proposals)
 
 ## Future Enhancements

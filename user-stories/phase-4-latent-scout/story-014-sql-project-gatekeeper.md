@@ -8,7 +8,7 @@
 
 **This story implements the SQL Project Gatekeeper (part of The Gates approval layer).**
 
-The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the Obsidian Gatekeeper from Story 002). It controls ALL writes to The Ananke, ensuring projects only become commitments after your explicit approval.
+The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the Obsidian Gatekeeper from Story 025). It controls ALL writes to The Ananke, ensuring projects only become commitments after your explicit approval.
 
 ## Acceptance Criteria
 - [ ] No direct writes to The Ananke `projects` table without gatekeeper approval
@@ -528,7 +528,7 @@ CREATE INDEX idx_gatekeeper_audit_project ON gatekeeper_audit(project_id);
 `phase-4`, `latent-scout`, `gatekeeper`, `sql`, `alexandria`, `hermes`, `safety`
 
 ## Related Stories
-- Story 002: Shadow Copy & Hygiene (Obsidian Gatekeeper)
+- Story 025: Shadow Copy & Hygiene (Obsidian Gatekeeper)
 - Story 010: Autonomous Pattern Detection (generates candidates)
 - Story 012: Proactive Insight Notifications (approval workflow)
 - Story 013: Discovery Feed Management (alternative review path)
