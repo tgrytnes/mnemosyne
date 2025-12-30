@@ -37,6 +37,10 @@ class TestCheckpointStore:
             assert loaded is not None
             assert loaded.query_id == state.query_id
             assert loaded.current_node == "search"
+            assert loaded.conversation_history == state.conversation_history
+            assert loaded.intermediate_results == state.intermediate_results
+            assert loaded.search_results == state.search_results
+            assert loaded.metadata == state.metadata
 
             store.close()
 
@@ -68,6 +72,60 @@ class TestCheckpointStore:
 
             assert removed == 1
             assert store.load("q-3") is None
+            store.close()
+
+    def test_list_query_history_orders_by_timestamp(self):
+        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+            store = CheckpointStore(tmp.name)
+            state_one = self._make_state("q-4")
+            state_one.current_node = "semantic_extraction"
+            store.save(state_one)
+
+            state_two = self._make_state("q-4")
+            state_two.current_node = "synthesis"
+            store.save(state_two)
+
+            store._conn.execute(
+                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
+                ("2020-01-01T00:00:00", "q-4", "semantic_extraction"),
+            )
+            store._conn.execute(
+                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
+                ("2020-01-02T00:00:00", "q-4", "synthesis"),
+            )
+            store._conn.commit()
+
+            history = store.list_query_history("q-4")
+            assert [item.current_node for item in history] == [
+                "semantic_extraction",
+                "synthesis",
+            ]
+            store.close()
+
+    def test_list_checkpoints_returns_latest_per_query(self):
+        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+            store = CheckpointStore(tmp.name)
+            state_one = self._make_state("q-5")
+            state_one.current_node = "search"
+            store.save(state_one)
+
+            state_two = self._make_state("q-5")
+            state_two.current_node = "synthesis"
+            store.save(state_two)
+
+            store._conn.execute(
+                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
+                ("2020-01-01T00:00:00", "q-5", "search"),
+            )
+            store._conn.execute(
+                f"UPDATE {store.table_name} SET updated_at = ? WHERE query_id = ? AND current_node = ?",
+                ("2020-01-02T00:00:00", "q-5", "synthesis"),
+            )
+            store._conn.commit()
+
+            checkpoints = store.list_checkpoints()
+            assert len(checkpoints) == 1
+            assert checkpoints[0].current_node == "synthesis"
             store.close()
 
 

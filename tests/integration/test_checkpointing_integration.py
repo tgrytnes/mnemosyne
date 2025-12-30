@@ -4,6 +4,7 @@ Integration tests for checkpoint persistence.
 
 import tempfile
 from pathlib import Path
+import time
 
 import pytest
 
@@ -79,3 +80,45 @@ def test_langgraph_persists_key_nodes():
         assert graph.langgraph_db_path
         assert Path(graph.langgraph_db_path).exists()
         graph.close()
+
+
+@pytest.mark.integration
+def test_graph_resume_returns_latest_state():
+    with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        graph = ResearchGraph(checkpoint_db_path=tmp.name)
+        state = {
+            "query_id": "graph-2",
+            "original_query": "Resume test",
+            "current_node": "start",
+            "conversation_history": [{"role": "user", "content": "Resume"}],
+        }
+
+        graph.run(state)
+        resumed = graph.resume("graph-2")
+
+        assert resumed is not None
+        assert resumed.current_node == "synthesis"
+        assert resumed.conversation_history
+        assert resumed.search_results
+        graph.close()
+
+
+@pytest.mark.performance
+def test_checkpoint_save_load_under_threshold():
+    with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        store = CheckpointStore(tmp.name)
+        state = ResearchState(
+            query_id="perf-1",
+            original_query="Perf check",
+            current_node="search",
+            conversation_history=[{"role": "user", "content": "Ping"}],
+        )
+
+        start = time.monotonic()
+        store.save(state)
+        loaded = store.load("perf-1")
+        elapsed = time.monotonic() - start
+
+        assert loaded is not None
+        assert elapsed < 0.5, f"Checkpoint save/load took {elapsed:.3f}s"
+        store.close()
