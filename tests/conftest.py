@@ -90,6 +90,16 @@ def temp_shadow_vault(tmp_path: Path) -> Generator[Path, None, None]:
     yield shadow
 
 
+@pytest.fixture(scope="session")
+def fake_vault_path() -> Path:
+    """Return path to the committed fake vault test data."""
+    repo_root = Path(__file__).resolve().parents[1]
+    fake_vault = repo_root / "test_data" / "fake_vault"
+    if not fake_vault.exists():
+        pytest.fail("Fake vault test data is missing")
+    return fake_vault
+
+
 @pytest.fixture
 def sample_markdown_file(tmp_path: Path) -> Path:
     """Create a sample markdown file for testing"""
@@ -190,6 +200,25 @@ def clean_weaviate_collection(weaviate_client):
     for collection_name in test_collections:
         if weaviate_client.collections.exists(collection_name):
             weaviate_client.collections.delete(collection_name)
+
+
+# ============================================================================
+# Ollama Fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def ollama_client(test_config):
+    """Create Ollama client for integration/e2e tests."""
+    client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
+    try:
+        client.list()
+    except Exception as e:
+        pytest.skip(f"Could not connect to Ollama: {e}")
+    return client
 
 
 # ============================================================================

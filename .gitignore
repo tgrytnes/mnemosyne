@@ -1,7 +1,9 @@
 # Mnemosyne .gitignore
 
-# Test data (not tracked)
-test_data/
+# Test data (ignore everything except the committed fake vault)
+test_data/*
+!test_data/fake_vault/
+!test_data/fake_vault/**
 
 # Environment files (active .env not tracked, templates ARE tracked)
 .env
