@@ -184,5 +184,7 @@ def _run_clustering_with_env(test_config, n_clusters: int) -> None:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
+
+
 def _count_markdown_files(path: Path) -> int:
     return len(list(path.glob("*.md")))
