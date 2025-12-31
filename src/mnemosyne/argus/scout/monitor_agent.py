@@ -432,6 +432,9 @@ def _record_from_properties(properties: dict[str, Any]) -> DiscoveryRecord | Non
     except KeyError:
         return None
 
+    if not discovery_id or not discovery_job_key or not candidate_key:
+        return None
+
     return DiscoveryRecord(
         discovery_id=discovery_id,
         discovery_job_key=discovery_job_key,

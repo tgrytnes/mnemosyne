@@ -69,9 +69,9 @@ class LatentRadar:
             score, pos_max, neg_max = self.score(cluster.embedding, positive_vecs, negative_vecs)
             if score < concept.threshold:
                 continue
-            candidate_key = _candidate_key([cluster.cluster_id])
-            discovery_job_key = concept.key
-            discovery_id = f"{discovery_job_key}:{candidate_key}"
+            discovery_job_key, candidate_key, discovery_id = discovery_identity(
+                concept.key, [cluster.cluster_id]
+            )
             detections.append(
                 ConceptDetection(
                     concept_key=concept.key,
@@ -150,6 +150,11 @@ def _margin_score(
         default=0.0,
     )
     return pos_max - neg_max, pos_max, neg_max
+
+
+def discovery_identity(concept_key: str, cluster_ids: Iterable[str]) -> tuple[str, str, str]:
+    candidate_key = _candidate_key(cluster_ids)
+    return concept_key, candidate_key, f"{concept_key}:{candidate_key}"
 
 
 def _candidate_key(cluster_ids: Iterable[str]) -> str:
