@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 import weaviate
 from weaviate.classes.query import Filter
@@ -79,9 +79,9 @@ class ScoutRunner:
         dry_run: bool = False,
         cluster_links: dict[str, list[str]] | None = None,
     ) -> ScoutRunSummary:
-        start = datetime.utcnow()
+        start = datetime.now(timezone.utc)
         errors: list[str] = []
-        run_id = run_id or f"scout-{start.isoformat()}Z"
+        run_id = run_id or f"scout-{start.isoformat()}"
 
         cluster_ids = self._fetch_cluster_ids()
         representations: dict[str, ClusterRepresentation] = {}

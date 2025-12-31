@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from mnemosyne.argus.scout.radar import ClusterRepresentation, ConceptDetection, cosine_similarity
 
@@ -161,11 +161,13 @@ def partition_note_times(
     window_days: int,
     now: datetime | None = None,
 ) -> tuple[int, int]:
-    now = now or datetime.utcnow()
+    now = now or datetime.now(timezone.utc)
     cutoff = now - timedelta(days=window_days)
     recent = 0
     previous = 0
     for timestamp in timestamps:
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
         if timestamp >= cutoff:
             recent += 1
         else:
