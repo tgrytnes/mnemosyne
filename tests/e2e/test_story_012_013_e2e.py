@@ -1,6 +1,4 @@
-"""
-E2E test for Stories 012 and 013: notifications + discovery feed management using Postgres + stub Telegram outbox.
-"""
+"""E2E for Stories 012/013: notifications + discovery feed with Postgres + stub outbox."""
 
 from datetime import datetime, time
 

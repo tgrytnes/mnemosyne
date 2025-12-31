@@ -1,18 +1,15 @@
-"""
-Radar exploration for Story 011: explores cluster pairs, stores weak links with identity and checkpointing.
-"""
+"""Radar exploration for Story 011: explore pairs, store weak links with identity/checkpoints."""
 
 from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
 
 import numpy as np
-from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.weaviate_schema import Discoveries, WeaviateSchemaManager
 from mnemosyne.argus.scout.radar import ClusterRepresentation
@@ -197,6 +194,9 @@ def _pair_candidates(
             if limit and added >= limit:
                 break
     if strategy == "curiosity":
-        # Sort by textual length difference as a proxy for diversity; embeddings similarity is calculated later
-        pairs.sort(key=lambda p: abs(len(p[0].text) - len(p[1].text)), reverse=True)
+        # Sort by textual length difference as a proxy for diversity; similarity checked later
+        pairs.sort(
+            key=lambda p: abs(len(p[0].text) - len(p[1].text)),
+            reverse=True,
+        )
     return pairs

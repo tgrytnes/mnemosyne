@@ -1,11 +1,9 @@
-"""
-Notification preferences and delivery for Stories 012/013.
-"""
+"""Notification preferences and delivery for Stories 012/013."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import json
+from dataclasses import dataclass, field
 from datetime import datetime, time
 
 
@@ -63,7 +61,8 @@ class NotificationPreferencesRepository:
         cur.execute(
             """
             INSERT INTO notification_preferences
-            (user_id, enabled, quiet_start, quiet_end, max_daily, batch_mode, per_type_thresholds, per_type_enabled)
+            (user_id, enabled, quiet_start, quiet_end, max_daily, batch_mode,
+             per_type_thresholds, per_type_enabled)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (user_id) DO UPDATE SET
                 enabled=EXCLUDED.enabled,
@@ -91,7 +90,12 @@ class NotificationPreferencesRepository:
     def get(self, user_id: str) -> NotificationPreferences | None:
         cur = self.conn.cursor()
         cur.execute(
-            "SELECT user_id, enabled, quiet_start, quiet_end, max_daily, batch_mode, per_type_thresholds, per_type_enabled FROM notification_preferences WHERE user_id=%s",
+            """
+            SELECT user_id, enabled, quiet_start, quiet_end, max_daily, batch_mode,
+                   per_type_thresholds, per_type_enabled
+            FROM notification_preferences
+            WHERE user_id=%s
+            """,
             (user_id,),
         )
         row = cur.fetchone()

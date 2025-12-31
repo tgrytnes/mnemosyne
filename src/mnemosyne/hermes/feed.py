@@ -1,15 +1,11 @@
-"""
-Discovery feed management for Story 013.
-
-This implementation is intentionally simple/in-memory to satisfy current tests.
-"""
+"""Discovery feed management for Story 013 (simple in-memory to satisfy tests)."""
 
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass, field
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass
@@ -62,7 +58,9 @@ class DiscoveryFeedManager:
             )
             self._items[item.discovery_id] = item
 
-    def list(self, filters: dict | None = None, page: int = 1, per_page: int = 10) -> PaginatedResult:
+    def list(
+        self, filters: dict | None = None, page: int = 1, per_page: int = 10
+    ) -> PaginatedResult:
         filters = filters or {}
         items = list(self._items.values())
         type_filter = filters.get("type")

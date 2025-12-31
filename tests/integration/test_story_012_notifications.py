@@ -1,6 +1,4 @@
-"""
-Integration tests for Story 012: proactive insight notifications with preferences, quiet hours, and batching.
-"""
+"""Integration tests for Story 012: notifications with prefs, quiet hours, batching."""
 
 from datetime import datetime, time
 
