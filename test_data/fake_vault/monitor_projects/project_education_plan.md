@@ -15,6 +15,12 @@ Plan education goals with coursework, tuition, schedule, and deadlines.
 - Budget tuition and materials
 - Schedule study milestones
 
+## Notes
+Track application forms, scholarship options, and study hours.
+
 ## Risks
 - Time constraints
 - Budget changes
+
+## Next Actions
+Confirm coursework prerequisites and finalize tuition estimates.

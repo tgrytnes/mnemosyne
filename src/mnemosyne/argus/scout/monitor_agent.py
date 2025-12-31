@@ -351,8 +351,8 @@ class MonitorAgent:
         self._config = config or MonitorConfig()
 
     def run(self) -> None:
-        self._reconcile_discoveries()
         self._escalate_rejections()
+        self._reconcile_discoveries()
 
     def _reconcile_discoveries(self) -> None:
         discoveries = self._reader.fetch_project_candidates(

@@ -8,3 +8,11 @@ created: 2024-03-06
 
 Summary of historical events and background context.
 No milestones, budget, or project planning language.
+
+## Topics
+- Political shifts
+- Cultural movements
+- Key dates and figures
+
+## References
+Notes gathered from documentaries and articles.
