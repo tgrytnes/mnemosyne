@@ -62,8 +62,7 @@ class Neo4jGraphRepository:
         ]
         with self.driver.session() as session:
             session.run(
-                "MATCH (c:Cluster {cluster_id: $cluster_id})-[r:PARENT_OF|NEIGHBOR]-() "
-                "DELETE r",
+                "MATCH (c:Cluster {cluster_id: $cluster_id})-[r:PARENT_OF|NEIGHBOR]-() " "DELETE r",
                 cluster_id=cluster_id,
             )
             if not edges_list:

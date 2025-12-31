@@ -63,9 +63,7 @@ def compute_generality_scores(term_sets: dict[str, set[str]]) -> dict[str, float
     if not term_sets:
         return {}
     total_clusters = len(term_sets)
-    term_counts = Counter(
-        term for terms in term_sets.values() for term in terms
-    )
+    term_counts = Counter(term for terms in term_sets.values() for term in terms)
 
     scores: dict[str, float] = {}
     for cluster_id, terms in term_sets.items():
@@ -149,9 +147,7 @@ def resolve_parent_cycles(edges: list[GraphEdge]) -> list[GraphEdge]:
     return parent_edges + other_edges
 
 
-def _similarity_score(
-    similarity: dict[tuple[str, str], float], left: str, right: str
-) -> float:
+def _similarity_score(similarity: dict[tuple[str, str], float], left: str, right: str) -> float:
     if (left, right) in similarity:
         return similarity[(left, right)]
     if (right, left) in similarity:
