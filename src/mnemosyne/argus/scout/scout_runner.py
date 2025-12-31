@@ -128,7 +128,7 @@ class ScoutRunner:
         )
         self._store.store_detections(detections, run_metadata)
 
-        duration_seconds = (datetime.utcnow() - start).total_seconds()
+        duration_seconds = (datetime.now(UTC) - start).total_seconds()
         if self._config.performance_target_seconds is not None:
             if duration_seconds > self._config.performance_target_seconds:
                 errors.append(
