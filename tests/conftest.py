@@ -28,6 +28,9 @@ def test_config():
         "postgres_db": os.getenv("TEST_POSTGRES_DB", "ananke_test"),
         "postgres_user": os.getenv("TEST_POSTGRES_USER", "postgres"),
         "postgres_password": os.getenv("TEST_POSTGRES_PASSWORD", "test"),
+        "neo4j_uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
+        "neo4j_password": os.getenv("NEO4J_PASSWORD", "test"),
         "ollama_url": os.getenv(
             "OLLAMA_BASE_URL", os.getenv("TEST_OLLAMA_URL", "http://localhost:11434")
         ),
@@ -227,6 +230,34 @@ def postgres_connection(test_config):
         conn.close()
     except Exception as e:
         pytest.skip(f"Could not connect to PostgreSQL: {e}")
+
+
+# ============================================================================
+# Neo4j Fixtures
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def neo4j_driver(test_config):
+    """Create Neo4j driver for integration/e2e tests."""
+    try:
+        from neo4j import GraphDatabase
+    except Exception as exc:
+        pytest.skip(f"Neo4j driver not available: {exc}")
+
+    driver = GraphDatabase.driver(
+        test_config["neo4j_uri"],
+        auth=(test_config["neo4j_user"], test_config["neo4j_password"]),
+    )
+    try:
+        with driver.session() as session:
+            session.run("RETURN 1")
+    except Exception as exc:
+        driver.close()
+        pytest.skip(f"Could not connect to Neo4j: {exc}")
+
+    yield driver
+    driver.close()
 
 
 @pytest.fixture
