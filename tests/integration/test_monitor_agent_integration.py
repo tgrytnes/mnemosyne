@@ -4,7 +4,7 @@ Integration tests for Monitor Agent with real services.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_monitor_creates_proposal_from_weaviate_discovery(
             "patternType": "project_candidate",
             "clusterIds": ["c1"],
             "confidenceScore": 0.82,
-            "detectedAt": datetime.now(timezone.utc),
+            "detectedAt": datetime.now(UTC),
             "discoveryId": discovery_id,
             "discoveryJobKey": "private_projects",
             "candidateKey": "house_painting",

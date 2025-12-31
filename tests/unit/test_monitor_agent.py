@@ -5,7 +5,7 @@ Unit tests for Monitor Agent reconciliation logic.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from mnemosyne.argus.scout.monitor_agent import (
     DiscoveryRecord,
@@ -53,7 +53,7 @@ def _sample_discovery(confidence: float = 0.8) -> DiscoveryRecord:
         pattern_type="project_candidate",
         cluster_ids=["c1"],
         confidence_score=confidence,
-        detected_at=datetime.now(timezone.utc),
+        detected_at=datetime.now(UTC),
     )
 
 
@@ -120,7 +120,7 @@ def test_monitor_respects_reask_policy(tmp_path):
     state_store = MonitorStateStore(tmp_path / "monitor_state.db")
     outbox = _InMemoryOutbox()
 
-    rejected_at = datetime.now(timezone.utc) - timedelta(days=1)
+    rejected_at = datetime.now(UTC) - timedelta(days=1)
     state_store.record_rejection(
         discovery_id=discovery.discovery_id,
         rejected_at=rejected_at,

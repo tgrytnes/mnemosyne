@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any
 
@@ -69,7 +69,7 @@ class ProposalQueue:
         self._conn.commit()
 
     def upsert(self, discovery: DiscoveryRecord) -> None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         proposal_id = discovery.discovery_id
         payload = json.dumps(discovery.cluster_ids, sort_keys=True)
         proposal_hash = sha256(discovery.discovery_id.encode("utf-8")).hexdigest()
@@ -123,7 +123,7 @@ class ProposalQueue:
         return dict(row) if row else None
 
     def update_status(self, discovery_id: str, status: str) -> None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         self._conn.execute(
             """
             UPDATE proposal_queue
@@ -177,7 +177,7 @@ class MonitorStateStore:
         return dict(row) if row else None
 
     def record_ask(self, discovery_id: str) -> None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         self._conn.execute(
             """
             INSERT INTO monitor_state (discovery_id, asked_at, ask_count)
@@ -225,7 +225,7 @@ class MonitorStateStore:
         self._conn.commit()
 
     def archive(self, discovery_id: str) -> None:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         self._conn.execute(
             """
             UPDATE monitor_state
@@ -384,14 +384,14 @@ class MonitorAgent:
             return False
 
         snoozed_until = _parse_datetime(state.get("snoozed_until"))
-        if snoozed_until and snoozed_until > datetime.now(timezone.utc):
+        if snoozed_until and snoozed_until > datetime.now(UTC):
             return False
 
         rejected_at = _parse_datetime(state.get("rejected_at"))
         rejected_confidence = state.get("rejected_confidence")
         if rejected_at and rejected_confidence is not None:
             cooldown = timedelta(days=self._config.cooldown_days)
-            if datetime.now(timezone.utc) - rejected_at < cooldown:
+            if datetime.now(UTC) - rejected_at < cooldown:
                 return False
             if discovery.confidence_score < rejected_confidence + self._config.confidence_delta:
                 return False
@@ -416,7 +416,7 @@ class MonitorAgent:
             self._queue.update_status(discovery_id, "escalated")
             self._state.record_rejection(
                 discovery_id=discovery_id,
-                rejected_at=datetime.now(timezone.utc),
+                rejected_at=datetime.now(UTC),
                 rejected_confidence=float(proposal["confidence_score"]),
                 ask_count=int(proposal.get("ask_count") or 1),
             )
@@ -430,7 +430,7 @@ def _record_from_properties(properties: dict[str, Any]) -> DiscoveryRecord | Non
         pattern_type = properties["patternType"]
         cluster_ids = properties.get("clusterIds") or []
         confidence_score = float(properties.get("confidenceScore") or 0.0)
-        detected_at = _parse_datetime(properties.get("detectedAt")) or datetime.now(timezone.utc)
+        detected_at = _parse_datetime(properties.get("detectedAt")) or datetime.now(UTC)
     except KeyError:
         return None
 

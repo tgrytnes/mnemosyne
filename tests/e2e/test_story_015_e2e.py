@@ -13,7 +13,7 @@ from weaviate.classes.query import Filter
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
-from mnemosyne.alexandria.weaviate_schema import Discoveries, TheMuses, WeaviateSchemaManager
+from mnemosyne.alexandria.weaviate_schema import Discoveries, TheMuses
 from mnemosyne.argus.scout.monitor_agent import (
     MonitorAgent,
     MonitorConfig,
