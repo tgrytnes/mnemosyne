@@ -5,18 +5,12 @@
 **So that** I'm alerted to interesting patterns without having to check manually
 
 ## Acceptance Criteria
-- [ ] Integration with Hermes Telegram bot for notifications
-- [ ] Configurable notification preferences (types, frequency, quiet hours)
-- [ ] Smart batching: group multiple discoveries into digest messages
-- [ ] Rich formatting: cluster names, confidence scores, quick action buttons
-- [ ] Inline actions: "View Details", "Dismiss", "Create Note", "Remind Later"
-- [ ] Notification history viewable via Telegram command (e.g., `/discoveries`)
-- [ ] Respects user feedback: learns from dismissals to reduce noise
-- [ ] Emergency bypass: Critical discoveries (e.g., contradictions) always notify
-
-## Acceptance Criteria (Continued)
-- [ ] Rate limiting: max 3 notifications per day (configurable)
-- [ ] Notification templates for each discovery type
+- [ ] Hermes Telegram notifications wired: discovery payload includes `discovery_id` and `discovery_job_key`
+- [ ] Preferences stored in SQL: enabled flag, quiet hours, `max_daily_notifications`, batch mode (immediate vs daily_digest), per-type toggles, per-type confidence thresholds
+- [ ] Respect quiet hours + rate limiting; critical contradictions bypass quiet hours; batching groups findings by type
+- [ ] Templates per discovery type include confidence + action buttons (view, dismiss/feedback, follow-up); dismissal/feedback persisted in SQL and suppresses future noise for that discovery id/type
+- [ ] History commands: `/discoveries` list and `/discoveries stats`; digest message generation works with batching
+- [ ] Inline actions update status (reviewed/dismissed) and are idempotent; immediate notifications and daily digest both covered in tests
 
 ## Technical Notes
 

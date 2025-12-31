@@ -5,14 +5,13 @@
 **So that** I discover connections between seemingly unrelated clusters I wouldn't have explored manually
 
 ## Acceptance Criteria
-- [ ] "Radar Vector" algorithm that explores cluster neighborhoods systematically
-- [ ] Exploration strategy: breadth-first, depth-first, or curiosity-driven (configurable)
-- [ ] Tracks exploration state (which cluster pairs have been analyzed)
-- [ ] Discovers non-obvious connections (semantic similarity not captured by direct relationships)
-- [ ] Results stored as "weak links" in Discovery DB with confidence scores
-- [ ] Exploration budget: max computation time per run (e.g., 15 minutes)
-- [ ] Incremental exploration: resumes from last checkpoint
-- [ ] Generates "exploration map" showing coverage of cluster space
+- [ ] Configurable strategies: breadth-first sweep and curiosity-driven (selectable per run)
+- [ ] Budgeted run: `budget_seconds` hard-caps runtime; optional `max_pairs_per_cluster` and neighbor skip to avoid obvious edges
+- [ ] Identity: every candidate has `discovery_job_key`, deterministic `candidate_key` (ordered cluster ids + type), persisted `discovery_id`; duplicates skipped idempotently
+- [ ] State checkpoint of explored cluster pairs so incremental runs resume without reprocessing
+- [ ] Weak links stored in Discoveries with embedding, confidence, type, and short explanation; at least one weak link produced on seeded vault in tests
+- [ ] Exploration summary persisted (pairs explored, new discoveries, elapsed, strategy) per run
+- [ ] Coverage: curiosity strategy prioritizes surprising pairs; breadth-first enumerates systematically
 
 ## Technical Notes
 

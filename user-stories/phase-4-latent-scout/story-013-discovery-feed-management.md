@@ -5,15 +5,12 @@
 **So that** I can process insights at my own pace without feeling pressured by notifications
 
 ## Acceptance Criteria
-- [ ] Telegram command `/discoveries` lists all recent discoveries
-- [ ] Filter discoveries by type, date, confidence, status
-- [ ] Pagination for large discovery lists
-- [ ] Bulk actions: dismiss all, mark as reviewed, archive
-- [ ] Discovery detail view with full context and evidence
-- [ ] Export discoveries to Obsidian note (formatted markdown)
-- [ ] Search discoveries by keyword or cluster
-- [ ] Stats view: discoveries over time, acceptance rate, top patterns
-- [ ] "Explore mode": Interactive navigation through discovery graph
+- [ ] Telegram `/discoveries` feed with filters (type/date/confidence/status) and pagination; respects quiet hours/rate limits set in Story 012
+- [ ] Detail view `/view <discovery_id>` marks reviewed and shows evidence; actions are idempotent and keyed by `discovery_id`
+- [ ] Bulk actions: dismiss/archive/mark reviewed from feed; history persists in SQL
+- [ ] Export: send discovery to Obsidian markdown file; includes `discovery_id` and source clusters
+- [ ] Search by keyword within discovery titles/descriptions; stats command returns counts over time and acceptance rate
+- [ ] Explore mode: navigate linked discoveries (next/prev by graph neighbor); uses same discovery ids
 
 ## Technical Notes
 
