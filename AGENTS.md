@@ -20,6 +20,7 @@
 - For each new story, create a new git worktree and a dedicated feature branch before starting work.
 - Pull the latest `main` before starting work on a feature branch.
 - Ensure CI is configured to run on push for the feature branch.
+- After implementation and local unit tests pass, push the branch and open a PR so CI runs on GitHub.
 - Before merging to main, the full test suite must pass.
 
 ## Self-Review Gate
