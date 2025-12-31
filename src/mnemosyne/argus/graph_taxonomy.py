@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from mnemosyne.alexandria.the_gates import ClusterProfile
 
@@ -172,7 +172,9 @@ class GraphTaxonomyBuilder:
     ) -> GraphTaxonomyResult:
         profile_list = list(profiles)
         cluster_ids = [profile.cluster_id for profile in profile_list]
-        term_sets = {profile.cluster_id: tokenize_profile_terms(profile) for profile in profile_list}
+        term_sets = {
+            profile.cluster_id: tokenize_profile_terms(profile) for profile in profile_list
+        }
         generality = compute_generality_scores(term_sets)
 
         parent_edges: list[GraphEdge] = []

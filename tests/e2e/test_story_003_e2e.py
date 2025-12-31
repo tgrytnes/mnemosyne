@@ -2,9 +2,9 @@
 E2E tests for Story 003 - Automated Graph Taxonomy with Neo4j.
 """
 
+import re
 from collections import Counter
 from datetime import datetime
-import re
 from pathlib import Path
 
 import pytest

@@ -43,7 +43,9 @@ class GraphTaxonomyPipeline:
 
         selected_ids = list(centroid_vectors.keys())
         if cluster_ids:
-            selected_ids = [cluster_id for cluster_id in cluster_ids if cluster_id in centroid_vectors]
+            selected_ids = [
+                cluster_id for cluster_id in cluster_ids if cluster_id in centroid_vectors
+            ]
 
         similarity: dict[tuple[str, str], float] = {}
         for left_id in selected_ids:
