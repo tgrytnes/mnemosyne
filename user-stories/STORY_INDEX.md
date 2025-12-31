@@ -60,20 +60,21 @@ Quick reference for all user stories with status tracking.
 | 015 | Monitor Agent (Proposal Queue) | High | 8 pts | 📝 Draft | - |
 | 016 | Project Manager Agent | High | 8 pts | 🚫 Blocked | - |
 | 027 | Message Outbox Relay | High | 5 pts | 📝 Draft | - |
+| 028 | Scout Management Console | Medium | 8 pts | 📝 Draft | - |
 
-**Phase Total**: 71 story points
+**Phase Total**: 79 story points
 
 ---
 
 ## Summary
 
-- **Total Stories**: 26
-- **Completed Stories**: 8 (31%)
-- **Total Story Points**: 220 points
-- **Completed Points**: 60 points (27%)
-- **Remaining Points**: 160 points
-- **Estimated Duration**: 44-55 weeks (assuming 4-5 points/week velocity)
-- **Progress**: 8 stories completed, 18 remaining
+- **Total Stories**: 27
+- **Completed Stories**: 8 (30%)
+- **Total Story Points**: 228 points
+- **Completed Points**: 60 points (26%)
+- **Remaining Points**: 168 points
+- **Estimated Duration**: 46-57 weeks (assuming 4-5 points/week velocity)
+- **Progress**: 8 stories completed, 19 remaining
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
