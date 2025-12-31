@@ -141,6 +141,34 @@ class Discoveries:
             "tokenization": Tokenization.FIELD,
         },
         {
+            "name": "discoveryId",
+            "dataType": ["text"],
+            "description": "Stable discovery identifier (job_key:candidate_key)",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "discoveryJobKey",
+            "dataType": ["text"],
+            "description": "Stable job key that produced the discovery",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "candidateKey",
+            "dataType": ["text"],
+            "description": "Deterministic candidate slug for the discovery",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "title",
+            "dataType": ["text"],
+            "description": "Human-readable discovery title",
+        },
+        {
+            "name": "description",
+            "dataType": ["text"],
+            "description": "Discovery summary or explanation",
+        },
+        {
             "name": "clusterIds",
             "dataType": ["text[]"],
             "description": "Cluster IDs associated with this discovery",
