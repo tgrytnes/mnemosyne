@@ -11,14 +11,23 @@
 Scout operates autonomously, scanning The Muses nightly to discover latent patterns without user prompting. It bridges the gap between curated knowledge (The Muses) and committed projects (The Ananke) via The Gates approval system.
 
 ## Acceptance Criteria
-- [ ] Background job runs on schedule (daily at 2 AM or configurable)
+- [ ] Runs in latent mode (scheduled job or CLI run)
 - [ ] Systematic analysis across all clusters using shared insight engines
 - [ ] Detects multiple pattern types: emerging themes, orphaned clusters, contradictions, project candidates
-- [ ] Results stored in Discovery Vector DB with metadata (timestamp, pattern type, confidence)
-- [ ] Deduplication logic prevents re-notifying about same patterns
+- [ ] Results stored in Weaviate collection `Discoveries` (latent-space only)
+- [ ] Records include metadata (timestamp, pattern type, confidence, cluster_ids)
+- [ ] Deduplication logic prevents storing the same pattern repeatedly
 - [ ] Performance: Complete analysis of 416 clusters in <30 minutes on Pi 5
 - [ ] Configurable thresholds for each pattern type
 - [ ] Dry-run mode for testing pattern detection
+- [ ] No user-facing notifications in this story (handled by later messaging layer)
+- [ ] Cluster representation is defined (profile summary or top-k representative chunks)
+- [ ] Prototype sets are configurable (positive/negative texts per concept)
+- [ ] Deduplication rule is explicit (pattern_type + overlapping cluster_ids + similarity threshold)
+- [ ] Weaviate discovery schema is explicit (pattern_type, cluster_ids, confidence_score, detected_at, signals)
+- [ ] Run metadata captured (run_id, clusters_analyzed, errors, dry_run flag)
+- [ ] Supports multiple concept sets (e.g., private vs professional projectness)
+- [ ] E2E validates concept detection on synthetic clusters
 
 ## Technical Notes
 
@@ -105,6 +114,51 @@ class ProjectnessDetector:
         return sum(signals.values())
 ```
 
+### Latent Radar Vector (General Procedure)
+
+Scout can detect multiple concepts using a shared latent-space procedure:
+
+1) Define a **positive prototype set** (short texts that exemplify the concept).
+2) Define a **negative prototype set** (texts that should not match).
+3) Embed all prototypes using the same model as cluster embeddings.
+4) Represent each cluster as an embedding (cluster profile summary or top reps).
+5) Score the concept by margin:
+   - `score = max_sim(cluster, positive) - max_sim(cluster, negative)`
+6) If `score >= threshold`, emit a discovery with `confidence_score = score`.
+
+This method generalizes to multiple concepts (projectness, contradictions, orphans,
+emerging themes) by swapping prototype sets and thresholds.
+
+#### Example Prototype Sets
+
+**Projectness (Private)**:
+- "Renovate the house: budget, timeline, contractors, materials."
+- "Plan education goals: coursework, tuition, schedule, deadlines."
+- "Design a training program with weekly sessions and milestones."
+- "Create a home lab docker project: services, deploy, test."
+
+**Projectness (Professional)**:
+- "Build and ship: milestones, sprint plan, release checklist."
+- "Implement API feature: draft design, review, rollout."
+- "Deploy monitoring stack: infra plan, config, validation."
+
+**Non-Project (Negative)**:
+- "Historical summary and background notes."
+- "Glossary of database schema definitions."
+- "Recipe notes and cooking techniques."
+
+#### Classification Example
+
+```python
+def concept_score(cluster_embedding, positives, negatives) -> float:
+    pos = max(cosine(cluster_embedding, p) for p in positives)
+    neg = max(cosine(cluster_embedding, n) for n in negatives)
+    return pos - neg
+
+if concept_score(cluster_vec, project_pos, project_neg) >= 0.15:
+    emit_discovery(pattern_type="project_candidate")
+```
+
 ### Discovery Vector DB Schema
 
 ```python
@@ -124,7 +178,7 @@ class DiscoveryRecord(BaseModel):
     discovery_embedding: List[float]
 ```
 
-Storage: Weaviate collection "Discoveries" or separate PostgreSQL table in The Ananke
+Storage: Weaviate collection "Discoveries" (latent-space only)
 
 ### Background Job Implementation
 
@@ -148,7 +202,6 @@ def build_scout_graph() -> StateGraph:
     graph.add_node("detect_contradictions", contradiction_node)
     graph.add_node("detect_projects", projectness_node)
     graph.add_node("store_discoveries", store_to_db_node)
-    graph.add_node("notify", notify_via_hermes_node)
 
     graph.set_entry_point("initialize")
     graph.add_edge("initialize", "detect_emerging_themes")
@@ -156,7 +209,6 @@ def build_scout_graph() -> StateGraph:
     graph.add_edge("detect_orphans", "detect_contradictions")
     graph.add_edge("detect_contradictions", "detect_projects")
     graph.add_edge("detect_projects", "store_discoveries")
-    graph.add_edge("store_discoveries", "notify")
 
     return graph.compile()
 
@@ -206,13 +258,13 @@ def is_duplicate_discovery(new_discovery: DiscoveryRecord) -> bool:
 - Story 001: Cluster Centroid Node (cluster analysis)
 - Story 002: Structured Metadata Synthesis (cluster profiles)
 - Story 003: Automated Graph Taxonomy (relationship graph)
-- Alexandria: Weaviate (Discovery DB), The Ananke (storage)
+- Alexandria: Weaviate (Discoveries collection)
 - APScheduler or similar for background jobs
 
 ## Affected Components
 - **Argus**: Latent Scout implementation (new `scout/` subdirectory)
 - **Alexandria**: Discovery Vector DB storage
-- **Hermes**: Will receive notifications (Story 012)
+- **Hermes**: Receives notifications later via Message Outbox (Story 027)
 
 ## Priority
 **Medium** - Enhances system but not critical for MVP

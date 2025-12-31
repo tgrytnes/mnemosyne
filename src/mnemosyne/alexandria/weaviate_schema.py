@@ -122,6 +122,67 @@ class ClusterCentroidCollection:
     ]
 
 
+class Discoveries:
+    """
+    Schema for Scout discoveries stored in latent space.
+    """
+
+    collection_name = "Discoveries"
+
+    description = "Latent-space discoveries detected by Scout."
+
+    vectorizer = "none"
+
+    properties = [
+        {
+            "name": "patternType",
+            "dataType": ["text"],
+            "description": "Type of pattern detected (e.g., project_candidate)",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "clusterIds",
+            "dataType": ["text[]"],
+            "description": "Cluster IDs associated with this discovery",
+        },
+        {
+            "name": "confidenceScore",
+            "dataType": ["number"],
+            "description": "Confidence score for the detection",
+        },
+        {
+            "name": "detectedAt",
+            "dataType": ["date"],
+            "description": "Timestamp when the pattern was detected",
+        },
+        {
+            "name": "signals",
+            "dataType": ["text"],
+            "description": "JSON-encoded signals and scoring metadata",
+        },
+        {
+            "name": "runId",
+            "dataType": ["text"],
+            "description": "Scout run identifier",
+        },
+        {
+            "name": "clustersAnalyzed",
+            "dataType": ["int"],
+            "description": "Number of clusters analyzed in the run",
+        },
+        {
+            "name": "errors",
+            "dataType": ["text"],
+            "description": "JSON-encoded error list for the run",
+        },
+        {
+            "name": "dryRun",
+            "dataType": ["boolean"],
+            "description": "Whether the run was executed in dry-run mode",
+        },
+    ]
+
+
 class WeaviateSchemaManager:
     """
     Manages Weaviate collection schemas.
@@ -154,6 +215,8 @@ class WeaviateSchemaManager:
             self._create_themuses_collection()
         elif collection_name == ClusterCentroidCollection.collection_name:
             self._create_clustercentroid_collection()
+        elif collection_name == Discoveries.collection_name:
+            self._create_discoveries_collection()
         else:
             raise ValueError(f"Unknown collection: {collection_name}")
 
@@ -196,6 +259,25 @@ class WeaviateSchemaManager:
             properties=properties,
         )
 
+    def _create_discoveries_collection(self) -> None:
+        """Create Discoveries collection with proper schema"""
+        properties = [
+            Property(
+                name=prop["name"],
+                data_type=self._map_datatype(prop["dataType"][0]),
+                description=prop.get("description", ""),
+                tokenization=prop.get("tokenization"),
+            )
+            for prop in Discoveries.properties
+        ]
+
+        self.client.collections.create(
+            name=Discoveries.collection_name,
+            description=Discoveries.description,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=properties,
+        )
+
     def _map_datatype(self, datatype_str: str) -> DataType:
         """
         Map string datatype to Weaviate DataType enum.
@@ -208,10 +290,15 @@ class WeaviateSchemaManager:
         """
         mapping = {
             "text": DataType.TEXT,
+            "text[]": getattr(DataType, "TEXT_ARRAY", DataType.TEXT),
             "int": DataType.INT,
+            "int[]": getattr(DataType, "INT_ARRAY", DataType.INT),
             "date": DataType.DATE,
+            "date[]": getattr(DataType, "DATE_ARRAY", DataType.DATE),
             "number": DataType.NUMBER,
+            "number[]": getattr(DataType, "NUMBER_ARRAY", DataType.NUMBER),
             "boolean": DataType.BOOL,
+            "boolean[]": getattr(DataType, "BOOL_ARRAY", DataType.BOOL),
         }
         return mapping.get(datatype_str.lower(), DataType.TEXT)
 

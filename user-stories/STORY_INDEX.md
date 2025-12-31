@@ -32,8 +32,8 @@ Quick reference for all user stories with status tracking.
 
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
-| 004 | Checkpointed Knowledge | High | 5 pts | 🔄 In Progress | - |
-| 005 | Semantic Routing | High | 8 pts | 🔄 In Progress | - |
+| 004 | Checkpointed Knowledge | High | 5 pts | ✅ Done | - |
+| 005 | Semantic Routing | High | 8 pts | ✅ Done | - |
 | 006 | Delta Sync Node | Medium | 8 pts | 📝 Draft | - |
 
 **Phase Total**: 21 story points
@@ -57,20 +57,24 @@ Quick reference for all user stories with status tracking.
 | 012 | Proactive Insight Notifications | High | 8 pts | 📝 Draft | - |
 | 013 | Discovery Feed Management | Medium | 8 pts | 📝 Draft | - |
 | 014 | SQL Project Gatekeeper | Critical | 8 pts | 📝 Draft | - |
+| 015 | Monitor Agent (Proposal Queue) | High | 8 pts | 📝 Draft | - |
+| 016 | Project Manager Agent | High | 8 pts | 🚫 Blocked | - |
+| 027 | Message Outbox Relay | High | 5 pts | 📝 Draft | - |
+| 028 | Scout Management Console | Medium | 8 pts | 📝 Draft | - |
 
-**Phase Total**: 50 story points
+**Phase Total**: 79 story points
 
 ---
 
 ## Summary
 
-- **Total Stories**: 23
-- **Completed Stories**: 6 (26%)
-- **Total Story Points**: 199 points
-- **Completed Points**: 47 points (24%)
-- **Remaining Points**: 152 points
-- **Estimated Duration**: 40-50 weeks (assuming 4-5 points/week velocity)
-- **Progress**: 5 stories completed, 18 remaining
+- **Total Stories**: 27
+- **Completed Stories**: 8 (30%)
+- **Total Story Points**: 228 points
+- **Completed Points**: 60 points (26%)
+- **Remaining Points**: 168 points
+- **Estimated Duration**: 46-57 weeks (assuming 4-5 points/week velocity)
+- **Progress**: 8 stories completed, 19 remaining
 
 ## Status Legend
 - 📝 Draft - Story written, not yet started
@@ -114,9 +118,10 @@ Phase 3 User Experience (Requires Phase 1 & 2):
 [001-006] → 007 (Multi-Turn Loop) → 008 (Visualization) → 009 (Synthesis Output)
 
 Phase 4 Latent Scout (Runs parallel to Phases 2-3):
-[001,002,003] → 010 (Pattern Detection) ─┬→ 012 (Notifications) → 013 (Feed)
-                                           │
-              [001,002,003] → 011 (Radar) ─┘
+[001,002,003] → 010 (Pattern Detection) → 015 (Monitor) → 014 (Gatekeeper)
+[001,002,003] → 011 (Radar) ───────────────────────────────────────────────┐
+                                                                            │
+                               027 (Message Outbox) → 012 (Notifications) → 013 (Feed)
 ```
 
 ### Argus Architecture Split
@@ -193,11 +198,13 @@ Phase 4 Latent Scout (Runs parallel to Phases 2-3):
 9. Story 008: The "Traceable" Showcase (optional demo)
 
 ### Sprint 13-17 (Phase 4): Latent Scout
-10. **Story 014: SQL Project Gatekeeper** (CRITICAL - safety layer)
-11. Story 010: Autonomous Pattern Detection
-12. Story 012: Proactive Insight Notifications
-13. Story 013: Discovery Feed Management
-14. Story 011: Radar Vector Exploration (advanced, optional)
+10. Story 010: Autonomous Pattern Detection
+11. Story 015: Monitor Agent (proposal queue)
+12. **Story 014: SQL Project Gatekeeper** (CRITICAL - safety layer)
+13. Story 027: Message Outbox Relay
+14. Story 012: Proactive Insight Notifications
+15. Story 013: Discovery Feed Management
+16. Story 011: Radar Vector Exploration (advanced, optional)
 
 ## Success Metrics by Phase
 

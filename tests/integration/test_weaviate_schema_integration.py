@@ -4,7 +4,11 @@ Integration tests for WeaviateSchemaManager using real Weaviate.
 
 import pytest
 
-from src.mnemosyne.alexandria.weaviate_schema import TheMuses, WeaviateSchemaManager
+from src.mnemosyne.alexandria.weaviate_schema import (
+    Discoveries,
+    TheMuses,
+    WeaviateSchemaManager,
+)
 
 
 @pytest.mark.integration
@@ -36,4 +40,27 @@ def test_themuses_schema_properties_present(weaviate_client):
     properties = {prop.name for prop in collection.config.get().properties}
 
     expected = {prop["name"] for prop in TheMuses.properties}
+    assert expected.issubset(properties)
+
+
+@pytest.mark.integration
+def test_ensure_collection_exists_creates_discoveries(weaviate_client):
+    if weaviate_client.collections.exists("Discoveries"):
+        weaviate_client.collections.delete("Discoveries")
+
+    schema_manager = WeaviateSchemaManager(weaviate_client)
+    schema_manager.ensure_collection_exists("Discoveries")
+
+    assert weaviate_client.collections.exists("Discoveries")
+
+
+@pytest.mark.integration
+def test_discoveries_schema_properties_present(weaviate_client):
+    schema_manager = WeaviateSchemaManager(weaviate_client)
+    schema_manager.ensure_collection_exists("Discoveries")
+
+    collection = weaviate_client.collections.get("Discoveries")
+    properties = {prop.name for prop in collection.config.get().properties}
+
+    expected = {prop["name"] for prop in Discoveries.properties}
     assert expected.issubset(properties)

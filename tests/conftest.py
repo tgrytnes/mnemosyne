@@ -131,12 +131,6 @@ This document has multiple sections for chunking tests.
     return file_path
 
 
-@pytest.fixture(scope="session")
-def fake_vault_path() -> Path:
-    """Path to the synthetic Obsidian vault used for tests."""
-    return Path("test_data/fake_vault")
-
-
 # ============================================================================
 # Weaviate Fixtures
 # ============================================================================
@@ -175,8 +169,10 @@ def ollama_client(test_config):
     Create Ollama client for integration/e2e tests.
     Requires Ollama to be running.
     """
-    base_url = test_config["ollama_url"]
-    client = ollama.Client(host=base_url)
+    client = ollama.Client(
+        host=test_config["ollama_url"],
+        timeout=test_config["ollama_timeout"],
+    )
     try:
         client.list()
     except Exception as e:
@@ -187,7 +183,14 @@ def ollama_client(test_config):
 @pytest.fixture
 def clean_weaviate_collection(weaviate_client):
     """Clean up test collections before and after tests"""
-    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe_Test"]
+    test_collections = [
+        "TestCollection",
+        "TheMuses",
+        "TheMuses_Test",
+        "TheLethe_Test",
+        "ClusterCentroid",
+        "Discoveries",
+    ]
 
     # Clean before
     for collection_name in test_collections:
@@ -200,25 +203,6 @@ def clean_weaviate_collection(weaviate_client):
     for collection_name in test_collections:
         if weaviate_client.collections.exists(collection_name):
             weaviate_client.collections.delete(collection_name)
-
-
-# ============================================================================
-# Ollama Fixtures
-# ============================================================================
-
-
-@pytest.fixture(scope="session")
-def ollama_client(test_config):
-    """Create Ollama client for integration/e2e tests."""
-    client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
-    )
-    try:
-        client.list()
-    except Exception as e:
-        pytest.skip(f"Could not connect to Ollama: {e}")
-    return client
 
 
 # ============================================================================

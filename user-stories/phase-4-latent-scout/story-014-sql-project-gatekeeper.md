@@ -12,14 +12,15 @@ The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the 
 
 ## Acceptance Criteria
 - [ ] No direct writes to The Ananke `projects` table without gatekeeper approval
-- [ ] High-confidence discoveries (>80%) trigger automatic approval request
-- [ ] Medium-confidence discoveries (60-80%) require user confirmation
-- [ ] Low-confidence discoveries (<60%) never auto-request, only visible in feed
-- [ ] User approval via Telegram: `/approve_project {discovery_id}`
-- [ ] SQL write only happens AFTER user confirms
+- [ ] Gatekeeper consumes proposal records from a local queue (SQLite)
+- [ ] High-confidence proposals (>=0.80) can be auto-approved (configurable)
+- [ ] Medium-confidence proposals (0.60-0.79) require explicit approval
+- [ ] Low-confidence proposals (<0.60) are rejected (stored, not escalated)
+- [ ] SQL write only happens AFTER gatekeeper approval
+- [ ] Rejections are recorded with reasons and marked for escalation
 - [ ] Failed writes logged and retryable
 - [ ] Audit trail: all approved/rejected project writes
-- [ ] Rollback capability: `/remove_project {project_id}`
+- [ ] Rollback capability (CLI/API)
 
 ## Critical Architectural Decision
 
@@ -79,9 +80,9 @@ class SQLProjectGatekeeper:
     Controls ALL writes to The Ananke projects table
     Based on project_crystal gatekeeper concept
     """
-    def __init__(self, db_conn, messenger):
+    def __init__(self, db_conn, outbox):
         self.db = db_conn
-        self.messenger = messenger  # Hermes Telegram bot
+        self.outbox = outbox  # Message outbox (Story 027)
         self.pending_approvals = {}
 
     def request_project_write(self, discovery: DiscoveryRecord):
@@ -104,7 +105,7 @@ class SQLProjectGatekeeper:
 
     def _request_approval(self, discovery: DiscoveryRecord, auto_approve: bool = False):
         """
-        Send approval request via Telegram
+        Queue an approval request in the outbox
         """
         approval_id = str(uuid4())
 
@@ -118,12 +119,12 @@ class SQLProjectGatekeeper:
         # Format message
         message = self._format_approval_request(discovery, approval_id)
 
-        # Send to user via Hermes
-        self.messenger.send_message(message)
+        # Enqueue for delivery via Message Outbox
+        self.outbox.enqueue(message)
 
     def _format_approval_request(self, discovery: DiscoveryRecord, approval_id: str) -> str:
         """
-        Format Telegram message requesting project approval
+        Format approval message for the outbox
         """
         confidence_emoji = "🟢" if discovery.confidence_score >= 0.80 else "🟡"
 
@@ -147,7 +148,7 @@ Approve?
 
     def approve_project(self, approval_id: str) -> bool:
         """
-        User approved via Telegram - write to SQL
+        External approval received - write to SQL
         """
         if approval_id not in self.pending_approvals:
             raise ValueError(f"Approval {approval_id} not found")
@@ -169,7 +170,7 @@ Approve?
             del self.pending_approvals[approval_id]
 
             # Notify user
-            self.messenger.send_message(
+            self.outbox.enqueue(
                 f"✅ Project '{discovery.title}' written to The Ananke.\n"
                 f"Project ID: {project_id}\n"
                 f"Status: candidate → Monitor will track it."
@@ -179,7 +180,7 @@ Approve?
 
         except Exception as e:
             log_error(f"Failed to write project: {e}")
-            self.messenger.send_message(
+            self.outbox.enqueue(
                 f"❌ Failed to write project: {e}\n"
                 f"This has been logged for retry."
             )
@@ -241,7 +242,7 @@ Approve?
         del self.pending_approvals[approval_id]
 
         # Notify user
-        self.messenger.send_message(
+        self.outbox.enqueue(
             f"✅ Rejected project '{discovery.title}'.\n"
             f"It will remain in the Discovery Feed but won't be tracked."
         )
@@ -269,170 +270,38 @@ Approve?
         self.db.commit()
 ```
 
-### Hermes Integration (Telegram Commands)
+### Gatekeeper Queue (SQLite)
+
+The gatekeeper reads proposals from a local SQLite queue created by the Monitor Agent.
+Decisions are written back to SQLite (approved/rejected/escalate) and only approved
+records are written to The Ananke.
+
+### Rollback Capability (CLI/API)
 
 ```python
-# In Hermes bot
-
-@hermes_bot.command("approve_project")
-def cmd_approve_project(message, approval_id: str):
+def remove_project(project_id: int) -> str:
     """
-    Approve a project write to SQL
+    Remove a project from SQL (rollback) with a confirmation token.
     """
-    try:
-        success = sql_gatekeeper.approve_project(approval_id)
-        # Success message sent by gatekeeper
-    except Exception as e:
-        bot.send_message(
-            chat_id=message.chat.id,
-            text=f"❌ Error approving project: {e}"
-        )
-
-@hermes_bot.command("reject_project")
-def cmd_reject_project(message, approval_id: str):
-    """
-    Reject a project write to SQL
-    """
-    try:
-        sql_gatekeeper.reject_project(approval_id)
-        # Rejection message sent by gatekeeper
-    except Exception as e:
-        bot.send_message(
-            chat_id=message.chat.id,
-            text=f"❌ Error rejecting project: {e}"
-        )
-
-@hermes_bot.command("view_project")
-def cmd_view_project(message, approval_id: str):
-    """
-    View full details before approving
-    """
-    approval = sql_gatekeeper.get_pending_approval(approval_id)
-
-    if not approval:
-        return "Approval request not found."
-
-    discovery = approval['discovery']
-
-    # Show full cluster details
-    clusters = [get_cluster(cid) for cid in discovery.cluster_ids]
-
-    detail_message = f"""
-📊 **Project Proposal Details**
-
-**Title**: {discovery.title}
-**Description**: {discovery.description}
-
-**Confidence**: {discovery.confidence_score:.0%}
-
-**Clusters Analyzed**:
-"""
-
-    for cluster in clusters:
-        detail_message += f"""
-• {cluster.profile.theme_summary}
-  Notes: {cluster.note_count}
-  Tags: {', '.join(cluster.profile.tags[:3])}
-
-"""
-
-    detail_message += f"""
-**Evidence Notes**:
-{format_evidence_notes(discovery.metadata.get('evidence', []))}
-
-**Actions**:
-`/approve_project {approval_id}`
-`/reject_project {approval_id}`
-"""
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=detail_message,
-        parse_mode='Markdown'
-    )
-
-@hermes_bot.command("pending_projects")
-def cmd_pending_projects(message):
-    """
-    List all pending project approvals
-    """
-    pending = sql_gatekeeper.get_all_pending()
-
-    if not pending:
-        return "No pending project approvals."
-
-    response = "📋 **Pending Project Approvals**\n\n"
-
-    for approval_id, approval in pending.items():
-        discovery = approval['discovery']
-        age = datetime.now() - approval['requested_at']
-
-        response += f"""
-{discovery.title}
-Confidence: {discovery.confidence_score:.0%}
-Requested: {format_time_ago(approval['requested_at'])}
-`/view_project {approval_id}`
-
-"""
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=response,
-        parse_mode='Markdown'
-    )
-```
-
-### Rollback Capability
-
-```python
-@hermes_bot.command("remove_project")
-def cmd_remove_project(message, project_id: int):
-    """
-    Remove a project from SQL (rollback)
-    """
-    # Only allow removal of projects created in last 7 days
     project = sql_gatekeeper.get_project(project_id)
-
     if not project:
-        return f"Project {project_id} not found."
+        raise ValueError(f"Project {project_id} not found")
 
     age_days = (datetime.now() - project.created_at).days
-
     if age_days > 7:
-        return f"⚠️ Cannot remove project older than 7 days (age: {age_days} days). Manual SQL required."
+        raise ValueError("Project too old for automated removal")
 
-    # Confirmation required
     confirmation_code = generate_confirmation_code()
+    sql_gatekeeper.store_removal_request(project_id, confirmation_code)
+    return confirmation_code
 
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"""
-⚠️ **Remove Project?**
-
-Title: {project.title}
-Created: {format_datetime(project.created_at)}
-Status: {project.status}
-
-This will DELETE the project from The Ananke (SQL).
-
-To confirm, reply with: `/confirm_remove {project_id} {confirmation_code}`
-"""
-    )
-
-@hermes_bot.command("confirm_remove")
-def cmd_confirm_remove(message, project_id: int, code: str):
+def confirm_remove(project_id: int, code: str) -> None:
     """
-    Confirmed project removal
+    Confirmed project removal.
     """
     if not verify_confirmation_code(code):
-        return "❌ Invalid confirmation code."
-
+        raise ValueError("Invalid confirmation code")
     sql_gatekeeper.remove_project(project_id)
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"✅ Project {project_id} removed from The Ananke."
-    )
 ```
 
 ### Confidence Threshold Configuration
@@ -444,50 +313,14 @@ CONFIDENCE_THRESHOLDS = {
     'require_approval': 0.80,  # Above this: still ask, but flag as high confidence
     'suggestion_only': 0.60    # Between 0.60-0.80: normal approval flow
 }
-
-# Allow user to adjust thresholds
-@hermes_bot.command("set_confidence")
-def cmd_set_confidence(message, threshold_type: str, value: float):
-    """
-    Adjust confidence thresholds
-    Usage: /set_confidence require_approval 0.85
-    """
-    if threshold_type not in CONFIDENCE_THRESHOLDS:
-        return f"Unknown threshold type. Options: {', '.join(CONFIDENCE_THRESHOLDS.keys())}"
-
-    if not 0 <= value <= 1:
-        return "Threshold must be between 0 and 1."
-
-    CONFIDENCE_THRESHOLDS[threshold_type] = value
-    save_config(CONFIDENCE_THRESHOLDS)
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"✅ Updated {threshold_type} threshold to {value:.0%}"
-    )
 ```
 
 ### Integration with Story 010 (Autonomous Pattern Detection)
 
 ```python
-# In Story 010's final node
-@langgraph_node
-def notify_via_hermes_node(state: LatentScoutState) -> LatentScoutState:
-    """
-    Final node in scout graph - sends notifications AND requests SQL writes
-    """
-    # ... (existing notification logic)
-
-    # NEW: Request SQL writes for high-confidence project candidates
-    project_candidates = [
-        d for d in state.patterns_detected.get('project_candidate', [])
-        if d.confidence_score >= 0.60
-    ]
-
-    for candidate in project_candidates:
-        sql_gatekeeper.request_project_write(candidate)
-
-    return state
+# The Scout writes project_candidate discoveries to Weaviate.
+# The Monitor Agent (Story 015) turns those into proposals in SQLite.
+# The Gatekeeper reads proposals and applies thresholds before SQL writes.
 ```
 
 ### Audit Log Schema
@@ -507,16 +340,17 @@ CREATE INDEX idx_gatekeeper_audit_project ON gatekeeper_audit(project_id);
 ```
 
 ### Dependencies
-- Story 010: Autonomous Pattern Detection (generates project candidates)
-- Story 012: Proactive Insight Notifications (sends approval requests)
-- Hermes: Telegram bot for approval commands
+- Story 010: Autonomous Pattern Detection (generates discoveries)
+- Story 015: Monitor Agent (creates proposal queue in SQLite)
+- Story 027: Message Outbox Relay (optional escalation channel)
 - Alexandria: The Ananke (PostgreSQL)
 - project_crystal SQL Gatekeeper concept
 
 ## Affected Components
-- **Argus**: Latent Scout calls gatekeeper before SQL writes
+- **Argus**: Gatekeeper applies policy before SQL writes
+- **Alexandria**: Proposal queue + audit state in SQLite
 - **Alexandria**: The Ananke (PostgreSQL projects table)
-- **Hermes**: Telegram approval workflow
+- **Hermes**: Optional, consumes outbox later
 
 ## Priority
 **Critical** - No SQL writes should happen without this gatekeeper
@@ -525,12 +359,12 @@ CREATE INDEX idx_gatekeeper_audit_project ON gatekeeper_audit(project_id);
 8 story points (5-8 days)
 
 ## Linear Labels
-`phase-4`, `latent-scout`, `gatekeeper`, `sql`, `alexandria`, `hermes`, `safety`
+`phase-4`, `latent-scout`, `gatekeeper`, `sql`, `alexandria`, `safety`
 
 ## Related Stories
 - Story 025: Shadow Copy & Hygiene (Obsidian Gatekeeper)
 - Story 010: Autonomous Pattern Detection (generates candidates)
-- Story 012: Proactive Insight Notifications (approval workflow)
+- Story 012: Proactive Insight Notifications (later delivery layer)
 - Story 013: Discovery Feed Management (alternative review path)
 
 ## Future Enhancements

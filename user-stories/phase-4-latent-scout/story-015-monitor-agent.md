@@ -1,16 +1,17 @@
-# Story 015: Monitor Agent (Discovery → SQL Reconciliation)
+# Story 015: Monitor Agent (Discovery → Proposal Queue)
 
 **As a** user
 **I want** an agent that monitors the gap between discoveries and SQL projects
 **So that** high-value discoveries don't get lost when the gatekeeper denies them
 
 ## Acceptance Criteria
-- [ ] Background agent runs daily (scheduled job)
-- [ ] Queries Discovery Vector DB for high-confidence discoveries (>70%)
-- [ ] Checks if each discovery exists in The Ananke `projects` table
-- [ ] Identifies "orphaned discoveries" (high confidence but not in SQL)
-- [ ] Forwards orphaned discoveries to user via Telegram with context
-- [ ] Tracks user responses: approve, reject, remind later
+- [ ] Background agent runs daily (scheduled job) or via CLI
+- [ ] Queries Weaviate `Discoveries` for project_candidate records
+- [ ] Creates proposal records in SQLite with durable dedup keys
+- [ ] Avoids repeated proposals for the same discovery (long-term memory)
+- [ ] Submits proposals to the SQL Gatekeeper queue
+- [ ] Monitors gatekeeper decisions and escalates rejected items
+- [ ] Escalation is written to the Message Outbox (no direct Telegram)
 - [ ] Logs reconciliation state to avoid re-asking
 - [ ] Performance: Complete scan in <5 minutes for 100+ discoveries
 - [ ] Configurable scan frequency (daily, weekly)
@@ -41,10 +42,10 @@ class MonitorAgent:
     Reconciles Discovery Vector DB with The Ananke (SQL)
     Based on project_crystal Monitor concept
     """
-    def __init__(self, weaviate_client, db_conn, messenger):
+    def __init__(self, weaviate_client, db_conn, outbox):
         self.weaviate = weaviate_client
         self.db = db_conn
-        self.messenger = messenger  # Hermes
+        self.outbox = outbox  # Message Outbox (Story 027)
         self.state_db = self._init_state_db()
 
     def run_discovery_reconciliation(self):
@@ -63,7 +64,7 @@ class MonitorAgent:
         # 3. Filter out already-asked discoveries
         new_orphans = self._filter_already_asked(orphaned)
 
-        # 4. Forward to user via Telegram
+        # 4. Escalate to outbox for user review
         for discovery in new_orphans:
             self._forward_discovery_request(discovery)
 
@@ -138,7 +139,7 @@ class MonitorAgent:
 
     def _forward_discovery_request(self, discovery: DiscoveryRecord):
         """
-        Send Telegram message asking user to reconsider
+        Queue escalation message for user reconsideration
         """
         message = f"""
 🔍 **Monitor Agent: Discovery Needs Attention**
@@ -160,7 +161,7 @@ Actions:
 `/monitor_view {discovery.id}` - See full details
 """
 
-        self.messenger.send_message(message)
+        self.outbox.enqueue(message)
 
         # Mark as asked
         self._record_ask(discovery.id)
@@ -216,153 +217,36 @@ Actions:
         return conn
 ```
 
-### Telegram Commands (Monitor Agent Actions)
+### Proposal Queue (SQLite)
+
+```sql
+CREATE TABLE IF NOT EXISTS proposal_queue (
+    id INTEGER PRIMARY KEY,
+    proposal_id TEXT NOT NULL UNIQUE,
+    discovery_id TEXT NOT NULL,
+    proposal_hash TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected, escalated
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX idx_proposal_status ON proposal_queue(status);
+```
+
+### Message Outbox Payload (Escalation)
 
 ```python
-# In Hermes bot
-
-@hermes_bot.command("monitor_approve")
-def cmd_monitor_approve(message, discovery_id: str):
-    """
-    User approves discovery via Monitor agent
-    """
-    discovery = get_discovery(discovery_id)
-
-    if not discovery:
-        return "Discovery not found."
-
-    # Write to SQL via Gatekeeper
-    try:
-        project_id = sql_gatekeeper.write_project_from_discovery(discovery)
-
-        # Update monitor state
-        monitor_agent.mark_approved(discovery_id)
-
-        bot.send_message(
-            chat_id=message.chat.id,
-            text=f"✅ Project '{discovery.title}' added to The Ananke.\nProject ID: {project_id}"
-        )
-    except Exception as e:
-        bot.send_message(
-            chat_id=message.chat.id,
-            text=f"❌ Failed to add project: {e}"
-        )
-
-@hermes_bot.command("monitor_reject")
-def cmd_monitor_reject(message, discovery_id: str):
-    """
-    User confirms discovery is not a project
-    """
-    discovery = get_discovery(discovery_id)
-
-    if not discovery:
-        return "Discovery not found."
-
-    # Record rejection
-    monitor_agent.mark_rejected(discovery_id, discovery.confidence_score)
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"✅ Marked '{discovery.title}' as not a project.\n"
-             f"Monitor will not ask about this again (unless confidence increases significantly)."
-    )
-
-@hermes_bot.command("monitor_snooze")
-def cmd_monitor_snooze(message, discovery_id: str, duration: str):
-    """
-    Snooze discovery reminder
-    Usage: /monitor_snooze abc123 7d
-    """
-    discovery = get_discovery(discovery_id)
-
-    if not discovery:
-        return "Discovery not found."
-
-    # Parse duration (7d, 2w, 1m)
-    snooze_until = parse_snooze_duration(duration)
-
-    monitor_agent.mark_snoozed(discovery_id, snooze_until)
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f"⏰ Snoozed '{discovery.title}' until {format_date(snooze_until)}"
-    )
-
-@hermes_bot.command("monitor_view")
-def cmd_monitor_view(message, discovery_id: str):
-    """
-    View full discovery details
-    """
-    discovery = get_discovery(discovery_id)
-
-    if not discovery:
-        return "Discovery not found."
-
-    # Show full details
-    clusters = [get_cluster(cid) for cid in discovery.cluster_ids]
-
-    detail_message = f"""
-📊 **Discovery Details**
-
-**Title**: {discovery.title}
-**Description**: {discovery.description}
-
-**Confidence**: {discovery.confidence_score:.0%}
-**Detected**: {format_datetime(discovery.detected_at)}
-
-**Clusters**:
-"""
-
-    for cluster in clusters:
-        detail_message += f"""
-• {cluster.profile.theme_summary}
-  Notes: {cluster.note_count}
-"""
-
-    detail_message += f"""
-**Actions**:
-`/monitor_approve {discovery_id}`
-`/monitor_reject {discovery_id}`
-`/monitor_snooze {discovery_id} 7d`
-"""
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=detail_message,
-        parse_mode='Markdown'
-    )
-
-@hermes_bot.command("monitor_status")
-def cmd_monitor_status(message):
-    """
-    Show Monitor agent statistics
-    """
-    stats = monitor_agent.get_statistics()
-
-    status_message = f"""
-📊 **Monitor Agent Status**
-
-**Last Run**: {format_datetime(stats.last_run)}
-
-**Discoveries**:
-• Total high-confidence: {stats.total_high_confidence}
-• In SQL: {stats.in_sql}
-• Orphaned: {stats.orphaned}
-
-**User Responses**:
-• Approved: {stats.approved_count}
-• Rejected: {stats.rejected_count}
-• Snoozed: {stats.snoozed_count}
-• Pending: {stats.pending_count}
-
-**Next Run**: {format_datetime(stats.next_run)}
-"""
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=status_message,
-        parse_mode='Markdown'
-    )
+outbox.enqueue(
+    {
+        "type": "proposal_escalation",
+        "proposal_id": proposal.id,
+        "discovery_id": discovery.id,
+        "title": discovery.title,
+        "confidence": discovery.confidence_score,
+        "reason": gatekeeper_reason,
+        "detected_at": discovery.detected_at,
+    }
+)
 ```
 
 ### Scheduled Job Integration
@@ -384,8 +268,7 @@ def run_monitor_agent():
         log_info("Monitor Agent: Reconciliation complete")
     except Exception as e:
         log_error(f"Monitor Agent failed: {e}")
-        # Notify admin
-        messenger.send_message(f"⚠️ Monitor Agent error: {e}")
+        outbox.enqueue(f"Monitor Agent error: {e}")
 
 scheduler.add_job(
     run_monitor_agent,
@@ -459,15 +342,16 @@ def build_monitor_graph() -> StateGraph:
 ### Dependencies
 - Story 010: Autonomous Pattern Detection (generates discoveries)
 - Story 014: SQL Project Gatekeeper (SQL writes)
+- Story 027: Message Outbox Relay (escalations to user)
 - Discovery Vector DB (Weaviate)
 - The Ananke (PostgreSQL)
-- Hermes (Telegram bot)
 - project_crystal Monitor concept
 
 ## Affected Components
 - **Argus**: Monitor agent implementation
 - **Alexandria**: Discovery DB + The Ananke
-- **Hermes**: Telegram commands for user responses
+- **Alexandria**: Proposal queue + monitor state (SQLite)
+- **Hermes**: Consumes outbox later
 
 ## Priority
 **High** - Prevents high-value discoveries from being lost
@@ -476,7 +360,7 @@ def build_monitor_graph() -> StateGraph:
 8 story points (5-8 days)
 
 ## Linear Labels
-`phase-4`, `latent-scout`, `monitor`, `reconciliation`, `argus`, `hermes`
+`phase-4`, `latent-scout`, `monitor`, `reconciliation`, `argus`
 
 ## Related Stories
 - Story 010: Autonomous Pattern Detection (data source)
