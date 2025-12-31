@@ -7,6 +7,7 @@ from mnemosyne.argus.scout.radar import (
     ClusterRepresentation,
     ConceptPrototype,
     LatentRadar,
+    best_margin_score,
 )
 
 
@@ -111,3 +112,17 @@ def test_latent_radar_supports_multiple_concepts():
 
     assert {hit.cluster_ids[0] for hit in private_hits} == {"c1"}
     assert {hit.cluster_ids[0] for hit in professional_hits} == {"c2"}
+
+
+def test_best_margin_score_selects_strongest_embedding():
+    positive_vecs = [[1.0, 0.0]]
+    negative_vecs = [[0.0, 1.0]]
+    candidates = [[0.2, 0.8], [0.9, 0.1]]
+
+    result = best_margin_score(candidates, positive_vecs, negative_vecs)
+
+    assert result is not None
+    score, pos_max, neg_max, embedding = result
+    assert embedding == [0.9, 0.1]
+    assert score > 0
+    assert pos_max > neg_max

@@ -112,3 +112,32 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
     return dot / (norm_a * norm_b)
+
+
+def best_margin_score(
+    embeddings: Iterable[list[float]],
+    positive_vecs: list[list[float]],
+    negative_vecs: list[list[float]],
+) -> tuple[float, float, float, list[float]] | None:
+    best: tuple[float, float, float, list[float]] | None = None
+    for embedding in embeddings:
+        score, pos_max, neg_max = _margin_score(embedding, positive_vecs, negative_vecs)
+        if best is None or score > best[0]:
+            best = (score, pos_max, neg_max, embedding)
+    return best
+
+
+def _margin_score(
+    embedding: list[float],
+    positive_vecs: list[list[float]],
+    negative_vecs: list[list[float]],
+) -> tuple[float, float, float]:
+    pos_max = max(
+        (cosine_similarity(embedding, vec) for vec in positive_vecs),
+        default=0.0,
+    )
+    neg_max = max(
+        (cosine_similarity(embedding, vec) for vec in negative_vecs),
+        default=0.0,
+    )
+    return pos_max - neg_max, pos_max, neg_max

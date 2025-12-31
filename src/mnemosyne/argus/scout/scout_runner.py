@@ -20,6 +20,7 @@ from mnemosyne.argus.scout.patterns import (
     partition_note_times,
 )
 from mnemosyne.argus.scout.radar import (
+    best_margin_score,
     ClusterRepresentation,
     ConceptDetection,
     ConceptPrototype,
@@ -85,13 +86,15 @@ class ScoutRunner:
 
         cluster_ids = self._fetch_cluster_ids()
         representations: dict[str, ClusterRepresentation] = {}
+        rep_texts_by_cluster: dict[str, list[str]] = {}
         stats: list[ClusterStats] = []
 
         for cluster_id in cluster_ids:
-            representation = self._build_representation(cluster_id, errors)
+            representation, rep_texts = self._build_representation(cluster_id, errors)
             if representation is None:
                 continue
             representations[cluster_id] = representation
+            rep_texts_by_cluster[cluster_id] = rep_texts
             stats.append(self._build_stats(cluster_id, errors))
 
         detections: list[ConceptDetection] = []
@@ -118,7 +121,7 @@ class ScoutRunner:
                 polarity_threshold=self._config.contradiction_polarity_threshold,
             )
         )
-        detections.extend(self._detect_project_candidates(representations.values()))
+        detections.extend(self._detect_project_candidates(rep_texts_by_cluster))
 
         run_metadata = RunMetadata(
             run_id=run_id,
@@ -163,26 +166,30 @@ class ScoutRunner:
 
     def _build_representation(
         self, cluster_id: str, errors: list[str]
-    ) -> ClusterRepresentation | None:
+    ) -> tuple[ClusterRepresentation | None, list[str]]:
         try:
             state = self._representatives({"cluster_id": int(cluster_id)})
         except Exception as exc:
             errors.append(f"Failed to get representatives for {cluster_id}: {exc}")
-            return None
+            return None, []
 
         reps = state.get("representative_chunks", [])
         if not reps:
             errors.append(f"No representatives for cluster {cluster_id}")
-            return None
+            return None, []
 
         reps = reps[: self._config.cluster_representation_k]
-        text = "\n".join(rep.text for rep in reps if rep.text)
+        rep_texts = [rep.text for rep in reps if rep.text]
+        text = "\n".join(rep_texts)
         if not text:
             errors.append(f"Empty representative text for cluster {cluster_id}")
-            return None
+            return None, []
 
         embedding = self._embedder(text)
-        return ClusterRepresentation(cluster_id=cluster_id, text=text, embedding=embedding)
+        return (
+            ClusterRepresentation(cluster_id=cluster_id, text=text, embedding=embedding),
+            rep_texts,
+        )
 
     def _build_stats(self, cluster_id: str, errors: list[str]) -> ClusterStats:
         response = self._muses_collection.query.fetch_objects(
@@ -211,17 +218,36 @@ class ScoutRunner:
         )
 
     def _detect_project_candidates(
-        self, representations: Iterable[ClusterRepresentation]
+        self, rep_texts_by_cluster: dict[str, list[str]]
     ) -> list[ConceptDetection]:
         detections: list[ConceptDetection] = []
         for concept in self._config.project_concepts:
-            detections.extend(
-                self._radar.detect(
-                    concept,
-                    representations,
-                    pattern_type="project_candidate",
+            positive_vecs, negative_vecs = self._radar.embed_prototypes(concept)
+            for cluster_id, rep_texts in rep_texts_by_cluster.items():
+                rep_embeddings = [self._embedder(text) for text in rep_texts]
+                if not rep_embeddings:
+                    continue
+                best = best_margin_score(rep_embeddings, positive_vecs, negative_vecs)
+                if best is None:
+                    continue
+                score, pos_max, neg_max, best_embedding = best
+                if score < concept.threshold:
+                    continue
+                detections.append(
+                    ConceptDetection(
+                        concept_key=concept.key,
+                        pattern_type="project_candidate",
+                        cluster_ids=[cluster_id],
+                        confidence_score=score,
+                        signals={
+                            "positive_max": pos_max,
+                            "negative_max": neg_max,
+                            "threshold": concept.threshold,
+                            "rep_count": float(len(rep_embeddings)),
+                        },
+                        embedding=best_embedding,
+                    )
                 )
-            )
         return detections
 
 
