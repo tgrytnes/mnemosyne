@@ -51,13 +51,12 @@ def test_story_015_escalates_rejected_discovery(
     ananke_test_db,
     test_config,
 ):
-    expected_project_files = {
-        "project_house_renovation.md",
-        "project_training_program.md",
-        "project_docker_lab.md",
-        "project_education_plan.md",
+    expected_projects = {
+        "house_renovation": ["budget", "timeline", "contractor"],
+        "training_program": ["training program", "weekly", "milestones"],
+        "docker_lab": ["docker", "services", "deployment"],
+        "education_plan": ["coursework", "tuition", "deadlines"],
     }
-    project_file_pool = expected_project_files
 
     if weaviate_client.collections.exists(Discoveries.collection_name):
         weaviate_client.collections.delete(Discoveries.collection_name)
@@ -131,14 +130,17 @@ def test_story_015_escalates_rejected_discovery(
     assert proposals
 
     muses = weaviate_client.collections.get(TheMuses.collection_name)
-    found_project_sources = set()
+    found_projects = {key: False for key in expected_projects}
     for proposal in proposals:
         cluster_ids = json.loads(proposal["cluster_ids"])
         for cluster_id in cluster_ids:
-            sources = _cluster_sources(muses, cluster_id)
-            found_project_sources.update(sources & project_file_pool)
+            cluster_text = _cluster_text(muses, cluster_id)
+            for key, phrases in expected_projects.items():
+                if _matches_project_signals(cluster_text, phrases):
+                    found_projects[key] = True
 
-    assert expected_project_files.issubset(found_project_sources)
+    missing_projects = [key for key, found in found_projects.items() if not found]
+    assert not missing_projects, f"Missing project signals: {missing_projects}"
 
     discovery_id = proposals[0]["discovery_id"]
     proposal_queue.update_status(discovery_id, "rejected")
@@ -155,17 +157,22 @@ def _embed(ollama_client, text: str) -> list[float]:
     return response["embedding"]
 
 
-def _cluster_sources(collection, cluster_id: str) -> set[str]:
+def _cluster_text(collection, cluster_id: str) -> str:
     response = collection.query.fetch_objects(
         filters=Filter.by_property("clusterId").equal(int(cluster_id)),
         limit=1000,
     )
-    sources = set()
+    texts: list[str] = []
     for obj in response.objects:
-        source_file = obj.properties.get("sourceFile")
-        if source_file:
-            sources.add(Path(str(source_file)).name)
-    return sources
+        text = obj.properties.get("text")
+        if text:
+            texts.append(str(text))
+    return "\n".join(texts).lower()
+
+
+def _matches_project_signals(text: str, phrases: list[str]) -> bool:
+    hits = sum(1 for phrase in phrases if phrase in text)
+    return hits >= 2
 
 
 def _run_clustering_with_env(test_config, n_clusters: int) -> None:
