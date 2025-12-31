@@ -52,21 +52,26 @@ def test_story_015_escalates_rejected_discovery(
     test_config,
 ):
     expected_project_files = {
-        "project_alpha.md",
-        "project_beta.md",
-        "project_gamma.md",
-        "project_delta.md",
-        "deploy_plan.md",
-        "pipeline_test_plan.md",
+        "project_house_renovation.md",
+        "project_training_program.md",
+        "project_docker_lab.md",
+        "project_education_plan.md",
     }
-    project_file_pool = expected_project_files | {"retro_issues.md"}
+    project_file_pool = expected_project_files
 
     if weaviate_client.collections.exists(Discoveries.collection_name):
         weaviate_client.collections.delete(Discoveries.collection_name)
 
+    monitor_vault_path = fake_vault_path / "monitor_projects"
+    if not monitor_vault_path.exists():
+        pytest.fail("Monitor fake vault notes are missing")
+
+    if weaviate_client.collections.exists(TheMuses.collection_name):
+        weaviate_client.collections.delete(TheMuses.collection_name)
+
     state_tracker = IngestionStateTracker(str(tmp_path / "ingestion_state.db"))
     ingestor = ObsidianIngestor(
-        vault_path=str(fake_vault_path),
+        vault_path=str(monitor_vault_path),
         weaviate_client=weaviate_client,
         ollama_client=ollama_client,
         state_tracker=state_tracker,
@@ -77,21 +82,22 @@ def test_story_015_escalates_rejected_discovery(
     stats = ingestor.ingest_vault()
     assert stats["total_chunks"] > 0
 
-    _run_clustering_with_env(test_config)
+    n_clusters = _count_markdown_files(monitor_vault_path)
+    _run_clustering_with_env(test_config, n_clusters=n_clusters)
 
     project_concepts = [
         ConceptPrototype(
             key="private_projects",
             positive_texts=[
-                "Project plan with milestones, scope, and risks.",
-                "Deployment plan with staging, validation, and rollout steps.",
-                "Define goals, milestones, and dependencies for a project.",
-                "Acceptance criteria and test plan for delivery.",
+                "Renovate the house with a budget, timeline, and contractor plan.",
+                "Design a training program with weekly sessions and milestones.",
+                "Create a home lab docker project with services and deployment steps.",
+                "Plan education goals with coursework, tuition, and deadlines.",
             ],
             negative_texts=[
-                "Retrieval metrics and evaluation definitions.",
                 "Meeting notes with agenda and decisions.",
-                "Technical background notes and schema references.",
+                "Historical summary and background notes.",
+                "Glossary of database schema definitions.",
             ],
             threshold=0.0,
         )
@@ -162,7 +168,7 @@ def _cluster_sources(collection, cluster_id: str) -> set[str]:
     return sources
 
 
-def _run_clustering_with_env(test_config) -> None:
+def _run_clustering_with_env(test_config, n_clusters: int) -> None:
     env = {
         "WEAVIATE_HTTP_HOST": test_config["weaviate_http_host"],
         "WEAVIATE_HTTP_PORT": str(test_config["weaviate_http_port"]),
@@ -171,10 +177,12 @@ def _run_clustering_with_env(test_config) -> None:
     original = {key: os.environ.get(key) for key in env}
     os.environ.update(env)
     try:
-        run_clustering(n_clusters=2)
+        run_clustering(n_clusters=n_clusters)
     finally:
         for key, value in original.items():
             if value is None:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
+def _count_markdown_files(path: Path) -> int:
+    return len(list(path.glob("*.md")))
