@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -20,11 +20,11 @@ from mnemosyne.argus.scout.patterns import (
     partition_note_times,
 )
 from mnemosyne.argus.scout.radar import (
-    best_margin_score,
     ClusterRepresentation,
     ConceptDetection,
     ConceptPrototype,
     LatentRadar,
+    best_margin_score,
 )
 
 Embedder = Callable[[str], list[float]]
