@@ -135,9 +135,7 @@ class ObsidianSyncManager:
         file_path.write_text(markdown, encoding="utf-8")
 
         # Update SQL with file path and sync timestamp
-        self._update_obsidian_sync_timestamp(
-            project["id"], str(file_path), direction="to_obsidian"
-        )
+        self._update_obsidian_sync_timestamp(project["id"], str(file_path), direction="to_obsidian")
 
         return {
             "action": action,
@@ -145,9 +143,7 @@ class ObsidianSyncManager:
             "project_id": project["id"],
         }
 
-    def sync_all_projects_to_obsidian(
-        self, projects: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def sync_all_projects_to_obsidian(self, projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Sync multiple projects to Obsidian.
 
@@ -174,9 +170,7 @@ class ObsidianSyncManager:
 
         return time_since_sync < self.sync_cooldown
 
-    def _preserve_custom_sections(
-        self, file_path: Path, new_markdown: str
-    ) -> str:
+    def _preserve_custom_sections(self, file_path: Path, new_markdown: str) -> str:
         """
         Preserve user-added custom sections when updating markdown.
 
@@ -226,9 +220,7 @@ class ObsidianSyncManager:
 
         return new_markdown
 
-    def _update_obsidian_sync_timestamp(
-        self, project_id: int, file_path: str, direction: str
-    ):
+    def _update_obsidian_sync_timestamp(self, project_id: int, file_path: str, direction: str):
         """Update sync timestamp in SQL"""
         now = datetime.now(timezone.utc)
 
@@ -282,7 +274,11 @@ class ObsidianSyncManager:
         # Check for conflicts
         conflict = self.detect_conflict(file_path)
         if conflict:
-            return self._handle_conflict(conflict, project, file_path)
+            conflict_result = self._handle_conflict(conflict, project, file_path)
+            # If conflict was resolved by sql_wins or requires manual resolution, return
+            if conflict_result is not None:
+                return conflict_result
+            # If obsidian_wins (returns None), continue with the sync
 
         # Extract only whitelisted fields for update
         allowed_fields = {
@@ -302,17 +298,13 @@ class ObsidianSyncManager:
 
         # Use gatekeeper if available
         if self._gatekeeper:
-            self._gatekeeper.update_project_direct(
-                project_id, updates, user_initiated=True
-            )
+            self._gatekeeper.update_project_direct(project_id, updates, user_initiated=True)
         else:
             # Direct SQL update (fallback)
             self._update_project_direct(project_id, updates)
 
         # Update sync timestamp
-        self._update_obsidian_sync_timestamp(
-            project_id, file_path, direction="from_obsidian"
-        )
+        self._update_obsidian_sync_timestamp(project_id, file_path, direction="from_obsidian")
 
         return {"action": "updated", "project_id": project_id, "file_path": file_path}
 
@@ -388,9 +380,7 @@ class ObsidianSyncManager:
             Conflict dict if conflict detected, None otherwise
         """
         # Get file modification time
-        file_mtime = datetime.fromtimestamp(
-            os.path.getmtime(file_path), tz=timezone.utc
-        )
+        file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path), tz=timezone.utc)
 
         # Parse project ID from file
         markdown = Path(file_path).read_text(encoding="utf-8")
@@ -417,9 +407,7 @@ class ObsidianSyncManager:
 
         # Check if both were modified since last sync
         if last_synced_from_obsidian:
-            sql_modified_after_sync = (
-                sql_updated_at and sql_updated_at > last_synced_from_obsidian
-            )
+            sql_modified_after_sync = sql_updated_at and sql_updated_at > last_synced_from_obsidian
             obsidian_modified_after_sync = file_mtime > last_synced_from_obsidian
 
             if sql_modified_after_sync and obsidian_modified_after_sync:
@@ -451,8 +439,8 @@ class ObsidianSyncManager:
 
         elif self.conflict_strategy == "obsidian_wins":
             # Update SQL with Obsidian version
-            # Continue with the sync
-            return {"action": "conflict_resolved", "strategy": "obsidian_wins"}
+            # Return None to signal that sync should continue
+            return None
 
         else:  # manual
             return {
