@@ -50,8 +50,11 @@ class PDFIngestor:
             except Exception as exc:
                 logger.warning("Failed to extract %s: %s", pdf_path, exc)
                 continue
-
-            cleaned = self.clean_text(text)
+            raw_text = text or ""
+            cleaned = self.clean_text(raw_text)
+            # Fall back to raw text if cleaning removed everything
+            if not cleaned and raw_text.strip():
+                cleaned = raw_text.strip()
             if not cleaned:
                 logger.info("No text extracted from %s", pdf_path)
                 continue
