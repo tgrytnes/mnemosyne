@@ -283,9 +283,19 @@ class LinearSyncer:
             mutation,
             {"teamId": self.team_id, "name": name, "color": color},
         )
-        label_id = data["issueLabelCreate"]["issueLabel"]["id"]
-        self.label_ids[name] = label_id
-        return label_id
+        # Linear may report duplicate even if label already exists (pagination quirks).
+        # If so, reload labels and return the existing id.
+        issue_label = data.get("issueLabelCreate", {}).get("issueLabel")
+        if issue_label:
+            label_id = issue_label["id"]
+            self.label_ids[name] = label_id
+            return label_id
+
+        # Fallback: reload labels and fetch the id
+        self.load_labels()
+        if name in self.label_ids:
+            return self.label_ids[name]
+        raise RuntimeError(f"Unable to create or find label '{name}'")
 
     def ensure_label_ids(self, labels: list[str]) -> list[str]:
         ids = []
