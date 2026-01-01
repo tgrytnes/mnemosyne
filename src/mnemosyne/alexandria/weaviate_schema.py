@@ -121,6 +121,31 @@ class ClusterCentroidCollection:
         },
     ]
 
+class TheLethe:
+    """
+    Schema for TheLethe collection (email/PDF archive).
+    """
+
+    collection_name = "TheLethe"
+
+    description = "Archive of emails/PDFs with cleaned text and embeddings."
+
+    vectorizer = "none"  # manual vectors via embedder
+
+    properties = [
+        {"name": "subject", "dataType": ["text"], "description": "Email subject"},
+        {"name": "body", "dataType": ["text"], "description": "Cleaned email body"},
+        {"name": "sender", "dataType": ["text"], "description": "Sender address"},
+        {"name": "date", "dataType": ["text"], "description": "Date string"},
+        {"name": "clusterId", "dataType": ["int"], "description": "Assigned cluster id"},
+        {"name": "keywords", "dataType": ["text[]"], "description": "Extracted keywords"},
+        {"name": "type", "dataType": ["text"], "description": "Artifact type"},
+        {"name": "messageId", "dataType": ["text"], "description": "Stable message identifier"},
+        {"name": "sourcePath", "dataType": ["text"], "description": "Original file/source path"},
+        {"name": "documentType", "dataType": ["text"], "description": "Document type (pdf/email/etc.)"},
+        {"name": "pageNumber", "dataType": ["int"], "description": "Page number for PDF chunks"},
+        {"name": "creationDate", "dataType": ["text"], "description": "Creation date from metadata"},
+    ]
 
 class TheLethe:
     """
