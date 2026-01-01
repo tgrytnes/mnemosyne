@@ -2,6 +2,7 @@
 Unit tests for Story 026: PDF/OCR ingestion utilities.
 """
 
+
 class DummyPDFIngestor:
     """Minimal wrapper to call functions once implemented."""
 
