@@ -124,12 +124,12 @@ class ClusterCentroidCollection:
 
 class TheLethe:
     """
-    Schema for TheLethe collection (email archive).
+    Schema for TheLethe collection (email/PDF archive).
     """
 
     collection_name = "TheLethe"
 
-    description = "Archive of emails with cleaned text and embeddings."
+    description = "Archive of emails/PDFs with cleaned text and embeddings."
 
     vectorizer = "none"  # manual vectors via embedder
 
@@ -178,6 +178,21 @@ class TheLethe:
             "name": "sourcePath",
             "dataType": ["text"],
             "description": "Original file/source path",
+        },
+        {
+            "name": "documentType",
+            "dataType": ["text"],
+            "description": "Document type (pdf/email/etc.)",
+        },
+        {
+            "name": "pageNumber",
+            "dataType": ["int"],
+            "description": "Page number for PDF chunks",
+        },
+        {
+            "name": "creationDate",
+            "dataType": ["text"],
+            "description": "Creation date from metadata",
         },
     ]
 

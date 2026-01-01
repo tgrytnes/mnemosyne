@@ -251,7 +251,7 @@ class LinearSyncer:
         query = """
         query($teamId: String!) {
             team(id: $teamId) {
-                labels {
+                labels(first: 200) {
                     nodes {
                         id
                         name
@@ -279,13 +279,31 @@ class LinearSyncer:
             }
         }
         """
-        data = self.graphql_query(
-            mutation,
-            {"teamId": self.team_id, "name": name, "color": color},
-        )
-        label_id = data["issueLabelCreate"]["issueLabel"]["id"]
-        self.label_ids[name] = label_id
-        return label_id
+        try:
+            data = self.graphql_query(
+                mutation,
+                {"teamId": self.team_id, "name": name, "color": color},
+            )
+            issue_label = data.get("issueLabelCreate", {}).get("issueLabel")
+            if issue_label:
+                label_id = issue_label["id"]
+                self.label_ids[name] = label_id
+                return label_id
+        except RuntimeError as exc:
+            if "duplicate label name" not in str(exc):
+                raise
+            # Reload to pick up the existing id
+            self.load_labels()
+            existing_id = self.label_ids.get(name)
+            if existing_id:
+                return existing_id
+            raise
+
+        # Fallback: reload labels and fetch the id
+        self.load_labels()
+        if name in self.label_ids:
+            return self.label_ids[name]
+        raise RuntimeError(f"Unable to create or find label '{name}'")
 
     def ensure_label_ids(self, labels: list[str]) -> list[str]:
         ids = []
