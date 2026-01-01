@@ -18,6 +18,95 @@ import pytest
 
 
 # ==============================================================================
+# PostgreSQL-style SQLite Cursor Wrapper
+# ==============================================================================
+
+class PostgreSQLStyleCursor:
+    """Wrapper to make SQLite cursor behave like psycopg2 cursor"""
+    def __init__(self, sqlite_cursor):
+        self._cursor = sqlite_cursor
+
+    def execute(self, query, params=None):
+        """Translate PostgreSQL query to SQLite"""
+        # Convert %s placeholders to ? for SQLite
+        sqlite_query = query.replace('%s', '?')
+
+        # Remove RETURNING clause (PostgreSQL feature not supported in SQLite)
+        if 'RETURNING' in sqlite_query.upper():
+            # Simple approach: just remove RETURNING and everything after it
+            import re
+            sqlite_query = re.sub(r'\s+RETURNING\s+.*$', '', sqlite_query, flags=re.IGNORECASE | re.DOTALL)
+
+        return self._cursor.execute(sqlite_query, params or ())
+
+    def fetchone(self):
+        """Delegate to SQLite cursor"""
+        row = self._cursor.fetchone()
+        # For RETURNING emulation, return the last inserted/updated row ID
+        if row is None and self._cursor.lastrowid:
+            # Return a mock result with ID
+            return {'id': self._cursor.lastrowid}
+        return row
+
+    def fetchall(self):
+        """Delegate to SQLite cursor"""
+        return self._cursor.fetchall()
+
+    def close(self):
+        """Delegate to SQLite cursor"""
+        return self._cursor.close()
+
+    @property
+    def lastrowid(self):
+        """Delegate to SQLite cursor"""
+        return self._cursor.lastrowid
+
+    @property
+    def rowcount(self):
+        """Delegate to SQLite cursor"""
+        return self._cursor.rowcount
+
+
+class CursorContextManager:
+    """Wrapper to make SQLite cursor support PostgreSQL-style context manager"""
+    def __init__(self, conn):
+        self.conn = conn
+        self.cursor = None
+
+    def __enter__(self):
+        sqlite_cursor = self.conn.cursor()
+        self.cursor = PostgreSQLStyleCursor(sqlite_cursor)
+        return self.cursor
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.cursor:
+            self.cursor.close()
+        return False
+
+
+class PostgreSQLStyleConnection:
+    """Wrapper to make SQLite connection behave like psycopg2 connection"""
+    def __init__(self, sqlite_conn):
+        self._sqlite_conn = sqlite_conn
+
+    def cursor(self):
+        """Return a context-manager-compatible cursor"""
+        return CursorContextManager(self._sqlite_conn)
+
+    def commit(self):
+        """Delegate to SQLite connection"""
+        return self._sqlite_conn.commit()
+
+    def rollback(self):
+        """Delegate to SQLite connection"""
+        return self._sqlite_conn.rollback()
+
+    def close(self):
+        """Delegate to SQLite connection"""
+        return self._sqlite_conn.close()
+
+
+# ==============================================================================
 # Test Fixtures
 # ==============================================================================
 
@@ -83,7 +172,10 @@ def gatekeeper_db(temp_db):
 
     conn.commit()
 
-    yield conn
+    # Wrap in PostgreSQL-style connection for compatibility
+    wrapped_conn = PostgreSQLStyleConnection(conn)
+
+    yield wrapped_conn
 
     conn.close()
 
@@ -91,7 +183,9 @@ def gatekeeper_db(temp_db):
 @pytest.fixture
 def sample_project(gatekeeper_db):
     """Create a sample project in the database"""
-    cursor = gatekeeper_db.cursor()
+    # Access underlying SQLite connection for test setup
+    conn = gatekeeper_db._sqlite_conn
+    cursor = conn.cursor()
 
     cursor.execute("""
         INSERT INTO projects (
@@ -108,7 +202,7 @@ def sample_project(gatekeeper_db):
         'candidate'
     ))
 
-    gatekeeper_db.commit()
+    conn.commit()
 
     return cursor.lastrowid
 
@@ -117,8 +211,18 @@ def sample_project(gatekeeper_db):
 def sql_gatekeeper(gatekeeper_db):
     """Create SQLProjectGatekeeper instance"""
     from mnemosyne.alexandria.sql_gatekeeper import SQLProjectGatekeeper
+    from unittest.mock import MagicMock, patch
 
-    return SQLProjectGatekeeper(gatekeeper_db)
+    # Create mocks for proposal_queue and outbox
+    mock_queue = MagicMock()
+    mock_outbox = MagicMock()
+
+    # Patch _ensure_schema to skip PostgreSQL-specific schema creation
+    # (test fixture already created compatible schema)
+    with patch.object(SQLProjectGatekeeper, '_ensure_schema'):
+        gatekeeper = SQLProjectGatekeeper(gatekeeper_db, mock_queue, mock_outbox)
+
+    return gatekeeper
 
 
 # ==============================================================================
@@ -139,7 +243,7 @@ class TestDirectUpdateBasicFunctionality:
         assert success is True
 
         # Verify update in database
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT importance FROM projects WHERE id = ?", (sample_project,))
         row = cursor.fetchone()
 
@@ -160,7 +264,7 @@ class TestDirectUpdateBasicFunctionality:
         assert success is True
 
         # Verify all updates
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute(
             "SELECT importance, urgency, work_estimate FROM projects WHERE id = ?",
             (sample_project,)
@@ -184,7 +288,7 @@ class TestDirectUpdateBasicFunctionality:
         assert success is True
 
         # Verify update
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT description FROM projects WHERE id = ?", (sample_project,))
         row = cursor.fetchone()
 
@@ -201,7 +305,7 @@ class TestDirectUpdateBasicFunctionality:
         assert success is True
 
         # Verify update
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT status FROM projects WHERE id = ?", (sample_project,))
         row = cursor.fetchone()
 
@@ -220,7 +324,7 @@ class TestDirectUpdateBasicFunctionality:
         assert success is True
 
         # Verify update
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT deadline FROM projects WHERE id = ?", (sample_project,))
         row = cursor.fetchone()
 
@@ -366,7 +470,7 @@ class TestAuditTrail:
         )
 
         # Verify audit log entry exists
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("""
             SELECT * FROM gatekeeper_audit
             WHERE project_id = ? AND action_type = 'direct_update'
@@ -390,7 +494,7 @@ class TestAuditTrail:
         )
 
         # Verify updates_json in audit log
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("""
             SELECT updates_json FROM gatekeeper_audit
             WHERE project_id = ? AND action_type = 'direct_update'
@@ -411,7 +515,7 @@ class TestAuditTrail:
         )
 
         # Verify decided_at timestamp exists
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("""
             SELECT decided_at FROM gatekeeper_audit
             WHERE project_id = ? AND action_type = 'direct_update'
@@ -438,7 +542,7 @@ class TestAuditTrail:
         )
 
         # Verify two audit log entries
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("""
             SELECT COUNT(*) as count FROM gatekeeper_audit
             WHERE project_id = ? AND action_type = 'direct_update'
@@ -459,7 +563,7 @@ class TestTimestampUpdates:
     def test_updated_at_timestamp_changed(self, sql_gatekeeper, sample_project):
         """Test that updated_at is set to current timestamp"""
         # Get original updated_at
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT updated_at FROM projects WHERE id = ?", (sample_project,))
         original_updated_at = cursor.fetchone()['updated_at']
 
@@ -501,7 +605,7 @@ class TestTransactionHandling:
         assert success is False
 
         # Verify no changes were made
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("SELECT importance FROM projects WHERE id = ?", (sample_project,))
         row = cursor.fetchone()
 
@@ -574,7 +678,7 @@ class TestIntegrationPoints:
         )
 
         # Verify all stages completed
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute(
             "SELECT importance, urgency, deadline FROM projects WHERE id = ?",
             (sample_project,)
@@ -612,7 +716,7 @@ class TestEdgeCases:
         assert success is True
 
         # Verify values are NULL
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute(
             "SELECT importance, urgency FROM projects WHERE id = ?",
             (sample_project,)
@@ -641,7 +745,7 @@ class TestEdgeCases:
         assert success is True
 
         # Should have two audit log entries (both updates logged)
-        cursor = sql_gatekeeper.db.cursor()
+        cursor = sql_gatekeeper._db._sqlite_conn.cursor()
         cursor.execute("""
             SELECT COUNT(*) as count FROM gatekeeper_audit
             WHERE project_id = ? AND action_type = 'direct_update'
