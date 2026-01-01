@@ -39,6 +39,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          command -v poetry >/dev/null 2>&1 || python -m pip install poetry
           poetry install --with dev
 
       - name: Run unit tests
