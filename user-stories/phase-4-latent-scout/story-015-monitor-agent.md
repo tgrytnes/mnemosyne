@@ -7,14 +7,22 @@
 ## Acceptance Criteria
 - [ ] Background agent runs daily (scheduled job) or via CLI
 - [ ] Queries Weaviate `Discoveries` for project_candidate records
-- [ ] Creates proposal records in SQLite with durable dedup keys
+- [ ] Each discovery job has a stable `discovery_job_key` (e.g., `private_projects`)
+- [ ] Each discovery has a deterministic `discovery_id` based on job + candidate (e.g., `private_projects:house_painting`)
+- [ ] Creates proposal records in SQLite with durable dedup keys based on `discovery_id`
 - [ ] Avoids repeated proposals for the same discovery (long-term memory)
 - [ ] Submits proposals to the SQL Gatekeeper queue
-- [ ] Monitors gatekeeper decisions and escalates rejected items
+- [ ] Monitors gatekeeper decisions via proposal queue status changes
+- [ ] Escalates rejected items to the Message Outbox using `discovery_id`
 - [ ] Escalation is written to the Message Outbox (no direct Telegram)
 - [ ] Logs reconciliation state to avoid re-asking
 - [ ] Performance: Complete scan in <5 minutes for 100+ discoveries
 - [ ] Configurable scan frequency (daily, weekly)
+- [ ] Proposal payload includes `discovery_id`, `discovery_job_key`, `candidate_key`, `cluster_ids`, `confidence_score`, `detected_at`
+- [ ] Proposal queue enforces idempotency on `discovery_id`
+- [ ] Re-ask policy is explicit: cooldown, max asks, and confidence delta thresholds
+- [ ] Integration tests use real Weaviate + SQLite + Postgres
+- [ ] E2E test covers discovery -> proposal -> rejection -> escalation loop
 
 ## Critical Architectural Role
 
@@ -33,6 +41,16 @@ But extended to also watch for **reverse stalls** - discoveries that should be p
 The Monitor catches these cases and gives the user a second chance.
 
 ## Technical Notes
+
+### Discovery Identity (Required)
+- `discovery_job_key`: stable identifier for the radar/scout job (e.g., `private_projects`)
+- `candidate_key`: stable slug derived from the discovery label (e.g., `house_painting`)
+- `discovery_id`: `{discovery_job_key}:{candidate_key}` (used for dedup + project linking)
+
+Examples:
+- `private_projects:house_painting`
+- `private_projects:renovate_kitchen`
+- `professional_projects:deploy_pipeline`
 
 ### Monitor Agent Class
 
@@ -105,7 +123,7 @@ class MonitorAgent:
         cursor.execute("""
             SELECT id FROM projects
             WHERE discovery_id = %s
-        """, (discovery.id,))
+        """, (discovery.discovery_id,))
 
         return cursor.fetchone() is not None
 
@@ -155,16 +173,16 @@ class MonitorAgent:
 **This discovery was not added to The Ananke. Would you like to reconsider?**
 
 Actions:
-`/monitor_approve {discovery.id}` - Add to projects
-`/monitor_reject {discovery.id}` - Not a project
-`/monitor_snooze {discovery.id} 7d` - Ask again in 7 days
-`/monitor_view {discovery.id}` - See full details
+`/monitor_approve {discovery.discovery_id}` - Add to projects
+`/monitor_reject {discovery.discovery_id}` - Not a project
+`/monitor_snooze {discovery.discovery_id} 7d` - Ask again in 7 days
+`/monitor_view {discovery.discovery_id}` - See full details
 """
 
         self.outbox.enqueue(message)
 
         # Mark as asked
-        self._record_ask(discovery.id)
+        self._record_ask(discovery.discovery_id)
 
     def _get_discovery_state(self, discovery_id: str):
         """
@@ -223,7 +241,9 @@ Actions:
 CREATE TABLE IF NOT EXISTS proposal_queue (
     id INTEGER PRIMARY KEY,
     proposal_id TEXT NOT NULL UNIQUE,
-    discovery_id TEXT NOT NULL,
+    discovery_id TEXT NOT NULL UNIQUE,
+    discovery_job_key TEXT NOT NULL,
+    candidate_key TEXT NOT NULL,
     proposal_hash TEXT NOT NULL UNIQUE,
     status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected, escalated
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -233,6 +253,18 @@ CREATE TABLE IF NOT EXISTS proposal_queue (
 CREATE INDEX idx_proposal_status ON proposal_queue(status);
 ```
 
+### Proposal State Transitions
+
+States: `pending`, `approved`, `rejected`, `escalated`, `archived`
+
+Transitions:
+- `pending` → `approved` when SQL Gatekeeper approves and writes to SQL
+- `pending` → `rejected` when SQL Gatekeeper rejects
+- `rejected` → `escalated` when Monitor escalates to Message Outbox
+- `escalated` → `pending` only after explicit user reconsideration
+- `rejected`/`escalated` → `archived` when max asks reached or cooldown exceeds policy
+- `approved` → `archived` after SQL write confirmed (terminal)
+
 ### Message Outbox Payload (Escalation)
 
 ```python
@@ -240,7 +272,9 @@ outbox.enqueue(
     {
         "type": "proposal_escalation",
         "proposal_id": proposal.id,
-        "discovery_id": discovery.id,
+        "discovery_id": discovery.discovery_id,
+        "discovery_job_key": discovery.discovery_job_key,
+        "candidate_key": discovery.candidate_key,
         "title": discovery.title,
         "confidence": discovery.confidence_score,
         "reason": gatekeeper_reason,
@@ -248,6 +282,13 @@ outbox.enqueue(
     }
 )
 ```
+
+### Re-Ask Policy (Explicit)
+
+- Cooldown: default 14 days after a reject/snooze
+- Max asks: 3 total per `discovery_id`
+- Re-ask only if confidence increased by >= 0.15 since last rejection
+- If max asks reached, mark as `archived` in monitor state
 
 ### Scheduled Job Integration
 

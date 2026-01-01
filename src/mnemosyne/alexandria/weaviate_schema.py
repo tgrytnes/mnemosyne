@@ -122,6 +122,30 @@ class ClusterCentroidCollection:
     ]
 
 
+class TheLethe:
+    """
+    Schema for TheLethe collection (email/PDF archive).
+    """
+
+    collection_name = "TheLethe"
+
+    description = "Archive of emails/PDFs with cleaned text and embeddings."
+
+    vectorizer = "none"  # manual vectors via embedder
+
+    properties = [
+        {"name": "subject", "dataType": ["text"], "description": "Email subject"},
+        {"name": "body", "dataType": ["text"], "description": "Cleaned email body"},
+        {"name": "sender", "dataType": ["text"], "description": "Sender address"},
+        {"name": "date", "dataType": ["text"], "description": "Date string"},
+        {"name": "clusterId", "dataType": ["int"], "description": "Assigned cluster id"},
+        {"name": "keywords", "dataType": ["text[]"], "description": "Extracted keywords"},
+        {"name": "type", "dataType": ["text"], "description": "Artifact type"},
+        {"name": "messageId", "dataType": ["text"], "description": "Stable message identifier"},
+        {"name": "sourcePath", "dataType": ["text"], "description": "Original file/source path"},
+    ]
+
+
 class Discoveries:
     """
     Schema for Scout discoveries stored in latent space.
@@ -180,6 +204,29 @@ class Discoveries:
             "dataType": ["boolean"],
             "description": "Whether the run was executed in dry-run mode",
         },
+        {
+            "name": "discoveryJobKey",
+            "dataType": ["text"],
+            "description": "Logical job key for discovery run (idempotency and attribution)",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "candidateKey",
+            "dataType": ["text"],
+            "description": "Deterministic key for a candidate connection (cluster ids + type)",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "discoveryId",
+            "dataType": ["text"],
+            "description": "Stable id for the discovery entry",
+            "tokenization": Tokenization.FIELD,
+        },
+        {
+            "name": "explorerStrategy",
+            "dataType": ["text"],
+            "description": "Exploration strategy that produced this discovery",
+        },
     ]
 
 
@@ -208,6 +255,8 @@ class WeaviateSchemaManager:
         """
         # Check if collection already exists
         if self.client.collections.exists(collection_name):
+            if collection_name == Discoveries.collection_name:
+                self._ensure_discoveries_properties()
             return
 
         # Get schema for this collection
@@ -217,6 +266,8 @@ class WeaviateSchemaManager:
             self._create_clustercentroid_collection()
         elif collection_name == Discoveries.collection_name:
             self._create_discoveries_collection()
+        elif collection_name == TheLethe.collection_name:
+            self._create_thelethe_collection()
         else:
             raise ValueError(f"Unknown collection: {collection_name}")
 
@@ -277,6 +328,43 @@ class WeaviateSchemaManager:
             vectorizer_config=Configure.Vectorizer.none(),
             properties=properties,
         )
+
+    def _create_thelethe_collection(self) -> None:
+        """Create TheLethe collection for email/PDF ingestion."""
+        properties = [
+            Property(
+                name=prop["name"],
+                data_type=self._map_datatype(prop["dataType"][0]),
+                description=prop.get("description", ""),
+            )
+            for prop in TheLethe.properties
+        ]
+
+        self.client.collections.create(
+            name=TheLethe.collection_name,
+            description=TheLethe.description,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=properties,
+        )
+
+    def _ensure_discoveries_properties(self) -> None:
+        """Add missing properties to Discoveries if schema predates new fields."""
+        collection = self.client.collections.get(Discoveries.collection_name)
+        try:
+            existing = {prop.name for prop in collection.config.get().properties}
+        except Exception:
+            existing = set()
+        for prop in Discoveries.properties:
+            if prop["name"] in existing:
+                continue
+            collection.config.add_property(
+                Property(
+                    name=prop["name"],
+                    data_type=self._map_datatype(prop["dataType"][0]),
+                    description=prop.get("description", ""),
+                    tokenization=prop.get("tokenization"),
+                )
+            )
 
     def _map_datatype(self, datatype_str: str) -> DataType:
         """

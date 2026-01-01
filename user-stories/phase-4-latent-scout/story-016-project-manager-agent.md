@@ -17,6 +17,8 @@
 - [ ] Requests user input for missing deadlines
 - [ ] Allows status updates via Telegram commands
 - [ ] Generates project health reports
+- [ ] Project views include `discovery_id` when available (traceability)
+- [ ] Project status transitions follow explicit rules and update timestamps
 
 ## 🎯 Architectural Role
 
@@ -309,6 +311,20 @@ Use `/projects` to see all projects.
         self.messenger.send_message(message)
 ```
 
+### Project State Transitions
+
+Statuses: `candidate`, `active`, `paused`, `completed`
+
+Transitions:
+- `candidate` → `active` on user approval/activation
+- `candidate` → `paused` when user defers
+- `active` → `paused` when user pauses
+- `paused` → `active` when user resumes
+- `active` → `completed` when user marks complete
+- `paused` → `completed` only via explicit user action
+
+All transitions update `updated_at` and are logged for audit.
+
 ### Telegram Commands (Project Management)
 
 ```python
@@ -498,6 +514,7 @@ def cmd_view_project(message, project_id: int):
 **Pressure**: {project.pressure_score:.1f} if project.pressure_score else 'N/A'}
 
 **Discovered by**: {project.discovered_by}
+**Discovery ID**: {project.discovery_id or 'N/A'}
 **Created**: {format_datetime(project.created_at)}
 **Last updated**: {format_time_ago(project.updated_at)}
 

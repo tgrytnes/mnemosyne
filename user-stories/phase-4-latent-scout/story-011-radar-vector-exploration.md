@@ -10,6 +10,9 @@
 - [ ] Tracks exploration state (which cluster pairs have been analyzed)
 - [ ] Discovers non-obvious connections (semantic similarity not captured by direct relationships)
 - [ ] Results stored as "weak links" in Discovery DB with confidence scores
+- [ ] Each weak-link discovery includes `discovery_job_key`, `candidate_key`, `discovery_id`
+- [ ] `candidate_key` is deterministic for each pair + connection type (ordered cluster IDs)
+- [ ] Deduplication uses `discovery_id` as the primary uniqueness key
 - [ ] Exploration budget: max computation time per run (e.g., 15 minutes)
 - [ ] Incremental exploration: resumes from last checkpoint
 - [ ] Generates "exploration map" showing coverage of cluster space
@@ -150,6 +153,12 @@ class WeakLink(BaseModel):
     # For semantic search
     link_embedding: List[float]
 ```
+
+### Discovery Identity (Radar)
+
+- `discovery_job_key`: stable ID for the radar job (e.g., `radar_weak_links`)
+- `candidate_key`: `{connection_type}:{min(cluster1_id, cluster2_id)}-{max(cluster1_id, cluster2_id)}`
+- `discovery_id`: `{discovery_job_key}:{candidate_key}`
 
 ### Connection Analysis (Core Logic)
 

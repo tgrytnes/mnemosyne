@@ -3,6 +3,7 @@ Semantic chunking using LLM boundary detection.
 """
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -89,6 +90,32 @@ class SemanticChunker:
         )
 
     def _identify_boundaries(self, text: str) -> list[int]:
+        """
+        Ask the LLM for explicit boundary offsets; fall back to heuristic joining.
+        """
+        # Primary path: single LLM call returning JSON boundaries (used in unit tests).
+        prompt = (
+            "Detect semantic breakpoints in the text. "
+            "Return JSON with a single key 'boundaries' containing a list of integer "
+            "character offsets (0-indexed) where a new chunk should start. "
+            "Do not include 0 or the final length."
+        )
+        response = self.ollama_client.generate(
+            model=self.model,
+            prompt=f"{prompt}\n\n{text}",
+            options={"temperature": self.temperature},
+        )
+        raw = response.get("response", "")
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+            boundaries = data.get("boundaries") if isinstance(data, dict) else None
+            if isinstance(boundaries, list):
+                return [b for b in boundaries if isinstance(b, int)]
+        except Exception:
+            # Fall through to heuristic logic
+            pass
+
+        # Heuristic fallback: walk sentences with yes/no decisions.
         sentences = self._split_sentences(text)
         if len(sentences) <= 1:
             return []

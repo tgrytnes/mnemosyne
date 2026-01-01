@@ -14,6 +14,8 @@
 - [ ] Search discoveries by keyword or cluster
 - [ ] Stats view: discoveries over time, acceptance rate, top patterns
 - [ ] "Explore mode": Interactive navigation through discovery graph
+- [ ] Feed entries expose `discovery_id` for traceability
+- [ ] Feed actions use `discovery_id` as the stable identifier
 
 ## Technical Notes
 
@@ -67,7 +69,7 @@ Found {discoveries.total} discoveries
         items.append(f"""
 {status_emoji} {type_emoji} **{disc.title}**
 {disc.confidence_score:.0%} confidence • {format_date(disc.detected_at)}
-`/view {disc.id[:8]}`
+`/view {disc.discovery_id}`
 """)
 
     return header + "\n".join(items)
@@ -129,6 +131,7 @@ def format_discovery_detail(discovery: DiscoveryRecord) -> str:
 {get_emoji_for_type(discovery.pattern_type)} **{discovery.title}**
 
 **Type**: {discovery.pattern_type.replace('_', ' ').title()}
+**Discovery ID**: {discovery.discovery_id}
 **Confidence**: {discovery.confidence_score:.0%}
 **Detected**: {format_datetime(discovery.detected_at)}
 
@@ -153,15 +156,15 @@ def format_discovery_detail(discovery: DiscoveryRecord) -> str:
 def create_discovery_actions(discovery: DiscoveryRecord):
     buttons = [
         [
-            InlineButton("📝 Create Note", callback=f"discovery_action:create_note:{discovery.id}"),
-            InlineButton("🔗 Link Clusters", callback=f"discovery_action:link:{discovery.id}")
+            InlineButton("📝 Create Note", callback=f"discovery_action:create_note:{discovery.discovery_id}"),
+            InlineButton("🔗 Link Clusters", callback=f"discovery_action:link:{discovery.discovery_id}")
         ],
         [
-            InlineButton("✅ Mark Helpful", callback=f"discovery_action:helpful:{discovery.id}"),
-            InlineButton("❌ Dismiss", callback=f"discovery_action:dismiss:{discovery.id}")
+            InlineButton("✅ Mark Helpful", callback=f"discovery_action:helpful:{discovery.discovery_id}"),
+            InlineButton("❌ Dismiss", callback=f"discovery_action:dismiss:{discovery.discovery_id}")
         ],
         [
-            InlineButton("📤 Export to Obsidian", callback=f"discovery_action:export:{discovery.id}")
+            InlineButton("📤 Export to Obsidian", callback=f"discovery_action:export:{discovery.discovery_id}")
         ],
         [
             InlineButton("◀️ Back to Feed", callback="discoveries:page:1")
@@ -308,6 +311,7 @@ def generate_discovery_note(discovery: DiscoveryRecord) -> str:
 
     note = f"""---
 type: discovery
+discovery_id: {discovery.discovery_id}
 pattern_type: {discovery.pattern_type}
 confidence: {discovery.confidence_score}
 detected_at: {discovery.detected_at.isoformat()}
@@ -401,7 +405,7 @@ def cmd_search_discoveries(message, query: str):
 
     for i, disc in enumerate(results, 1):
         message_text += f"{i}. {disc.title} ({disc.confidence_score:.0%})\n"
-        message_text += f"   `/view {disc.id[:8]}`\n\n"
+        message_text += f"   `/view {disc.discovery_id}`\n\n"
 
     bot.send_message(
         chat_id=message.chat.id,
