@@ -12,16 +12,19 @@ The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the 
 
 ## Acceptance Criteria
 - [ ] No direct writes to The Ananke `projects` table without gatekeeper approval
-- [ ] Gatekeeper consumes proposal records from the Monitor Agent queue (SQLite)
-- [ ] High-confidence proposals can be auto-approved (configurable; default threshold is very high)
-- [ ] Other proposals require explicit approval via gatekeeper CLI/API
-- [ ] Low-confidence proposals are rejected and marked `rejected` in the queue (no escalation here)
+- [ ] Gatekeeper consumes proposal records from a local queue (SQLite)
+- [ ] High-confidence proposals (>=0.80) can be auto-approved (configurable)
+- [ ] Medium-confidence proposals (0.60-0.79) require explicit approval
+- [ ] Low-confidence proposals (<0.60) are rejected (stored, not escalated)
 - [ ] SQL write only happens AFTER gatekeeper approval
-- [ ] Rejections are recorded in the audit log; escalation is handled by the Monitor Agent
+- [ ] Proposals must include `discovery_id` (reject if missing)
+- [ ] Gatekeeper writes are idempotent by `discovery_id` (no duplicate projects)
+- [ ] **Direct user updates** (from Project Manager) bypass approval queue with `user_initiated=True` flag
+- [ ] Direct updates only modify existing projects (no creation), only specific fields (importance, urgency, deadline, description, status)
+- [ ] Rejections are recorded with reasons and marked for escalation
 - [ ] Failed writes logged and retryable
-- [ ] Audit trail: all approved/rejected project writes
-- [ ] Rollback capability (CLI/API) with a time window and confirmation token
-- [ ] Prevent duplicate inserts by enforcing unique `discovery_id` in SQL
+- [ ] Audit trail: all approved/rejected project writes AND direct user updates
+- [ ] Rollback capability (CLI/API)
 
 ## Critical Architectural Decision
 
@@ -71,7 +74,8 @@ CREATE TABLE projects (
 CREATE INDEX idx_projects_status ON projects(status);
 CREATE INDEX idx_projects_confidence ON projects(confidence_score);
 CREATE INDEX idx_projects_verified ON projects(verified_by_user);
-CREATE UNIQUE INDEX idx_projects_discovery_id ON projects(discovery_id);
+-- Recommend unique constraint or index on discovery_id for idempotency
+-- CREATE UNIQUE INDEX idx_projects_discovery_id ON projects(discovery_id);
 ```
 
 ### SQL Gatekeeper Class
@@ -82,10 +86,9 @@ class SQLProjectGatekeeper:
     Controls ALL writes to The Ananke projects table
     Based on project_crystal gatekeeper concept
     """
-    def __init__(self, db_conn, outbox, proposal_queue):
+    def __init__(self, db_conn, outbox):
         self.db = db_conn
         self.outbox = outbox  # Message outbox (Story 027)
-        self.proposal_queue = proposal_queue
         self.pending_approvals = {}
 
     def request_project_write(self, discovery: DiscoveryRecord):
@@ -98,9 +101,9 @@ class SQLProjectGatekeeper:
             log_info(f"Discovery {discovery.id} below threshold (0.60), not requesting approval")
             return
 
-        # 2. High confidence: auto-approve
+        # 2. High confidence: auto-request approval
         if discovery.confidence_score >= 0.80:
-            return self._request_approval(discovery, auto_approve=True)
+            return self._request_approval(discovery, auto_approve=False)
 
         # 3. Medium confidence: require explicit confirmation
         if discovery.confidence_score >= 0.60:
@@ -238,8 +241,8 @@ Approve?
         # Log rejection
         self._log_approval(approval_id, approved=False)
 
-        # Update proposal queue (Monitor Agent handles escalation)
-        self.proposal_queue.update_status(discovery.discovery_id, "rejected")
+        # Update discovery (mark as reviewed but rejected)
+        self._update_discovery_status(discovery.id, rejected=True)
 
         # Remove from pending
         del self.pending_approvals[approval_id]
@@ -271,14 +274,112 @@ Approve?
         ))
 
         self.db.commit()
+
+    def update_project_direct(
+        self,
+        project_id: int,
+        updates: dict,
+        user_initiated: bool = True
+    ) -> bool:
+        """
+        Direct project update (bypasses approval for user-initiated changes)
+
+        Used by Project Manager when user provides metadata via Telegram/Obsidian.
+        This is safe because the user is DIRECTLY making the change.
+
+        Args:
+            project_id: Existing project ID
+            updates: Dict of fields to update (importance, urgency, deadline, description, status)
+            user_initiated: Must be True (safety check)
+
+        Returns:
+            Success boolean
+        """
+        if not user_initiated:
+            raise ValueError("Direct updates require user_initiated=True flag")
+
+        # Whitelist of allowed fields for direct updates
+        allowed_fields = {'importance', 'urgency', 'deadline', 'description', 'status', 'work_estimate'}
+        update_fields = set(updates.keys())
+
+        if not update_fields.issubset(allowed_fields):
+            disallowed = update_fields - allowed_fields
+            raise ValueError(f"Cannot update fields via direct update: {disallowed}")
+
+        # Build dynamic UPDATE query
+        set_clauses = []
+        values = []
+
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+
+        # Always update timestamp
+        set_clauses.append("updated_at = %s")
+        values.append(datetime.now())
+
+        values.append(project_id)
+
+        cursor = self.db.cursor()
+
+        query = f"""
+            UPDATE projects
+            SET {', '.join(set_clauses)}
+            WHERE id = %s
+            RETURNING id
+        """
+
+        try:
+            cursor.execute(query, values)
+            result = cursor.fetchone()
+
+            if not result:
+                log_error(f"Project {project_id} not found for update")
+                return False
+
+            self.db.commit()
+
+            # Log to audit trail
+            self._log_direct_update(project_id, updates, user_initiated=True)
+
+            log_info(f"Direct update to project {project_id}: {updates}")
+            return True
+
+        except Exception as e:
+            log_error(f"Failed to update project {project_id}: {e}")
+            self.db.rollback()
+            return False
+
+    def _log_direct_update(self, project_id: int, updates: dict, user_initiated: bool):
+        """
+        Audit trail for direct user updates
+        """
+        cursor = self.db.cursor()
+
+        cursor.execute("""
+            INSERT INTO gatekeeper_audit (
+                project_id,
+                action_type,
+                updates_json,
+                user_initiated,
+                decided_at
+            ) VALUES (%s, %s, %s, %s, %s)
+        """, (
+            project_id,
+            'direct_update',
+            json.dumps(updates),
+            user_initiated,
+            datetime.now()
+        ))
+
+        self.db.commit()
 ```
 
 ### Gatekeeper Queue (SQLite)
 
 The gatekeeper reads proposals from a local SQLite queue created by the Monitor Agent.
-Decisions are written back to SQLite (approved/rejected/awaiting_approval) and only
-approved records are written to The Ananke. Rejection escalation is handled by the
-Monitor Agent.
+Decisions are written back to SQLite (approved/rejected/escalate) and only approved
+records are written to The Ananke.
 
 ### Rollback Capability (CLI/API)
 
@@ -314,8 +415,8 @@ def confirm_remove(project_id: int, code: str) -> None:
 # Environment variables or config
 CONFIDENCE_THRESHOLDS = {
     'auto_reject': 0.60,      # Below this: don't even ask
-    'auto_approve': 0.90,     # Very high confidence auto-approves (configurable)
-    'require_approval': 0.60  # Between 0.60-0.89: approval required
+    'require_approval': 0.80,  # Above this: still ask, but flag as high confidence
+    'suggestion_only': 0.60    # Between 0.60-0.80: normal approval flow
 }
 ```
 
@@ -332,15 +433,19 @@ CONFIDENCE_THRESHOLDS = {
 ```sql
 CREATE TABLE gatekeeper_audit (
     id SERIAL PRIMARY KEY,
-    approval_id TEXT NOT NULL,
-    approved BOOLEAN NOT NULL,
+    approval_id TEXT,  -- NULL for direct updates
+    action_type TEXT DEFAULT 'approval',  -- 'approval', 'rejection', 'direct_update'
+    approved BOOLEAN,  -- NULL for direct updates
     project_id INTEGER REFERENCES projects(id),
+    updates_json TEXT,  -- For direct updates: {'importance': 5, 'urgency': 4}
+    user_initiated BOOLEAN DEFAULT FALSE,  -- TRUE for direct user updates
     decided_at TIMESTAMP DEFAULT NOW(),
     decided_by TEXT DEFAULT 'telegram_user'  -- Future: multi-user support
 );
 
 CREATE INDEX idx_gatekeeper_audit_approval ON gatekeeper_audit(approval_id);
 CREATE INDEX idx_gatekeeper_audit_project ON gatekeeper_audit(project_id);
+CREATE INDEX idx_gatekeeper_audit_action ON gatekeeper_audit(action_type);
 ```
 
 ### Dependencies
