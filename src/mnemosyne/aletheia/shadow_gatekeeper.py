@@ -10,7 +10,6 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import weaviate
 
@@ -27,7 +26,10 @@ class ApprovalRequest:
 
 class ObsidianGatekeeper:
     def __init__(
-        self, source_vault: str, shadow_vault: str, weaviate_client: weaviate.WeaviateClient | None = None
+        self,
+        source_vault: str,
+        shadow_vault: str,
+        weaviate_client: weaviate.WeaviateClient | None = None,
     ):
         self.source_vault = Path(source_vault)
         self.shadow_vault = Path(shadow_vault)
