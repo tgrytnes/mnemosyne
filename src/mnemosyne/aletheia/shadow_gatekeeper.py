@@ -27,10 +27,7 @@ class ApprovalRequest:
 
 class ObsidianGatekeeper:
     def __init__(
-        self,
-        source_vault: str,
-        shadow_vault: str,
-        weaviate_client: Optional[weaviate.WeaviateClient] = None,
+        self, source_vault: str, shadow_vault: str, weaviate_client: weaviate.WeaviateClient | None = None
     ):
         self.source_vault = Path(source_vault)
         self.shadow_vault = Path(shadow_vault)
@@ -79,7 +76,7 @@ class ObsidianGatekeeper:
             # best-effort; don't block approvals
             return
 
-    def _connect_weaviate(self) -> Optional[weaviate.WeaviateClient]:
+    def _connect_weaviate(self) -> weaviate.WeaviateClient | None:
         host = os.getenv("TEST_WEAVIATE_HOST", "localhost")
         http_port = int(os.getenv("TEST_WEAVIATE_PORT", "8080"))
         grpc_port = int(os.getenv("TEST_WEAVIATE_GRPC_PORT", "50051"))

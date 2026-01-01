@@ -4,8 +4,8 @@ Shadow vault janitor for Story 025.
 
 from __future__ import annotations
 
-import re
 import os
+import re
 from glob import glob
 from pathlib import Path
 from typing import Optional
@@ -19,7 +19,7 @@ class Janitor:
         self,
         source_vault: str,
         shadow_vault: str,
-        weaviate_client: Optional[weaviate.WeaviateClient] = None,
+        weaviate_client: weaviate.WeaviateClient | None = None,
     ):
         self.source_vault = Path(source_vault)
         self.shadow_vault = Path(shadow_vault)
@@ -72,7 +72,7 @@ class Janitor:
             # best effort cleanup
             return
 
-    def _connect_weaviate(self) -> Optional[weaviate.WeaviateClient]:
+    def _connect_weaviate(self) -> weaviate.WeaviateClient | None:
         """
         Best-effort connection using default test env vars so deletion hygiene
         works even if caller forgets to pass a client.
