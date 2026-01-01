@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
 import csv
-from dataclasses import dataclass
 import hashlib
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
-from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 from mnemosyne.aletheia.email_cleaner import (
     clean_email_body,
     contains_mojibake,
     truncate_body,
 )
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
 @dataclass
