@@ -1,16 +1,15 @@
-"""Radar exploration for Story 011: explore pairs, store weak links with identity/checkpoints."""
+"""Radar exploration for Story 011: explore pairs, store weak links with identity + checkpointing."""
 
 from __future__ import annotations
 
 import json
 import time
-from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from collections.abc import Callable, Iterable, Sequence
 
 import numpy as np
-
 from mnemosyne.alexandria.weaviate_schema import Discoveries, WeaviateSchemaManager
 from mnemosyne.argus.scout.radar import ClusterRepresentation
 
@@ -92,11 +91,6 @@ class RadarExplorer:
         self.discovery_job_key = discovery_job_key
         self.max_pairs_per_cluster = max_pairs_per_cluster
         self.state = ExplorationState(Path(checkpoint_path)) if checkpoint_path else None
-        try:
-            # Reset collection to ensure deterministic test runs
-            self.client.collections.delete(Discoveries.collection_name)
-        except Exception:
-            pass
         WeaviateSchemaManager(self.client).ensure_collection_exists(Discoveries.collection_name)
 
     def run(self, clusters: list[ClusterRepresentation]) -> ExplorationSummary:
@@ -108,6 +102,9 @@ class RadarExplorer:
         pairs = _pair_candidates(clusters, strategy=self.strategy, limit=self.max_pairs_per_cluster)
         collection = self.client.collections.get(Discoveries.collection_name)
 
+        # Clean up prior runs for this job key to avoid stale discoveries influencing assertions
+        collection.data.delete_many(Filter.by_property("discoveryJobKey").equal(self.discovery_job_key))
+
         for c1, c2 in pairs:
             if time.perf_counter() - start > self.budget_seconds:
                 break
@@ -116,6 +113,10 @@ class RadarExplorer:
 
             sim = _cosine(normalized[c1.cluster_id], normalized[c2.cluster_id])
             pairs_explored += 1
+            if sim < 0.15:
+                self._mark_explored_pair(c1, c2)
+                continue
+
             candidate_key = make_candidate_key(
                 discovery_job_key=self.discovery_job_key,
                 cluster_ids=[c1.cluster_id, c2.cluster_id],
@@ -150,6 +151,13 @@ class RadarExplorer:
             self.state.mark_explored({(c1.cluster_id, c2.cluster_id)})
 
     def _store_if_new(self, collection, discovery: WeakLinkDiscovery) -> bool:
+        existing = collection.query.fetch_objects(
+            filters=Filter.by_property("candidateKey").equal(discovery.candidate_key),
+            limit=1,
+        )
+        if existing.objects:
+            return False
+
         properties = {
             "patternType": discovery.pattern_type,
             "clusterIds": discovery.cluster_ids,
@@ -195,8 +203,5 @@ def _pair_candidates(
                 break
     if strategy == "curiosity":
         # Sort by textual length difference as a proxy for diversity; similarity checked later
-        pairs.sort(
-            key=lambda p: abs(len(p[0].text) - len(p[1].text)),
-            reverse=True,
-        )
+        pairs.sort(key=lambda p: abs(len(p[0].text) - len(p[1].text)), reverse=True)
     return pairs

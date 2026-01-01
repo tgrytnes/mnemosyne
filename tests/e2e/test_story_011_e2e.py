@@ -1,4 +1,6 @@
-"""E2E for Story 011: radar exploration persists a weak link with identity."""
+"""
+E2E test for Story 011: radar exploration finds at least one weak link and persists it with identity.
+"""
 
 import pytest
 

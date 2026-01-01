@@ -11,6 +11,8 @@
 - [ ] Delivery status tracked (pending, delivered, failed)
 - [ ] Failures are retryable with backoff
 - [ ] Supports message types: notification, approval_request, escalation
+- [ ] Discovery-related payloads include `discovery_id` and `discovery_job_key`
+- [ ] Message IDs for discovery-related events are derived from `discovery_id`
 - [ ] Outbox keeps long-term history for audit
 - [ ] CLI command to inspect or requeue messages
 
@@ -43,6 +45,9 @@ def enqueue_message(message_type: str, payload: dict, message_id: str) -> None:
     pass
 ```
 
+**Idempotency Note**: for discovery/proposal messages, set `message_id` to
+`{message_type}:{discovery_id}` to prevent duplicates across retries.
+
 ### Consumer API (used by Nexus/Hermes)
 
 ```python
@@ -64,6 +69,16 @@ def mark_failed(message_id: str, error: str) -> None:
 - `notification`: informational update
 - `approval_request`: requires user confirmation
 - `escalation`: gatekeeper rejection or urgent issue
+
+### Outbox State Transitions
+
+States: `pending`, `delivered`, `failed`
+
+Transitions:
+- `pending` → `delivered` on successful delivery by Hermes/Nexus
+- `pending` → `failed` after max retry attempts
+- `failed` → `pending` on manual requeue
+- `pending` → `pending` on retry (attempts increment, `last_attempted_at` updated)
 
 ## Dependencies
 - Hermes/Nexus delivery layer (Story 012)

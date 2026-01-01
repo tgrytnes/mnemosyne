@@ -5,12 +5,20 @@
 **So that** I'm alerted to interesting patterns without having to check manually
 
 ## Acceptance Criteria
-- [ ] Hermes Telegram notifications wired: discovery payload includes `discovery_id` and `discovery_job_key`
-- [ ] Preferences stored in SQL: enabled flag, quiet hours, `max_daily_notifications`, batch mode (immediate vs daily_digest), per-type toggles, per-type confidence thresholds
-- [ ] Respect quiet hours + rate limiting; critical contradictions bypass quiet hours; batching groups findings by type
-- [ ] Templates per discovery type include confidence + action buttons (view, dismiss/feedback, follow-up); dismissal/feedback persisted in SQL and suppresses future noise for that discovery id/type
-- [ ] History commands: `/discoveries` list and `/discoveries stats`; digest message generation works with batching
-- [ ] Inline actions update status (reviewed/dismissed) and are idempotent; immediate notifications and daily digest both covered in tests
+- [ ] Integration with Hermes Telegram bot for notifications
+- [ ] Configurable notification preferences (types, frequency, quiet hours)
+- [ ] Smart batching: group multiple discoveries into digest messages
+- [ ] Rich formatting: cluster names, confidence scores, quick action buttons
+- [ ] Inline actions: "View Details", "Dismiss", "Create Note", "Remind Later"
+- [ ] Notification history viewable via Telegram command (e.g., `/discoveries`)
+- [ ] Respects user feedback: learns from dismissals to reduce noise
+- [ ] Notification payloads include `discovery_id` and `discovery_job_key`
+- [ ] Inline actions use `discovery_id` as the stable identifier
+- [ ] Emergency bypass: Critical discoveries (e.g., contradictions) always notify
+
+## Acceptance Criteria (Continued)
+- [ ] Rate limiting: max 3 notifications per day (configurable)
+- [ ] Notification templates for each discovery type
 
 ## Technical Notes
 
@@ -67,7 +75,7 @@ This might be developing into a project!
     buttons = [
         InlineButton("View Cluster", callback="view_cluster:" + cluster.id),
         InlineButton("Create Project", callback="create_project:" + cluster.id),
-        InlineButton("Dismiss", callback="dismiss:" + discovery.id)
+        InlineButton("Dismiss", callback="dismiss:" + discovery.discovery_id)
     ]
 
     return TelegramMessage(text=message, buttons=buttons)
@@ -97,8 +105,8 @@ This might indicate:
 
     buttons = [
         InlineButton("View Both", callback="compare:" + c1.id + ":" + c2.id),
-        InlineButton("Not a Contradiction", callback="dismiss:" + discovery.id),
-        InlineButton("Remind Later", callback="remind:7d:" + discovery.id)
+        InlineButton("Not a Contradiction", callback="dismiss:" + discovery.discovery_id),
+        InlineButton("Remind Later", callback="remind:7d:" + discovery.discovery_id)
     ]
 
     return TelegramMessage(text=message, buttons=buttons)
@@ -129,7 +137,7 @@ Would you like me to draft a project brief?
     buttons = [
         InlineButton("Draft Project Brief", callback="draft_project:" + cluster.id),
         InlineButton("View Notes", callback="view_cluster:" + cluster.id),
-        InlineButton("Not a Project", callback="dismiss:" + discovery.id)
+        InlineButton("Not a Project", callback="dismiss:" + discovery.discovery_id)
     ]
 
     return TelegramMessage(text=message, buttons=buttons)
@@ -154,9 +162,9 @@ This connection isn't obvious from your note structure but might be valuable.
     """
 
     buttons = [
-        InlineButton("Explore Connection", callback="explore_link:" + discovery.id),
-        InlineButton("Create Linking Note", callback="link_note:" + discovery.id),
-        InlineButton("Dismiss", callback="dismiss:" + discovery.id)
+        InlineButton("Explore Connection", callback="explore_link:" + discovery.discovery_id),
+        InlineButton("Create Linking Note", callback="link_note:" + discovery.discovery_id),
+        InlineButton("Dismiss", callback="dismiss:" + discovery.discovery_id)
     ]
 
     return TelegramMessage(text=message, buttons=buttons)
@@ -244,7 +252,7 @@ def send_notification(discovery: DiscoveryRecord):
         )
 
         # Mark as notified
-        update_discovery(discovery.id, notified_at=datetime.now())
+        update_discovery(discovery.discovery_id, notified_at=datetime.now())
 
     except Exception as e:
         log_error(f"Failed to send notification: {e}")

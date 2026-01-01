@@ -1,6 +1,8 @@
-"""Integration tests for Story 012: notifications with prefs, quiet hours, batching."""
+"""
+Integration tests for Story 012: proactive insight notifications with preferences, quiet hours, and batching.
+"""
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import pytest
 

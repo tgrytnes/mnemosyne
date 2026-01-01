@@ -17,6 +17,8 @@ The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the 
 - [ ] Medium-confidence proposals (0.60-0.79) require explicit approval
 - [ ] Low-confidence proposals (<0.60) are rejected (stored, not escalated)
 - [ ] SQL write only happens AFTER gatekeeper approval
+- [ ] Proposals must include `discovery_id` (reject if missing)
+- [ ] Gatekeeper writes are idempotent by `discovery_id` (no duplicate projects)
 - [ ] Rejections are recorded with reasons and marked for escalation
 - [ ] Failed writes logged and retryable
 - [ ] Audit trail: all approved/rejected project writes
@@ -70,6 +72,8 @@ CREATE TABLE projects (
 CREATE INDEX idx_projects_status ON projects(status);
 CREATE INDEX idx_projects_confidence ON projects(confidence_score);
 CREATE INDEX idx_projects_verified ON projects(verified_by_user);
+-- Recommend unique constraint or index on discovery_id for idempotency
+-- CREATE UNIQUE INDEX idx_projects_discovery_id ON projects(discovery_id);
 ```
 
 ### SQL Gatekeeper Class

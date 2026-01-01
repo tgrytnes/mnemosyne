@@ -5,13 +5,17 @@
 **So that** I discover connections between seemingly unrelated clusters I wouldn't have explored manually
 
 ## Acceptance Criteria
-- [ ] Configurable strategies: breadth-first sweep and curiosity-driven (selectable per run)
-- [ ] Budgeted run: `budget_seconds` hard-caps runtime; optional `max_pairs_per_cluster` and neighbor skip to avoid obvious edges
-- [ ] Identity: every candidate has `discovery_job_key`, deterministic `candidate_key` (ordered cluster ids + type), persisted `discovery_id`; duplicates skipped idempotently
-- [ ] State checkpoint of explored cluster pairs so incremental runs resume without reprocessing
-- [ ] Weak links stored in Discoveries with embedding, confidence, type, and short explanation; at least one weak link produced on seeded vault in tests
-- [ ] Exploration summary persisted (pairs explored, new discoveries, elapsed, strategy) per run
-- [ ] Coverage: curiosity strategy prioritizes surprising pairs; breadth-first enumerates systematically
+- [ ] "Radar Vector" algorithm that explores cluster neighborhoods systematically
+- [ ] Exploration strategy: breadth-first, depth-first, or curiosity-driven (configurable)
+- [ ] Tracks exploration state (which cluster pairs have been analyzed)
+- [ ] Discovers non-obvious connections (semantic similarity not captured by direct relationships)
+- [ ] Results stored as "weak links" in Discovery DB with confidence scores
+- [ ] Each weak-link discovery includes `discovery_job_key`, `candidate_key`, `discovery_id`
+- [ ] `candidate_key` is deterministic for each pair + connection type (ordered cluster IDs)
+- [ ] Deduplication uses `discovery_id` as the primary uniqueness key
+- [ ] Exploration budget: max computation time per run (e.g., 15 minutes)
+- [ ] Incremental exploration: resumes from last checkpoint
+- [ ] Generates "exploration map" showing coverage of cluster space
 
 ## Technical Notes
 
@@ -149,6 +153,12 @@ class WeakLink(BaseModel):
     # For semantic search
     link_embedding: List[float]
 ```
+
+### Discovery Identity (Radar)
+
+- `discovery_job_key`: stable ID for the radar job (e.g., `radar_weak_links`)
+- `candidate_key`: `{connection_type}:{min(cluster1_id, cluster2_id)}-{max(cluster1_id, cluster2_id)}`
+- `discovery_id`: `{discovery_job_key}:{candidate_key}`
 
 ### Connection Analysis (Core Logic)
 

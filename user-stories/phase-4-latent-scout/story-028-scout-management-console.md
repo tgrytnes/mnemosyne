@@ -15,11 +15,13 @@ launch dry-run or persistent Scout scans, and review run results without relying
 - [ ] Local web UI is available (FastAPI + HTML is acceptable; no SPA required)
 - [ ] Users can create, edit, enable/disable, and delete Scout concept sets
 - [ ] Concept set fields include: key, description, positives, negatives, threshold
+- [ ] Concept key is a stable `discovery_job_key` (slug; used to build discovery IDs)
 - [ ] Validations: at least 2 positives and 1 negative, threshold in [0, 1]
 - [ ] Users can select a subset of concepts to run
 - [ ] Users can run Scout in dry-run or persist mode
 - [ ] Run history is listed with run_id, time, counts, errors, and duration
 - [ ] Users can view discoveries by run_id and pattern_type
+- [ ] Discoveries shown in the console include `discovery_id` ({job}:{candidate})
 - [ ] UI exposes a "preview score" action for a concept against a sample cluster text
 - [ ] No Telegram integration in this story (local-only console)
 - [ ] Configuration and run metadata are persisted in SQLite
@@ -32,7 +34,7 @@ launch dry-run or persistent Scout scans, and review run results without relying
 ```sql
 CREATE TABLE IF NOT EXISTS scout_concepts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT UNIQUE NOT NULL,
+  key TEXT UNIQUE NOT NULL, -- discovery_job_key
   description TEXT,
   positives_json TEXT NOT NULL,
   negatives_json TEXT NOT NULL,
@@ -56,6 +58,11 @@ CREATE TABLE IF NOT EXISTS scout_runs (
   errors_json TEXT
 );
 ```
+
+### Discovery Identity
+- `discovery_job_key` is the concept key defined in the console (slug).
+- `candidate_key` is a slug derived from the discovery label.
+- `discovery_id = {discovery_job_key}:{candidate_key}` and should be displayed in the UI.
 
 ### Minimal API Surface
 
@@ -85,4 +92,3 @@ CREATE TABLE IF NOT EXISTS scout_runs (
 
 - Story 010 (Autonomous Pattern Detection)
 - Story 027 (Message Outbox Relay) optional for later; not required here
-

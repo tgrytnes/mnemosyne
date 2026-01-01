@@ -19,7 +19,11 @@ def _vec(ollama_client, text: str) -> list[float]:
 def test_radar_explorer_stores_weak_links_with_identity(
     tmp_path: Path, weaviate_client, ollama_client, clean_weaviate_collection
 ):
-    from mnemosyne.argus.scout.radar_explorer import ExplorationSummary, RadarExplorer
+    from mnemosyne.argus.scout.radar_explorer import (
+        ExplorationSummary,
+        RadarExplorer,
+        WeakLinkDiscovery,
+    )
 
     clusters = [
         ClusterRepresentation(

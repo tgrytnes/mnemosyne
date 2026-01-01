@@ -1,4 +1,8 @@
-"""Unit tests for Story 013: discovery feed management (filters, pagination, export)."""
+"""
+Unit tests for Story 013: discovery feed management (filters, pagination, detail, export).
+"""
+
+import pytest
 
 
 def _sample_discoveries():

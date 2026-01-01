@@ -17,6 +17,8 @@ Scout operates autonomously, scanning The Muses nightly to discover latent patte
 - [ ] Results stored in Weaviate collection `Discoveries` (latent-space only)
 - [ ] Records include metadata (timestamp, pattern type, confidence, cluster_ids)
 - [ ] Deduplication logic prevents storing the same pattern repeatedly
+- [ ] Each Scout run uses a stable `discovery_job_key` (e.g., `private_projects`)
+- [ ] Each discovery has a deterministic `discovery_id` = `{discovery_job_key}:{candidate_key}`
 - [ ] Performance: Complete analysis of 416 clusters in <30 minutes on Pi 5
 - [ ] Configurable thresholds for each pattern type
 - [ ] Dry-run mode for testing pattern detection
@@ -24,6 +26,7 @@ Scout operates autonomously, scanning The Muses nightly to discover latent patte
 - [ ] Cluster representation is defined (profile summary or top-k representative chunks)
 - [ ] Prototype sets are configurable (positive/negative texts per concept)
 - [ ] Deduplication rule is explicit (pattern_type + overlapping cluster_ids + similarity threshold)
+- [ ] Deduplication uses `discovery_id` as the primary key for uniqueness
 - [ ] Weaviate discovery schema is explicit (pattern_type, cluster_ids, confidence_score, detected_at, signals)
 - [ ] Run metadata captured (run_id, clusters_analyzed, errors, dry_run flag)
 - [ ] Supports multiple concept sets (e.g., private vs professional projectness)
@@ -164,6 +167,9 @@ if concept_score(cluster_vec, project_pos, project_neg) >= 0.15:
 ```python
 class DiscoveryRecord(BaseModel):
     id: str
+    discovery_job_key: str
+    candidate_key: str
+    discovery_id: str  # {discovery_job_key}:{candidate_key}
     pattern_type: Literal['emerging_theme', 'orphan', 'contradiction', 'project_candidate']
     cluster_ids: List[str]
     title: str
@@ -179,6 +185,12 @@ class DiscoveryRecord(BaseModel):
 ```
 
 Storage: Weaviate collection "Discoveries" (latent-space only)
+
+### Discovery Identity
+
+- `discovery_job_key`: stable identifier for the scout concept/job (e.g., `private_projects`)
+- `candidate_key`: stable slug derived from the discovery label (e.g., `house_painting`)
+- `discovery_id`: `{discovery_job_key}:{candidate_key}` (used for dedup + project linking)
 
 ### Background Job Implementation
 

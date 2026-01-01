@@ -3,7 +3,6 @@
 ## Development Workflow (Strict TDD)
 - Follow strict TDD: write failing tests first, then implement, then refactor.
 - Develop locally; use the project `.venv` for Python commands when available.
-- For each worktree, create a dedicated `.venv` when needed and delete it during cleanup.
 - Integration and E2E tests must use real services and real data (no mocks).
 - Unit tests may use mocks when appropriate.
 - When fixing errors: always do a root cause analysis first and fix the root cause, if you are not able to fix the root cause, you need approval by user before proceeding.

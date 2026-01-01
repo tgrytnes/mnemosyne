@@ -1,7 +1,11 @@
-"""Unit tests for radar exploration identity/dedup/state (Story 011)."""
+"""
+Unit tests for radar exploration identity/dedup/state (Story 011).
+"""
 
 import json
 from pathlib import Path
+
+import pytest
 
 
 def test_make_candidate_key_orders_cluster_ids():
