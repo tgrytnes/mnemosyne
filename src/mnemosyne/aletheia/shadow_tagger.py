@@ -22,7 +22,9 @@ class Tagger:
             "- #daily_note\n- #meeting_notes\n\n"
             f"Note content:\n{sample}\n\nReturn ONLY the tags (one per line)."
         )
-        response = self.ollama.generate(model="qwen3:0.6b", prompt=prompt, options={"temperature": 0.2})
+        response = self.ollama.generate(
+            model="qwen3:0.6b", prompt=prompt, options={"temperature": 0.2}
+        )
         lines = response.get("response", "").split("\n")
         return [line.strip() for line in lines if line.strip().startswith("#")]
 
