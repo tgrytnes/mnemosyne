@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import csv
-import hashlib
 from collections.abc import Callable, Iterable
+import csv
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
