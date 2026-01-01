@@ -4,6 +4,10 @@ Requires real services: filesystem + Weaviate + Ollama.
 """
 
 import pytest
+from mnemosyne.aletheia.shadow_gatekeeper import ObsidianGatekeeper  # to be implemented
+from mnemosyne.aletheia.shadow_janitor import Janitor  # to be implemented
+from mnemosyne.aletheia.shadow_tagger import Tagger  # to be implemented
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
 @pytest.mark.e2e
@@ -17,11 +21,6 @@ def test_shadow_gatekeeper_approval_flow(tmp_path, weaviate_client, ollama_clien
     - Request approval -> approve -> sync back to source
     - Verify Weaviate chunks updated/deleted accordingly
     """
-    from mnemosyne.aletheia.shadow_janitor import Janitor  # to be implemented
-    from mnemosyne.aletheia.shadow_tagger import Tagger  # to be implemented
-    from mnemosyne.aletheia.shadow_gatekeeper import ObsidianGatekeeper  # to be implemented
-    from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
-
     source = tmp_path / "vault"
     shadow = tmp_path / "shadow"
     (source / "notes").mkdir(parents=True)

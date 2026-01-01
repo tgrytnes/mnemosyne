@@ -1,9 +1,5 @@
-"""
-Integration test for Story 025: shadow sync + tagging with real services.
-Requires Ollama for tagging and real filesystem operations.
-"""
+"""Integration test for Story 025: shadow sync + tagging with real services."""
 
-import os
 from pathlib import Path
 
 import pytest

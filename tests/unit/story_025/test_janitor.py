@@ -1,13 +1,6 @@
-"""
-Unit tests for Story 025: Janitor shadow sync and normalization.
-"""
+"""Unit tests for Story 025: Janitor shadow sync and normalization."""
 
-import tempfile
 from pathlib import Path
-
-import pytest
-
-from mnemosyne.aletheia import text_chunker  # for side effects of package init
 
 
 class DummyJanitor:

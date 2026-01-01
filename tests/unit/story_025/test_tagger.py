@@ -1,10 +1,6 @@
-"""
-Unit tests for Story 025 Tagger: parsing and applying tags in shadow copy.
-"""
+"""Unit tests for Story 025 Tagger: parsing and applying tags in shadow copy."""
 
 from pathlib import Path
-
-import pytest
 
 
 class DummyTagger:
