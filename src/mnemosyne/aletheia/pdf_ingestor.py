@@ -9,9 +9,9 @@ import logging
 import os
 import re
 import tempfile
+from collections.abc import Callable
 from glob import glob
 from pathlib import Path
-from typing import Callable, Dict, List
 
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
@@ -24,7 +24,7 @@ class PDFIngestor:
     Uses: PyPDF2, OCRmyPDF (if available), optional embedder callable.
     """
 
-    def __init__(self, input_dir: str, weaviate_client, embedder: Callable[[str], List[float]]):
+    def __init__(self, input_dir: str, weaviate_client, embedder: Callable[[str], list[float]]):
         self.input_dir = input_dir
         self.client = weaviate_client
         self.embedder = embedder
@@ -144,7 +144,7 @@ class PDFIngestor:
         text = re.sub(r"Page\s+\d+", " ", text, flags=re.IGNORECASE)
         return text.strip()
 
-    def chunk_text(self, text: str, chunk_size: int = 500) -> List[str]:
+    def chunk_text(self, text: str, chunk_size: int = 500) -> list[str]:
         words = text.split()
         chunks = []
         current = []
@@ -159,8 +159,8 @@ class PDFIngestor:
 
     # ---------------------- Metadata ---------------------- #
 
-    def extract_metadata(self, pdf_path: Path) -> Dict:
-        data: Dict = {}
+    def extract_metadata(self, pdf_path: Path) -> dict:
+        data: dict = {}
         try:
             with open(pdf_path, "rb") as f:
                 reader = self._load_pypdf2().PdfReader(f)
@@ -178,7 +178,7 @@ class PDFIngestor:
 
     # ---------------------- Helpers ---------------------- #
 
-    def _safe_embed(self, text: str) -> List[float]:
+    def _safe_embed(self, text: str) -> list[float]:
         try:
             return self.embedder(text)
         except Exception as exc:

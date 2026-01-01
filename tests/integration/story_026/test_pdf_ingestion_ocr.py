@@ -3,9 +3,10 @@ Integration test for Story 026: OCR path for scanned PDFs.
 Requires OCRmyPDF, Weaviate, and Ollama running.
 """
 
-import pytest
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+import pytest
 
 ocrmypdf = pytest.importorskip("ocrmypdf", reason="ocrmypdf not installed")
 
@@ -19,15 +20,20 @@ def test_ocr_pdf_ingestion(tmp_path, weaviate_client, ollama_client):
 
     # Use a sample scanned PDF (place one in test_data/fake_pdfs)
     scanned_pdf = tmp_path / "scanned.pdf"
-    src_pdf = (Path(__file__).parent / "../../test_data/fake_pdfs/doc_12_scan_log.pdf").resolve()
+    src_pdf = (
+        Path(__file__).resolve().parents[4]
+        / "test_data"
+        / "fake_pdfs"
+        / "doc_12_scan_log.pdf"
+    )
     shutil.copy(src_pdf, scanned_pdf)
 
     ingestor = PDFIngestor(
         input_dir=str(tmp_path),
         weaviate_client=weaviate_client,
-        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
-            "embedding"
-        ],
+        embedder=lambda txt: ollama_client.embeddings(
+            model="qwen3-embedding:0.6b", prompt=txt
+        )["embedding"],
     )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")

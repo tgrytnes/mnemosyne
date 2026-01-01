@@ -3,9 +3,10 @@ Integration test for Story 026: text-based PDF ingestion.
 Requires Weaviate and Ollama running.
 """
 
-import pytest
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.integration
@@ -18,17 +19,20 @@ def test_text_pdf_ingestion_to_thelethe(tmp_path, weaviate_client, ollama_client
     # Prepare a simple text PDF
     sample_pdf = tmp_path / "sample.pdf"
     src_pdf = (
-        Path(__file__).parent / "../../test_data/fake_pdfs/doc_01_project_brief.pdf"
-    ).resolve()
+        Path(__file__).resolve().parents[4]
+        / "test_data"
+        / "fake_pdfs"
+        / "doc_01_project_brief.pdf"
+    )
     shutil.copy(src_pdf, sample_pdf)
 
     cfg_dir = tmp_path
     ingestor = PDFIngestor(
         input_dir=str(cfg_dir),
         weaviate_client=weaviate_client,
-        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
-            "embedding"
-        ],
+        embedder=lambda txt: ollama_client.embeddings(
+            model="qwen3-embedding:0.6b", prompt=txt
+        )["embedding"],
     )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")

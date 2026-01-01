@@ -3,9 +3,9 @@ E2E test for Story 026: mixed PDF ingestion (text + scanned) end-to-end.
 Requires Weaviate + Ollama + OCRmyPDF.
 """
 
-import pytest
 import shutil
 from pathlib import Path
+import pytest
 
 ocrmypdf = pytest.importorskip("ocrmypdf", reason="ocrmypdf not installed")
 
@@ -24,10 +24,7 @@ def test_mixed_pdf_ingestion_end_to_end(tmp_path, weaviate_client, ollama_client
     from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
     # Copy mixed PDFs from test_data
-    import shutil
-    from pathlib import Path
-
-    src_dir = Path(__file__).parent / "../../test_data/fake_pdfs"
+    src_dir = Path(__file__).resolve().parents[4] / "test_data" / "fake_pdfs"
     for name in ["doc_01_project_brief.pdf", "doc_12_scan_log.pdf"]:
         shutil.copy(src_dir / name, tmp_path / name)
 
