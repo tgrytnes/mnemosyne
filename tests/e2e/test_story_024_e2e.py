@@ -1,5 +1,5 @@
 """
-E2E test for Story 024: ingest TSV -> clean/dedup/embed -> store in TheLethe.
+E2E test for Story 024: ingest TSV → clean/dedup/embed → store in TheLethe.
 """
 
 import pytest
@@ -18,17 +18,14 @@ def test_story_024_ingest_and_cluster(
     from mnemosyne.aletheia.email_ingest import EmailIngestConfig, EmailIngestor
 
     tsv = tmp_path / "emails.tsv"
-    tsv.write_text(
-        "subject\tbody\tsource\tmessage_id\tdate\n"
-        "Project Update\tWe shipped the release and have invoices to process.\t"
-        "file1\tmsg-10\t2024-02-01\n"
-        "Shipping Notice\tYour parcel is on the way with tracking link.\t"
-        "file2\tmsg-11\t2024-02-02\n"
-        "Invoice\tInvoice for your recent order, please pay.\t"
-        "file3\tmsg-12\t2024-02-03\n"
-        "Social\tSee you at the meeting next week.\tfile4\tmsg-13\t2024-02-04\n",
-        encoding="utf-8",
-    )
+    rows = [
+        "subject\tbody\tsource\tmessage_id\tdate",
+        "Project Update\tWe shipped the release and have invoices to process.\tfile1\tmsg-10\t2024-02-01",
+        "Shipping Notice\tYour parcel is on the way with tracking link.\tfile2\tmsg-11\t2024-02-02",
+        "Invoice\tInvoice for your recent order, please pay.\tfile3\tmsg-12\t2024-02-03",
+        "Social\tSee you at the meeting next week.\tfile4\tmsg-13\t2024-02-04",
+    ]
+    tsv.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
     cfg = EmailIngestConfig(
         tsv_path=tsv,
@@ -37,9 +34,7 @@ def test_story_024_ingest_and_cluster(
         dedup=True,
     )
     ingestor = EmailIngestor(
-        cfg,
-        weaviate_client,
-        embedder=lambda text: _embed(ollama_client, text),
+        cfg, weaviate_client, embedder=lambda text: _embed(ollama_client, text)
     )
     summary = ingestor.run()
 
