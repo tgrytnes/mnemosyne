@@ -279,17 +279,25 @@ class LinearSyncer:
             }
         }
         """
-        data = self.graphql_query(
-            mutation,
-            {"teamId": self.team_id, "name": name, "color": color},
-        )
-        # Linear may report duplicate even if label already exists (pagination quirks).
-        # If so, reload labels and return the existing id.
-        issue_label = data.get("issueLabelCreate", {}).get("issueLabel")
-        if issue_label:
-            label_id = issue_label["id"]
-            self.label_ids[name] = label_id
-            return label_id
+        try:
+            data = self.graphql_query(
+                mutation,
+                {"teamId": self.team_id, "name": name, "color": color},
+            )
+            issue_label = data.get("issueLabelCreate", {}).get("issueLabel")
+            if issue_label:
+                label_id = issue_label["id"]
+                self.label_ids[name] = label_id
+                return label_id
+        except RuntimeError as exc:
+            if "duplicate label name" not in str(exc):
+                raise
+            # Reload to pick up the existing id
+            self.load_labels()
+            existing_id = self.label_ids.get(name)
+            if existing_id:
+                return existing_id
+            raise
 
         # Fallback: reload labels and fetch the id
         self.load_labels()
