@@ -131,12 +131,56 @@ class QueryCacheStore:
         self._conn.commit()
         return cursor.rowcount
 
+    def invalidate_by_cluster_ids(self, cluster_ids: list[str]) -> int:
+        if not cluster_ids:
+            return 0
+        cluster_set = {str(cid) for cid in cluster_ids}
+        rows = self.get_all()
+        to_delete: list[int] = []
+
+        for row in rows:
+            try:
+                payload = json.loads(row["result_json"])
+            except json.JSONDecodeError:
+                continue
+            if _result_mentions_clusters(payload, cluster_set):
+                to_delete.append(row["id"])
+
+        if not to_delete:
+            return 0
+
+        placeholders = ", ".join("?" for _ in to_delete)
+        self._conn.execute(
+            f"DELETE FROM query_cache WHERE id IN ({placeholders})",
+            tuple(to_delete),
+        )
+        self._conn.commit()
+        return len(to_delete)
+
     def close(self) -> None:
         self._conn.close()
 
     @staticmethod
     def _hash_query(query_text: str) -> str:
         return sha256(query_text.strip().lower().encode("utf-8")).hexdigest()
+
+
+def _result_mentions_clusters(payload: dict[str, Any], cluster_set: set[str]) -> bool:
+    cluster_id = payload.get("cluster_id")
+    if cluster_id is not None and str(cluster_id) in cluster_set:
+        return True
+
+    cluster_ids = payload.get("cluster_ids")
+    if isinstance(cluster_ids, list) and any(str(cid) in cluster_set for cid in cluster_ids):
+        return True
+
+    clusters = payload.get("clusters")
+    if isinstance(clusters, list):
+        for cluster in clusters:
+            if isinstance(cluster, dict) and str(cluster.get("cluster_id")) in cluster_set:
+                return True
+
+    return False
 
 
 class SemanticRouter:

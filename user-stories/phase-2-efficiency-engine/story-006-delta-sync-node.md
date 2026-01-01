@@ -6,13 +6,16 @@
 
 ## Acceptance Criteria
 - [ ] Background LangGraph node that runs on a schedule (e.g., every 30 minutes)
-- [ ] Tracks last sync timestamp per cluster
-- [ ] Identifies clusters with new/modified vectors since last sync
+- [ ] Tracks last sync state per cluster in The Ananke (Postgres)
+- [ ] Identifies clusters with new/modified vectors since last sync using:
+      - preferred: Weaviate object/cluster `lastModified` metadata when available
+      - fallback: vector count change vs `vector_count_at_sync`
 - [ ] Only re-runs Cluster Profile generation (Story 002) for changed clusters
-- [ ] Updates cluster relationships (Story 003) if cluster profiles changed
-- [ ] Invalidates query cache (Story 005) for affected clusters
-- [ ] Logs delta sync statistics (clusters processed, time taken)
-- [ ] Graceful handling of sync failures (retry logic)
+- [ ] Computes a `profile_hash` (e.g., SHA256 of normalized profile JSON) to detect actual changes
+- [ ] Updates cluster relationships (Story 003) only when `profile_hash` changes
+- [ ] Invalidates query cache (Story 005) for affected clusters (by cluster/profile id)
+- [ ] Logs delta sync statistics (clusters processed, changed vs skipped, time taken)
+- [ ] Graceful handling of sync failures (retry with backoff; record last_error and sync_status)
 
 ## Technical Notes
 
@@ -34,7 +37,9 @@ class ClusterSyncState(BaseModel):
     cluster_id: str
     last_sync_timestamp: datetime
     vector_count_at_sync: int
-    profile_version: int
+    profile_hash: str
+    sync_status: str  # success|failed|skipped
+    last_error: str | None
     next_sync_scheduled: datetime
 ```
 
@@ -48,8 +53,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 def delta_sync_node(state: SyncState) -> SyncState:
     # 1. Identify changed clusters
     # 2. Re-run Cluster Profile generation
-    # 3. Update relationships if needed
-    # 4. Invalidate cache
+    # 3. Compute profile_hash to detect changes
+    # 4. Update relationships if needed
+    # 5. Invalidate cache
     # 5. Update sync state
     return updated_state
 
@@ -64,9 +70,7 @@ scheduler.add_job(delta_sync_node, 'interval', minutes=30)
 - **Story 005**: Invalidate cached queries mentioning affected clusters
 
 ### Performance Targets
-- Process 10 changed clusters in <5 minutes on Pi 5
-- Minimize Weaviate query load (batch operations)
-- Avoid blocking user queries
+- Not essential for now; track duration in logs and keep batch operations where possible
 
 ### Dependencies
 - The Graphos file watcher (Aletheia) - signals vault changes
@@ -92,3 +96,8 @@ scheduler.add_job(delta_sync_node, 'interval', minutes=30)
 - Story 002: Structured Metadata Synthesis (re-generates profiles)
 - Story 003: Automated Graph Taxonomy (updates relationships)
 - Story 005: Semantic Routing (cache invalidation)
+
+## Test Coverage Plan
+- **Unit**: delta detection, profile hashing, sync state updates, retry/backoff logic
+- **Integration**: Weaviate + Ollama + Postgres + Neo4j; verify only changed clusters re-profile, graph updates on hash change, cache invalidated
+- **E2E**: extend clustering pipeline E2E to add a new note, run delta sync, verify updated profile + graph relation + cache invalidation
