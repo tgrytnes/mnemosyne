@@ -17,6 +17,8 @@ from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_EMBED_DIM = 1536
+
 
 class PDFIngestor:
     """
@@ -183,7 +185,7 @@ class PDFIngestor:
             return self.embedder(text)
         except Exception as exc:
             logger.warning("Embedding failed, returning zero vector: %s", exc)
-            return []
+            return [0.0] * DEFAULT_EMBED_DIM
 
     # ---------------------- Internal helpers ---------------------- #
 

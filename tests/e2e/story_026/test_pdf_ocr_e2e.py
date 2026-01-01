@@ -5,6 +5,7 @@ Requires Weaviate + Ollama + OCRmyPDF.
 
 import shutil
 from pathlib import Path
+
 import pytest
 
 ocrmypdf = pytest.importorskip("ocrmypdf", reason="ocrmypdf not installed")
