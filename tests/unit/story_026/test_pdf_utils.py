@@ -46,6 +46,9 @@ def test_chunk_text_respects_chunk_size():
 def test_is_text_pdf_detection(mocker, tmp_path):
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_text("fake")
-    mocker.patch("mnemosyne.aletheia.pdf_ingestor.PDFIngestor._extract_first_page_text", return_value="some text here")
+    mocker.patch(
+        "mnemosyne.aletheia.pdf_ingestor.PDFIngestor._extract_first_page_text",
+        return_value="some text here",
+    )
     ingestor = DummyPDFIngestor()
     assert ingestor.is_text_pdf(str(pdf_path)) is True

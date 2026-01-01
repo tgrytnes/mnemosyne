@@ -34,7 +34,9 @@ def test_mixed_pdf_ingestion_end_to_end(tmp_path, weaviate_client, ollama_client
     ingestor = PDFIngestor(
         input_dir=str(tmp_path),
         weaviate_client=weaviate_client,
-        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)["embedding"],
+        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
+            "embedding"
+        ],
     )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")

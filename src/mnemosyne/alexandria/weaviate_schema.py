@@ -142,9 +142,17 @@ class TheLethe:
         {"name": "type", "dataType": ["text"], "description": "Artifact type"},
         {"name": "messageId", "dataType": ["text"], "description": "Stable message identifier"},
         {"name": "sourcePath", "dataType": ["text"], "description": "Original file/source path"},
-        {"name": "documentType", "dataType": ["text"], "description": "Document type (pdf/email/etc.)"},
+        {
+            "name": "documentType",
+            "dataType": ["text"],
+            "description": "Document type (pdf/email/etc.)",
+        },
         {"name": "pageNumber", "dataType": ["int"], "description": "Page number for PDF chunks"},
-        {"name": "creationDate", "dataType": ["text"], "description": "Creation date from metadata"},
+        {
+            "name": "creationDate",
+            "dataType": ["text"],
+            "description": "Creation date from metadata",
+        },
     ]
 
 class TheLethe:

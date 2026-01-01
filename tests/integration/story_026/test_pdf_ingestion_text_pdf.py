@@ -17,11 +17,19 @@ def test_text_pdf_ingestion_to_thelethe(tmp_path, weaviate_client, ollama_client
 
     # Prepare a simple text PDF
     sample_pdf = tmp_path / "sample.pdf"
-    src_pdf = (Path(__file__).parent / "../../test_data/fake_pdfs/doc_01_project_brief.pdf").resolve()
+    src_pdf = (
+        Path(__file__).parent / "../../test_data/fake_pdfs/doc_01_project_brief.pdf"
+    ).resolve()
     shutil.copy(src_pdf, sample_pdf)
 
     cfg_dir = tmp_path
-    ingestor = PDFIngestor(input_dir=str(cfg_dir), weaviate_client=weaviate_client, embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)["embedding"])
+    ingestor = PDFIngestor(
+        input_dir=str(cfg_dir),
+        weaviate_client=weaviate_client,
+        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
+            "embedding"
+        ],
+    )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")
     ingestor.ingest_pdfs()
