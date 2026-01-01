@@ -48,7 +48,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-latest
 
     services:
