@@ -4,10 +4,11 @@ Requires real services: filesystem + Weaviate + Ollama.
 """
 
 import pytest
-from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+
 from mnemosyne.aletheia.shadow_gatekeeper import ObsidianGatekeeper  # to be implemented
 from mnemosyne.aletheia.shadow_janitor import Janitor  # to be implemented
 from mnemosyne.aletheia.shadow_tagger import Tagger  # to be implemented
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
 @pytest.mark.e2e

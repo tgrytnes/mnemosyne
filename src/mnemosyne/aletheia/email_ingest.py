@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import csv
 import hashlib
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
 
-from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from weaviate.classes.config import DataType, Property
+
 from mnemosyne.aletheia.email_cleaner import clean_email_body, contains_mojibake, truncate_body
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
 @dataclass
@@ -59,8 +61,6 @@ class EmailIngestor:
             "messageId": "text",
             "sourcePath": "text",
         }
-        from weaviate.classes.config import Property, DataType
-
         for name, dtype in needed.items():
             if name in existing:
                 continue
@@ -90,9 +90,7 @@ class EmailIngestor:
                 continue
 
             msg_id = email.get("message_id") or ""
-            stable = (
-                msg_id or hashlib.sha256(f"{email['subject']}{body}".encode("utf-8")).hexdigest()
-            )
+            stable = msg_id or hashlib.sha256(f"{email['subject']}{body}".encode()).hexdigest()
             if self.config.dedup and stable in seen_ids:
                 duplicates += 1
                 continue
