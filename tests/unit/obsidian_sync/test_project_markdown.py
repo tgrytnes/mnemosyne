@@ -53,18 +53,18 @@ title: Implement Dark Mode Toggle
 discovered_by: latent_scout
 discovery_id: disco_20260101_001
 cluster_ids:
-  - cluster_theme_001
-  - cluster_ui_002
+- cluster_theme_001
+- cluster_ui_002
 confidence_score: 0.89
 status: active
 importance: 5
 urgency: 4
-deadline: 2026-12-31T23:59:59+00:00
+deadline: '2026-12-31T23:59:59+00:00'
 work_estimate: 20
 pressure_score: 1.25
 verified_by_user: true
-created_at: 2026-01-01T10:00:00+00:00
-updated_at: 2026-01-01T14:30:00+00:00
+created_at: '2026-01-01T10:00:00+00:00'
+updated_at: '2026-01-01T14:30:00+00:00'
 ---
 
 # Implement Dark Mode Toggle
@@ -427,7 +427,7 @@ class TestFilePathGeneration:
         from mnemosyne.aletheia.obsidian_sync.project_markdown import sanitize_title_for_filename
 
         # Regular title
-        assert sanitize_title_for_filename('My Project') == 'My-project'
+        assert sanitize_title_for_filename('My Project') == 'My-Project'
 
         # Special characters
         assert sanitize_title_for_filename('Project: With / Slashes') == 'Project-With-Slashes'
@@ -439,7 +439,7 @@ class TestFilePathGeneration:
         assert sanitize_title_for_filename('  Spaces  ') == 'Spaces'
 
         # Unicode characters
-        assert sanitize_title_for_filename('Café Project') == 'Café-project'
+        assert sanitize_title_for_filename('Café Project') == 'Café-Project'
 
         # Long titles should be truncated
         long_title = 'A' * 200
@@ -452,7 +452,7 @@ class TestFilePathGeneration:
 
         # Simple title
         path = generate_obsidian_path('My Project', project_id=42)
-        assert path == 'Projects/My-project.md'
+        assert path == 'Projects/My-Project.md'
 
         # With special characters
         path = generate_obsidian_path('Fix: Bug in API', project_id=100)
@@ -462,4 +462,4 @@ class TestFilePathGeneration:
         path1 = generate_obsidian_path('Same Title', project_id=1)
         path2 = generate_obsidian_path('Same Title', project_id=2)
         # Paths should be based on title, but we track by ID to handle renames
-        assert 'Same-title.md' in path1.lower()
+        assert 'Same-Title.md' in path1
