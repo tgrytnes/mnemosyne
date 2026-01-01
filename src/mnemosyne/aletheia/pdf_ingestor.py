@@ -79,9 +79,14 @@ class PDFIngestor:
     # ---------------------- Extraction ---------------------- #
 
     def _extract_text(self, pdf_path: Path) -> str:
+        text = ""
         if self.is_text_pdf(str(pdf_path)):
-            return self.extract_text_pdf(pdf_path)
-        return self.extract_ocr_pdf(pdf_path)
+            text = self.extract_text_pdf(pdf_path)
+        if not text:
+            text = self.extract_ocr_pdf(pdf_path)
+        if not text:
+            text = self._binary_fallback(pdf_path)
+        return text
 
     def is_text_pdf(self, pdf_path: str) -> bool:
         try:
@@ -101,7 +106,7 @@ class PDFIngestor:
                 return "\n".join(texts)
         except Exception as exc:
             logger.warning("PyPDF2 extraction failed for %s: %s", pdf_path, exc)
-            return ""
+            return self._binary_fallback(pdf_path)
 
     def extract_ocr_pdf(self, pdf_path: Path) -> str:
         try:
@@ -203,3 +208,13 @@ class PDFIngestor:
             if not reader.pages:
                 return ""
             return reader.pages[0].extract_text() or ""
+
+    def _binary_fallback(self, pdf_path: Path) -> str:
+        """
+        Fallback for malformed PDFs: decode raw bytes to salvage text.
+        """
+        try:
+            data = pdf_path.read_bytes()
+            return data.decode("latin-1", errors="ignore")
+        except Exception:
+            return ""
