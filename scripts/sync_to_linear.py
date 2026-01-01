@@ -251,7 +251,7 @@ class LinearSyncer:
         query = """
         query($teamId: String!) {
             team(id: $teamId) {
-                labels {
+                labels(first: 200) {
                     nodes {
                         id
                         name
