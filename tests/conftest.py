@@ -169,7 +169,7 @@ def weaviate_client(test_config):
 @pytest.fixture
 def clean_weaviate_collection(weaviate_client):
     """Clean up test collections before and after tests"""
-    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe_Test"]
+    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe", "TheLethe_Test"]
 
     # Clean before
     for collection_name in test_collections:
