@@ -303,7 +303,6 @@ class WeaviateSchemaManager:
             properties=properties,
         )
 
-    
     def _create_thelethe_collection(self) -> None:
         """Create TheLethe collection with proper schema"""
         properties = [

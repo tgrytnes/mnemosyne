@@ -90,9 +90,9 @@ class EmailIngestor:
                 continue
 
             msg_id = email.get("message_id") or ""
-            stable = msg_id or hashlib.sha256(
-                f"{email['subject']}{body}".encode("utf-8")
-            ).hexdigest()
+            stable = (
+                msg_id or hashlib.sha256(f"{email['subject']}{body}".encode("utf-8")).hexdigest()
+            )
             if self.config.dedup and stable in seen_ids:
                 duplicates += 1
                 continue
