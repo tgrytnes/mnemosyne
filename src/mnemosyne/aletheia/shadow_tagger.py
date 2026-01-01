@@ -21,11 +21,23 @@ class Tagger:
             "- #daily_note\n- #meeting_notes\n\n"
             f"Note content:\n{sample}\n\nReturn ONLY the tags (one per line)."
         )
-        response = self.ollama.generate(
-            model="qwen3:0.6b", prompt=prompt, options={"temperature": 0.2}
-        )
-        lines = response.get("response", "").split("\n")
-        return [line.strip() for line in lines if line.strip().startswith("#")]
+        try:
+            response = self.ollama.generate(
+                model="qwen3:0.6b", prompt=prompt, options={"temperature": 0.2}
+            )
+            lines = response.get("response", "").split("\n")
+            tags = [line.strip() for line in lines if line.strip().startswith("#")]
+        except Exception:
+            tags = []
+
+        # Fallback heuristic if LLM yields nothing
+        if not tags:
+            lowered = sample.lower()
+            if "project" in lowered or "draft" in lowered or "todo" in lowered:
+                tags.append("#project_candidate")
+            else:
+                tags.append("#needs_review")
+        return tags
 
     def apply_tags_to_file(self, shadow_file_path: Path, tags: list[str]):
         content = Path(shadow_file_path).read_text(encoding="utf-8")

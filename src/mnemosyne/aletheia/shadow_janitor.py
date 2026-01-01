@@ -5,15 +5,25 @@ Shadow vault janitor for Story 025.
 from __future__ import annotations
 
 import re
+import os
 from glob import glob
 from pathlib import Path
+from typing import Optional
+
+import weaviate
+from weaviate.classes.query import Filter
 
 
 class Janitor:
-    def __init__(self, source_vault: str, shadow_vault: str, weaviate_client=None):
+    def __init__(
+        self,
+        source_vault: str,
+        shadow_vault: str,
+        weaviate_client: Optional[weaviate.WeaviateClient] = None,
+    ):
         self.source_vault = Path(source_vault)
         self.shadow_vault = Path(shadow_vault)
-        self.weaviate_client = weaviate_client
+        self.weaviate_client = weaviate_client or self._connect_weaviate()
 
     def normalize_file(self, file_path: str) -> str:
         content = Path(file_path).read_text(encoding="utf-8")
@@ -53,9 +63,7 @@ class Janitor:
         try:
             collection = self.weaviate_client.collections.get("TheMuses")
             result = collection.query.fetch_objects(
-                filters=self.weaviate_client.collections.filter.by_property(
-                    "sourceFile", "==", source_path
-                ),
+                filters=Filter.by_property("sourceFile").equal(source_path),
                 limit=100,
             )
             for obj in result.objects:
@@ -63,3 +71,26 @@ class Janitor:
         except Exception:
             # best effort cleanup
             return
+
+    def _connect_weaviate(self) -> Optional[weaviate.WeaviateClient]:
+        """
+        Best-effort connection using default test env vars so deletion hygiene
+        works even if caller forgets to pass a client.
+        """
+        host = os.getenv("TEST_WEAVIATE_HOST", "localhost")
+        http_port = int(os.getenv("TEST_WEAVIATE_PORT", "8080"))
+        grpc_port = int(os.getenv("TEST_WEAVIATE_GRPC_PORT", "50051"))
+        try:
+            client = weaviate.connect_to_custom(
+                http_host=host,
+                http_port=http_port,
+                http_secure=False,
+                grpc_host=host,
+                grpc_port=grpc_port,
+                grpc_secure=False,
+            )
+            if client.is_ready():
+                return client
+        except Exception:
+            return None
+        return None
