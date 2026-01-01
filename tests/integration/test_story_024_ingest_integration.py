@@ -15,7 +15,10 @@ def _embed(ollama_client, text: str) -> list[float]:
 @pytest.mark.integration
 @pytest.mark.weaviate
 def test_email_ingest_to_lethe(
-    tmp_path: Path, weaviate_client, clean_weaviate_collection, ollama_client
+    tmp_path: Path,
+    weaviate_client,
+    clean_weaviate_collection,
+    ollama_client,
 ):
     from mnemosyne.aletheia.email_ingest import EmailIngestConfig, EmailIngestor
 
@@ -34,7 +37,11 @@ def test_email_ingest_to_lethe(
         collection_name="TheLethe",
         dedup=True,
     )
-    ingestor = EmailIngestor(cfg, weaviate_client, embedder=lambda text: _embed(ollama_client, text))
+    ingestor = EmailIngestor(
+        cfg,
+        weaviate_client,
+        embedder=lambda text: _embed(ollama_client, text),
+    )
     result = ingestor.run()
 
     assert result.total_loaded == 3

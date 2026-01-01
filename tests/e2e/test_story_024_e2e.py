@@ -12,7 +12,9 @@ def _embed(ollama_client, text: str) -> list[float]:
 
 @pytest.mark.e2e
 @pytest.mark.weaviate
-def test_story_024_ingest_and_cluster(tmp_path, weaviate_client, ollama_client, clean_weaviate_collection):
+def test_story_024_ingest_and_cluster(
+    tmp_path, weaviate_client, ollama_client, clean_weaviate_collection
+):
     from mnemosyne.aletheia.email_ingest import EmailIngestConfig, EmailIngestor
 
     tsv = tmp_path / "emails.tsv"
@@ -31,7 +33,11 @@ def test_story_024_ingest_and_cluster(tmp_path, weaviate_client, ollama_client, 
         collection_name="TheLethe",
         dedup=True,
     )
-    ingestor = EmailIngestor(cfg, weaviate_client, embedder=lambda text: _embed(ollama_client, text))
+    ingestor = EmailIngestor(
+        cfg,
+        weaviate_client,
+        embedder=lambda text: _embed(ollama_client, text),
+    )
     summary = ingestor.run()
 
     assert summary.total_loaded == 4

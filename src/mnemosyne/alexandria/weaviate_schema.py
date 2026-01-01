@@ -122,8 +122,6 @@ class ClusterCentroidCollection:
     ]
 
 
-
-
 class TheLethe:
     """
     Schema for TheLethe collection (email archive).
@@ -136,15 +134,51 @@ class TheLethe:
     vectorizer = "none"  # manual vectors via embedder
 
     properties = [
-        {"name": "subject", "dataType": ["text"], "description": "Email subject"},
-        {"name": "body", "dataType": ["text"], "description": "Cleaned email body"},
-        {"name": "sender", "dataType": ["text"], "description": "Sender address"},
-        {"name": "date", "dataType": ["text"], "description": "Date string"},
-        {"name": "clusterId", "dataType": ["int"], "description": "Assigned cluster id"},
-        {"name": "keywords", "dataType": ["text[]"], "description": "Extracted keywords"},
-        {"name": "type", "dataType": ["text"], "description": "Artifact type"},
-        {"name": "messageId", "dataType": ["text"], "description": "Stable message identifier"},
-        {"name": "sourcePath", "dataType": ["text"], "description": "Original file/source path"},
+        {
+            "name": "subject",
+            "dataType": ["text"],
+            "description": "Email subject",
+        },
+        {
+            "name": "body",
+            "dataType": ["text"],
+            "description": "Cleaned email body",
+        },
+        {
+            "name": "sender",
+            "dataType": ["text"],
+            "description": "Sender address",
+        },
+        {
+            "name": "date",
+            "dataType": ["text"],
+            "description": "Date string",
+        },
+        {
+            "name": "clusterId",
+            "dataType": ["int"],
+            "description": "Assigned cluster id",
+        },
+        {
+            "name": "keywords",
+            "dataType": ["text[]"],
+            "description": "Extracted keywords",
+        },
+        {
+            "name": "type",
+            "dataType": ["text"],
+            "description": "Artifact type",
+        },
+        {
+            "name": "messageId",
+            "dataType": ["text"],
+            "description": "Stable message identifier",
+        },
+        {
+            "name": "sourcePath",
+            "dataType": ["text"],
+            "description": "Original file/source path",
+        },
     ]
 
 
