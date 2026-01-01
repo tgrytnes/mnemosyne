@@ -31,8 +31,11 @@ class IngestSummary:
 
 class EmailIngestor:
     def __init__(
-        self, config: EmailIngestConfig, weaviate_client, embedder: Callable[[str], list[float]]
-    ):
+        self,
+        config: EmailIngestConfig,
+        weaviate_client,
+        embedder: Callable[[str], list[float]],
+    ) -> None:
         self.config = config
         self.client = weaviate_client
         self.embedder = embedder
@@ -87,9 +90,9 @@ class EmailIngestor:
                 continue
 
             msg_id = email.get("message_id") or ""
-            stable = (
-                msg_id or hashlib.sha256(f"{email['subject']}{body}".encode()).hexdigest()
-            )
+            stable = msg_id or hashlib.sha256(
+                f"{email['subject']}{body}".encode("utf-8")
+            ).hexdigest()
             if self.config.dedup and stable in seen_ids:
                 duplicates += 1
                 continue
