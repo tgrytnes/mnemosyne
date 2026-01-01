@@ -5,14 +5,13 @@ Tagging utilities for the shadow vault (Story 025).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 
 class Tagger:
     def __init__(self, ollama_client):
         self.ollama = ollama_client
 
-    def tag_file(self, shadow_file_path: Path) -> List[str]:
+    def tag_file(self, shadow_file_path: Path) -> list[str]:
         content = Path(shadow_file_path).read_text(encoding="utf-8")
         sample = content[:1000]
         prompt = (
@@ -28,7 +27,7 @@ class Tagger:
         lines = response.get("response", "").split("\n")
         return [line.strip() for line in lines if line.strip().startswith("#")]
 
-    def apply_tags_to_file(self, shadow_file_path: Path, tags: List[str]):
+    def apply_tags_to_file(self, shadow_file_path: Path, tags: list[str]):
         content = Path(shadow_file_path).read_text(encoding="utf-8")
         if content.startswith("---"):
             parts = content.split("---", 2)

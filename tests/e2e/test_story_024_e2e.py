@@ -20,8 +20,14 @@ def test_story_024_ingest_and_cluster(
     tsv = tmp_path / "emails.tsv"
     rows = [
         "subject\tbody\tsource\tmessage_id\tdate",
-        "Project Update\tWe shipped the release and have invoices to process.\tfile1\tmsg-10\t2024-02-01",
-        "Shipping Notice\tYour parcel is on the way with tracking link.\tfile2\tmsg-11\t2024-02-02",
+        (
+            "Project Update\tWe shipped the release and have invoices to process."
+            "\tfile1\tmsg-10\t2024-02-01"
+        ),
+        (
+            "Shipping Notice\tYour parcel is on the way with tracking link."
+            "\tfile2\tmsg-11\t2024-02-02"
+        ),
         "Invoice\tInvoice for your recent order, please pay.\tfile3\tmsg-12\t2024-02-03",
         "Social\tSee you at the meeting next week.\tfile4\tmsg-13\t2024-02-04",
     ]

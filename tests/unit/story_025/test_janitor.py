@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 
 class DummyJanitor:
     """Minimal Janitor stub to exercise normalize logic without full implementation."""

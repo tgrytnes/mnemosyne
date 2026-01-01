@@ -8,14 +8,13 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
 
 
 @dataclass
 class ApprovalRequest:
     shadow_file: str
     source_file: str
-    changes: Dict
+    changes: dict
     requested_at: datetime
 
 
@@ -23,13 +22,13 @@ class ObsidianGatekeeper:
     def __init__(self, source_vault: str, shadow_vault: str):
         self.source_vault = Path(source_vault)
         self.shadow_vault = Path(shadow_vault)
-        self.pending_approvals: List[ApprovalRequest] = []
+        self.pending_approvals: list[ApprovalRequest] = []
 
     def get_source_path(self, shadow_file: str) -> str:
         rel = Path(shadow_file).relative_to(self.shadow_vault)
         return str(self.source_vault / rel)
 
-    def request_approval(self, shadow_file: str, changes: Dict):
+    def request_approval(self, shadow_file: str, changes: dict):
         req = ApprovalRequest(
             shadow_file=shadow_file,
             source_file=self.get_source_path(shadow_file),

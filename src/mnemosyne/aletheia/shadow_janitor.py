@@ -4,9 +4,7 @@ Shadow vault janitor for Story 025.
 
 from __future__ import annotations
 
-import os
 import re
-import shutil
 from glob import glob
 from pathlib import Path
 
