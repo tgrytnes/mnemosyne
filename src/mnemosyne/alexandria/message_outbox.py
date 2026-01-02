@@ -45,6 +45,7 @@ class OutboxMessage:
         last_attempted_at: Most recent delivery attempt timestamp
         delivered_at: When successfully delivered to user
     """
+
     id: int
     message_id: str
     message_type: str
@@ -62,7 +63,7 @@ class OutboxMessage:
     delivered_at: Optional[datetime]
 
     @classmethod
-    def from_row(cls, row: Dict[str, Any]) -> 'OutboxMessage':
+    def from_row(cls, row: Dict[str, Any]) -> "OutboxMessage":
         """
         Create OutboxMessage from database row
 
@@ -73,21 +74,21 @@ class OutboxMessage:
             OutboxMessage instance
         """
         return cls(
-            id=row['id'],
-            message_id=row['message_id'],
-            message_type=row['message_type'],
-            originating_agent=row['originating_agent'],
-            context_id=row['context_id'],
-            payload=json.loads(row['payload_json']),
-            status=row['status'],
-            expects_response=bool(row['expects_response']),
-            response_received_at=_parse_timestamp(row['response_received_at']),
-            response=json.loads(row['response_json']) if row['response_json'] else None,
-            attempts=row['attempts'],
-            last_error=row['last_error'],
-            created_at=_parse_timestamp(row['created_at']),
-            last_attempted_at=_parse_timestamp(row['last_attempted_at']),
-            delivered_at=_parse_timestamp(row['delivered_at'])
+            id=row["id"],
+            message_id=row["message_id"],
+            message_type=row["message_type"],
+            originating_agent=row["originating_agent"],
+            context_id=row["context_id"],
+            payload=json.loads(row["payload_json"]),
+            status=row["status"],
+            expects_response=bool(row["expects_response"]),
+            response_received_at=_parse_timestamp(row["response_received_at"]),
+            response=json.loads(row["response_json"]) if row["response_json"] else None,
+            attempts=row["attempts"],
+            last_error=row["last_error"],
+            created_at=_parse_timestamp(row["created_at"]),
+            last_attempted_at=_parse_timestamp(row["last_attempted_at"]),
+            delivered_at=_parse_timestamp(row["delivered_at"]),
         )
 
 
@@ -135,12 +136,7 @@ class MessageOutbox:
     """
 
     # Valid message types
-    VALID_MESSAGE_TYPES = {
-        'notification',
-        'approval_request',
-        'escalation',
-        'question'
-    }
+    VALID_MESSAGE_TYPES = {"notification", "approval_request", "escalation", "question"}
 
     # Max delivery attempts before marking as failed
     MAX_ATTEMPTS = 3
@@ -162,7 +158,7 @@ class MessageOutbox:
         message_id: Optional[str] = None,
         originating_agent: Optional[str] = None,
         context_id: Optional[str] = None,
-        expects_response: bool = False
+        expects_response: bool = False,
     ) -> str:
         """
         Enqueue a message for delivery to user
@@ -199,7 +195,8 @@ class MessageOutbox:
         cursor = self.db.cursor()
 
         # INSERT OR IGNORE for idempotency
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR IGNORE INTO message_outbox (
                 message_id,
                 message_type,
@@ -208,23 +205,22 @@ class MessageOutbox:
                 payload_json,
                 expects_response
             ) VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            message_id,
-            message_type,
-            originating_agent,
-            context_id,
-            json.dumps(payload),
-            expects_response
-        ))
+        """,
+            (
+                message_id,
+                message_type,
+                originating_agent,
+                context_id,
+                json.dumps(payload),
+                expects_response,
+            ),
+        )
 
         self.db.commit()
         return message_id
 
     def send_message(
-        self,
-        text: str,
-        agent: Optional[str] = None,
-        context_id: Optional[str] = None
+        self, text: str, agent: Optional[str] = None, context_id: Optional[str] = None
     ) -> str:
         """
         Simple helper for text-only notifications
@@ -238,10 +234,10 @@ class MessageOutbox:
             message_id
         """
         return self.enqueue(
-            message_type='notification',
-            payload={'text': text},
+            message_type="notification",
+            payload={"text": text},
             originating_agent=agent,
-            context_id=context_id
+            context_id=context_id,
         )
 
     def fetch_pending(self, limit: int = 50) -> List[OutboxMessage]:
@@ -256,12 +252,15 @@ class MessageOutbox:
         """
         cursor = self.db.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM message_outbox
             WHERE status = 'pending'
             ORDER BY created_at ASC
             LIMIT ?
-        """, (limit,))
+        """,
+            (limit,),
+        )
 
         rows = cursor.fetchall()
         return [OutboxMessage.from_row(dict(row)) for row in rows]
@@ -279,7 +278,8 @@ class MessageOutbox:
         """
         cursor = self.db.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE message_outbox
             SET status = CASE
                     WHEN expects_response = 1 THEN 'awaiting_response'
@@ -287,7 +287,9 @@ class MessageOutbox:
                 END,
                 delivered_at = ?
             WHERE message_id = ?
-        """, (datetime.now().isoformat(), message_id))
+        """,
+            (datetime.now().isoformat(), message_id),
+        )
 
         self.db.commit()
 
@@ -304,7 +306,8 @@ class MessageOutbox:
         """
         cursor = self.db.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE message_outbox
             SET attempts = attempts + 1,
                 last_error = ?,
@@ -314,15 +317,13 @@ class MessageOutbox:
                     ELSE 'pending'
                 END
             WHERE message_id = ?
-        """, (error, datetime.now().isoformat(), self.MAX_ATTEMPTS, message_id))
+        """,
+            (error, datetime.now().isoformat(), self.MAX_ATTEMPTS, message_id),
+        )
 
         self.db.commit()
 
-    def record_response(
-        self,
-        context_id: str,
-        response_data: dict
-    ) -> Optional[str]:
+    def record_response(self, context_id: str, response_data: dict) -> Optional[str]:
         """
         Record user response to an interactive message
         Routes response back to originating agent
@@ -339,29 +340,35 @@ class MessageOutbox:
         cursor = self.db.cursor()
 
         # SQLite doesn't support RETURNING in UPDATE, so we need to fetch first
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, originating_agent FROM message_outbox
             WHERE context_id = ?
             AND expects_response = 1
             AND status = 'awaiting_response'
             LIMIT 1
-        """, (context_id,))
+        """,
+            (context_id,),
+        )
 
         row = cursor.fetchone()
 
         if not row:
             return None
 
-        originating_agent = row['originating_agent']
+        originating_agent = row["originating_agent"]
 
         # Update the message
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE message_outbox
             SET status = 'delivered',
                 response_received_at = ?,
                 response_json = ?
             WHERE id = ?
-        """, (datetime.now().isoformat(), json.dumps(response_data), row['id']))
+        """,
+            (datetime.now().isoformat(), json.dumps(response_data), row["id"]),
+        )
 
         self.db.commit()
 
@@ -390,20 +397,23 @@ class MessageOutbox:
         if not row:
             raise ValueError(f"Message {message_id} not found")
 
-        if row['status'] != 'failed':
+        if row["status"] != "failed":
             raise ValueError(
                 f"Can only requeue failed messages. "
                 f"Message {message_id} has status: {row['status']}"
             )
 
         # Reset to pending
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE message_outbox
             SET status = 'pending',
                 attempts = 0,
                 last_error = NULL
             WHERE message_id = ?
-        """, (message_id,))
+        """,
+            (message_id,),
+        )
 
         self.db.commit()
 
@@ -411,6 +421,7 @@ class MessageOutbox:
 # ==============================================================================
 # Helper Functions
 # ==============================================================================
+
 
 def _parse_timestamp(timestamp_str: Optional[str]) -> Optional[datetime]:
     """

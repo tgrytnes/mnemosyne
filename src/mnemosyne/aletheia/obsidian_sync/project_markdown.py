@@ -21,7 +21,7 @@ import yaml
 # Custom YAML representer to output ISO datetime strings without quotes
 def _datetime_representer(dumper, data):
     """Represent datetime as unquoted ISO string in YAML"""
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='')
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="")
 
 
 # Register the custom representer for strings (to avoid quoting ISO datetimes)
@@ -31,6 +31,7 @@ yaml.add_representer(str, _datetime_representer)
 # ==============================================================================
 # Serialization (SQL → Obsidian Markdown)
 # ==============================================================================
+
 
 def serialize_project(project: dict[str, Any]) -> str:
     """
@@ -63,38 +64,34 @@ def serialize_project(project: dict[str, Any]) -> str:
     frontmatter = {}
 
     # Required fields (always include)
-    frontmatter['id'] = project['id']
-    frontmatter['title'] = project['title']
-    frontmatter['discovered_by'] = project['discovered_by']
-    frontmatter['discovery_id'] = project['discovery_id']
-    frontmatter['cluster_ids'] = project['cluster_ids']
-    frontmatter['confidence_score'] = project['confidence_score']
-    frontmatter['status'] = project['status']
+    frontmatter["id"] = project["id"]
+    frontmatter["title"] = project["title"]
+    frontmatter["discovered_by"] = project["discovered_by"]
+    frontmatter["discovery_id"] = project["discovery_id"]
+    frontmatter["cluster_ids"] = project["cluster_ids"]
+    frontmatter["confidence_score"] = project["confidence_score"]
+    frontmatter["status"] = project["status"]
 
     # Optional fields (only include if not None)
-    _add_optional_field(frontmatter, project, 'importance')
-    _add_optional_field(frontmatter, project, 'urgency')
-    _add_optional_field(frontmatter, project, 'deadline', formatter=_format_datetime)
-    _add_optional_field(frontmatter, project, 'work_estimate')
-    _add_optional_field(frontmatter, project, 'pressure_score')
-    _add_optional_field(frontmatter, project, 'verified_by_user')
+    _add_optional_field(frontmatter, project, "importance")
+    _add_optional_field(frontmatter, project, "urgency")
+    _add_optional_field(frontmatter, project, "deadline", formatter=_format_datetime)
+    _add_optional_field(frontmatter, project, "work_estimate")
+    _add_optional_field(frontmatter, project, "pressure_score")
+    _add_optional_field(frontmatter, project, "verified_by_user")
 
     # Timestamps (always include, format as ISO 8601)
-    frontmatter['created_at'] = _format_datetime(project['created_at'])
-    frontmatter['updated_at'] = _format_datetime(project['updated_at'])
+    frontmatter["created_at"] = _format_datetime(project["created_at"])
+    frontmatter["updated_at"] = _format_datetime(project["updated_at"])
 
     # Serialize frontmatter to YAML with proper indentation
     yaml_str = yaml.dump(
-        frontmatter,
-        sort_keys=False,
-        allow_unicode=True,
-        default_flow_style=False,
-        indent=2
+        frontmatter, sort_keys=False, allow_unicode=True, default_flow_style=False, indent=2
     )
 
     # Build markdown body
-    title = project['title']
-    description = project.get('description', '')
+    title = project["title"]
+    description = project.get("description", "")
 
     body_parts = [
         f"# {title}",
@@ -104,31 +101,34 @@ def serialize_project(project: dict[str, Any]) -> str:
     ]
 
     # Add Metadata section if we have optional fields
-    if any(project.get(f) is not None for f in ['importance', 'urgency', 'deadline', 'work_estimate', 'pressure_score']):
+    if any(
+        project.get(f) is not None
+        for f in ["importance", "urgency", "deadline", "work_estimate", "pressure_score"]
+    ):
         body_parts.append("## Metadata")
         body_parts.append("")
 
-        if project.get('status'):
+        if project.get("status"):
             body_parts.append(f"- **Status**: {project['status']}")
 
-        if project.get('importance') is not None:
+        if project.get("importance") is not None:
             body_parts.append(f"- **Importance**: {project['importance']}/5")
 
-        if project.get('urgency') is not None:
+        if project.get("urgency") is not None:
             body_parts.append(f"- **Urgency**: {project['urgency']}/5")
 
-        if project.get('deadline'):
-            deadline_date = project['deadline']
+        if project.get("deadline"):
+            deadline_date = project["deadline"]
             if isinstance(deadline_date, datetime):
-                deadline_str = deadline_date.strftime('%Y-%m-%d')
+                deadline_str = deadline_date.strftime("%Y-%m-%d")
             else:
                 deadline_str = str(deadline_date)
             body_parts.append(f"- **Deadline**: {deadline_str}")
 
-        if project.get('work_estimate') is not None:
+        if project.get("work_estimate") is not None:
             body_parts.append(f"- **Work Estimate**: {project['work_estimate']} hours")
 
-        if project.get('pressure_score') is not None:
+        if project.get("pressure_score") is not None:
             body_parts.append(f"- **Pressure Score**: {project['pressure_score']}")
 
         body_parts.append("")
@@ -139,11 +139,11 @@ def serialize_project(project: dict[str, Any]) -> str:
     body_parts.append(f"- **Discovered by**: {project['discovered_by']}")
     body_parts.append(f"- **Discovery ID**: {project['discovery_id']}")
 
-    confidence_pct = int(project['confidence_score'] * 100)
+    confidence_pct = int(project["confidence_score"] * 100)
     body_parts.append(f"- **Confidence**: {confidence_pct}%")
 
-    if project.get('verified_by_user') is not None:
-        verified_str = "Yes" if project['verified_by_user'] else "No"
+    if project.get("verified_by_user") is not None:
+        verified_str = "Yes" if project["verified_by_user"] else "No"
         body_parts.append(f"- **Verified**: {verified_str}")
 
     body_parts.append("")
@@ -152,8 +152,8 @@ def serialize_project(project: dict[str, Any]) -> str:
     body_parts.append("## Timestamps")
     body_parts.append("")
 
-    created_str = _format_datetime_display(project['created_at'])
-    updated_str = _format_datetime_display(project['updated_at'])
+    created_str = _format_datetime_display(project["created_at"])
+    updated_str = _format_datetime_display(project["updated_at"])
 
     body_parts.append(f"- **Created**: {created_str}")
     body_parts.append(f"- **Updated**: {updated_str}")
@@ -168,10 +168,7 @@ def serialize_project(project: dict[str, Any]) -> str:
 
 
 def _add_optional_field(
-    frontmatter: dict[str, Any],
-    project: dict[str, Any],
-    field_name: str,
-    formatter=None
+    frontmatter: dict[str, Any], project: dict[str, Any], field_name: str, formatter=None
 ):
     """Add optional field to frontmatter if not None"""
     value = project.get(field_name)
@@ -195,13 +192,14 @@ def _format_datetime_display(dt: datetime | None) -> str:
     if dt is None:
         return "N/A"
     if isinstance(dt, datetime):
-        return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+        return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
     return str(dt)
 
 
 # ==============================================================================
 # Parsing (Obsidian Markdown → SQL Dict)
 # ==============================================================================
+
 
 def parse_project_markdown(markdown: str) -> dict[str, Any]:
     """
@@ -230,7 +228,7 @@ def parse_project_markdown(markdown: str) -> dict[str, Any]:
         ```
     """
     # Extract frontmatter
-    frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', markdown, re.DOTALL)
+    frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", markdown, re.DOTALL)
 
     if not frontmatter_match:
         raise ValueError("No YAML frontmatter found in markdown")
@@ -247,20 +245,20 @@ def parse_project_markdown(markdown: str) -> dict[str, Any]:
         raise ValueError("Frontmatter must be a YAML dict")
 
     # Extract description from body (text after title, before first ## header)
-    body = markdown[frontmatter_match.end():]
+    body = markdown[frontmatter_match.end() :]
 
     # Find title line (starts with # )
-    title_match = re.search(r'^# (.+)$', body, re.MULTILINE)
+    title_match = re.search(r"^# (.+)$", body, re.MULTILINE)
 
     if title_match:
         # Extract everything between title and first ## header
-        after_title = body[title_match.end():].strip()
+        after_title = body[title_match.end() :].strip()
 
         # Find first ## header
-        section_match = re.search(r'^## ', after_title, re.MULTILINE)
+        section_match = re.search(r"^## ", after_title, re.MULTILINE)
 
         if section_match:
-            description = after_title[:section_match.start()].strip()
+            description = after_title[: section_match.start()].strip()
         else:
             # No sections, take everything after title
             description = after_title
@@ -270,34 +268,31 @@ def parse_project_markdown(markdown: str) -> dict[str, Any]:
 
     # Build project dict
     project = {
-        'id': frontmatter['id'],
-        'title': frontmatter['title'],
-        'description': description,
-        'discovered_by': frontmatter['discovered_by'],
-        'discovery_id': frontmatter['discovery_id'],
-        'cluster_ids': frontmatter['cluster_ids'],
-        'confidence_score': frontmatter['confidence_score'],
-        'status': frontmatter['status'],
-        'created_at': _parse_datetime(frontmatter['created_at']),
-        'updated_at': _parse_datetime(frontmatter['updated_at']),
+        "id": frontmatter["id"],
+        "title": frontmatter["title"],
+        "description": description,
+        "discovered_by": frontmatter["discovered_by"],
+        "discovery_id": frontmatter["discovery_id"],
+        "cluster_ids": frontmatter["cluster_ids"],
+        "confidence_score": frontmatter["confidence_score"],
+        "status": frontmatter["status"],
+        "created_at": _parse_datetime(frontmatter["created_at"]),
+        "updated_at": _parse_datetime(frontmatter["updated_at"]),
     }
 
     # Optional fields
-    _add_optional_parsed_field(project, frontmatter, 'importance')
-    _add_optional_parsed_field(project, frontmatter, 'urgency')
-    _add_optional_parsed_field(project, frontmatter, 'deadline', parser=_parse_datetime)
-    _add_optional_parsed_field(project, frontmatter, 'work_estimate')
-    _add_optional_parsed_field(project, frontmatter, 'pressure_score')
-    _add_optional_parsed_field(project, frontmatter, 'verified_by_user')
+    _add_optional_parsed_field(project, frontmatter, "importance")
+    _add_optional_parsed_field(project, frontmatter, "urgency")
+    _add_optional_parsed_field(project, frontmatter, "deadline", parser=_parse_datetime)
+    _add_optional_parsed_field(project, frontmatter, "work_estimate")
+    _add_optional_parsed_field(project, frontmatter, "pressure_score")
+    _add_optional_parsed_field(project, frontmatter, "verified_by_user")
 
     return project
 
 
 def _add_optional_parsed_field(
-    project: dict[str, Any],
-    frontmatter: dict[str, Any],
-    field_name: str,
-    parser=None
+    project: dict[str, Any], frontmatter: dict[str, Any], field_name: str, parser=None
 ):
     """Add optional field from frontmatter to project dict"""
     if field_name in frontmatter:
@@ -329,6 +324,7 @@ def _parse_datetime(dt_str: str | datetime | None) -> datetime | None:
 # File Path Generation
 # ==============================================================================
 
+
 def sanitize_title_for_filename(title: str, max_length: int = 100) -> str:
     """
     Sanitize project title for use in file path.
@@ -350,16 +346,16 @@ def sanitize_title_for_filename(title: str, max_length: int = 100) -> str:
     title = title.strip()
 
     # Replace multiple spaces with single space
-    title = re.sub(r'\s+', ' ', title)
+    title = re.sub(r"\s+", " ", title)
 
     # Split on spaces to get original words
-    original_words = title.split(' ')
+    original_words = title.split(" ")
 
     # Process each word: remove special chars, apply title case to each word
     processed_words = []
     for i, word in enumerate(original_words):
         # Remove special characters from this word
-        cleaned = re.sub(r'[^\w]', '', word, flags=re.UNICODE)
+        cleaned = re.sub(r"[^\w]", "", word, flags=re.UNICODE)
 
         if not cleaned:
             continue
@@ -373,19 +369,23 @@ def sanitize_title_for_filename(title: str, max_length: int = 100) -> str:
             cleaned = cleaned.upper()
         elif i == 0:
             # First word: always capitalize first letter
-            cleaned = cleaned[0].upper() + cleaned[1:].lower() if len(cleaned) > 1 else cleaned.upper()
+            cleaned = (
+                cleaned[0].upper() + cleaned[1:].lower() if len(cleaned) > 1 else cleaned.upper()
+            )
         else:
             # Other words: apply title case (capitalize first letter)
-            cleaned = cleaned[0].upper() + cleaned[1:].lower() if len(cleaned) > 1 else cleaned.upper()
+            cleaned = (
+                cleaned[0].upper() + cleaned[1:].lower() if len(cleaned) > 1 else cleaned.upper()
+            )
 
         processed_words.append(cleaned)
 
     # Join with hyphens
-    title = '-'.join(processed_words)
+    title = "-".join(processed_words)
 
     # Truncate to max length
     if len(title) > max_length:
-        title = title[:max_length].rstrip('-')
+        title = title[:max_length].rstrip("-")
 
     return title
 
