@@ -34,7 +34,11 @@ def test_handle_quiet_hours_updates_existing_preferences():
 def test_handle_discoveries_returns_from_outbox_history():
     outbox = MagicMock()
     outbox.list_recent_by_chat.return_value = [
-        MagicMock(message_id="a", message_type="discovery_project_candidate", payload_json={"title": "Test"})
+        MagicMock(
+            message_id="a",
+            message_type="discovery_project_candidate",
+            payload_json={"title": "Test"},
+        )
     ]
     handler = NotificationCommandHandler(MagicMock(), outbox)
 

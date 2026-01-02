@@ -32,7 +32,12 @@ def test_delivers_pending_outbox_messages(tmp_path):
     store.enqueue(
         message_id="msg-10",
         message_type="discovery_notification",
-        payload_json={"chat_id": "chat-1", "text": "Hello", "buttons": [], "parse_mode": "Markdown"},
+        payload_json={
+            "chat_id": "chat-1",
+            "text": "Hello",
+            "buttons": [],
+            "parse_mode": "Markdown",
+        },
         expects_response=False,
         originating_agent="latent_scout",
         context_id="disc-10",

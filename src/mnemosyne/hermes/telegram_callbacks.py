@@ -13,4 +13,3 @@ def parse_callback_data(data: str) -> dict | None:
     if not action or not message_id:
         return None
     return {"action": action, "message_id": message_id, "value": value}
-

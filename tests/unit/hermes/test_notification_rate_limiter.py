@@ -44,6 +44,5 @@ def test_rate_limiter_allows_below_limit(tmp_path):
     outbox.mark_delivered(message_id="msg-1", chat_id="chat-1", telegram_message_id=201)
 
     assert (
-        limiter.can_send(chat_id="chat-1", max_daily_notifications=3, now=datetime.utcnow())
-        is True
+        limiter.can_send(chat_id="chat-1", max_daily_notifications=3, now=datetime.utcnow()) is True
     )

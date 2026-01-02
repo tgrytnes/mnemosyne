@@ -14,4 +14,3 @@ def test_parse_callback_rejects_invalid_format():
 
     assert parse_callback_data("bad") is None
     assert parse_callback_data("action:missing") is None
-

@@ -1,5 +1,4 @@
 import json
-import sqlite3
 
 
 def _make_store(tmp_path):
