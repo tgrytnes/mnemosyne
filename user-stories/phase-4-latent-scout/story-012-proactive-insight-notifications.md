@@ -5,18 +5,33 @@
 **So that** I'm alerted to interesting patterns without having to check manually
 
 ## Acceptance Criteria
-- [ ] Integration with Hermes Telegram bot for notifications
-- [ ] Configurable notification preferences (types, frequency, quiet hours)
-- [ ] Smart batching: group multiple discoveries into digest messages
-- [ ] Rich formatting: cluster names, confidence scores, quick action buttons
-- [ ] Inline actions: "View Details", "Dismiss", "Create Note", "Remind Later"
-- [ ] Notification history viewable via Telegram command (e.g., `/discoveries`)
-- [ ] Respects user feedback: learns from dismissals to reduce noise
-- [ ] Emergency bypass: Critical discoveries (e.g., contradictions) always notify
+### Hermes Transport + Message Outbox (Story 027)
+- [ ] Hermes consumes `message_outbox` and delivers outbound messages to Telegram
+- [ ] Outbox messages include `originating_agent`, `context_id`, `message_type`, `payload_json`
+- [ ] Hermes updates outbox status (`pending` → `delivered` / `failed`) and `last_error` on failure
+- [ ] Hermes writes user responses back to outbox (`response_json`, `response_received_at`)
+- [ ] PM questions use `expects_response=True` (PM decides *when* to ask; Story 12 only delivers)
 
-## Acceptance Criteria (Continued)
-- [ ] Rate limiting: max 3 notifications per day (configurable)
-- [ ] Notification templates for each discovery type
+### Notification Preferences + History
+- [ ] Configurable notification preferences (types, thresholds, quiet hours, batch mode)
+- [ ] Rate limiting for discovery notifications (default max 3/day, configurable)
+- [ ] Notification history viewable via Telegram command (e.g., `/discoveries`)
+- [ ] Notification settings view/edit via Telegram commands (e.g., `/notify_settings`, `/quiet_hours`)
+
+### Discovery Notifications (Scout/Monitor → Hermes)
+- [ ] Smart batching: group multiple discoveries into digest messages
+- [ ] Rich formatting: cluster names, confidence scores, and quick-action buttons
+- [ ] Emergency bypass: critical discoveries (e.g., contradictions) always notify
+- [ ] Notification templates exist for each discovery type (theme, contradiction, project candidate, weak link, digest)
+
+### Inline Actions + Response Routing
+- [ ] Inline actions: "View Details", "Dismiss", "Create Note", "Remind Later"
+- [ ] Action handlers route responses to the originating agent via outbox (no direct PM scheduling logic in Hermes)
+- [ ] Dismissals update discovery feedback (for noise reduction) without suppressing PM follow-ups
+
+### Scope Guardrails
+- [ ] Story 12 is **transport and UX only**; scheduling/enrichment logic lives in Story 16
+- [ ] Hermes does not decide when to ask PM questions; it only delivers and records replies
 
 ## Technical Notes
 
@@ -193,7 +208,7 @@ Found {len(discoveries)} interesting patterns overnight:
     return TelegramMessage(text=message, buttons=buttons)
 ```
 
-### Notification Logic (Integration with Story 010)
+### Notification Logic (Integration with Story 010 + Outbox)
 
 ```python
 # In Story 010's notify node
@@ -224,10 +239,10 @@ def notify_via_hermes_node(state: LatentScoutState) -> LatentScoutState:
         schedule_for_morning(discoveries_to_notify, prefs.digest_time)
         return state
 
-    # Send based on batch mode
+    # Send based on batch mode (enqueue to outbox)
     if prefs.batch_mode == 'immediate':
         for discovery in discoveries_to_notify:
-            send_notification(discovery)
+            enqueue_notification(discovery, expects_response=False)
 
     elif prefs.batch_mode == 'daily_digest':
         # Will be sent at prefs.digest_time
@@ -235,33 +250,30 @@ def notify_via_hermes_node(state: LatentScoutState) -> LatentScoutState:
 
     return state
 
-def send_notification(discovery: DiscoveryRecord):
+def enqueue_notification(discovery: DiscoveryRecord, expects_response: bool):
     """
-    Send via Hermes Telegram bot
+    Enqueue for Hermes delivery via Message Outbox (Story 027).
     """
     message = format_discovery(discovery)
-
-    try:
-        hermes_bot.send_message(
-            chat_id=get_user_chat_id(),
-            text=message.text,
-            reply_markup=message.buttons,
-            parse_mode='Markdown'
-        )
-
-        # Mark as notified
-        update_discovery(discovery.id, notified_at=datetime.now())
-
-    except Exception as e:
-        log_error(f"Failed to send notification: {e}")
-        # Retry later
-        queue_for_retry(discovery)
+    outbox.enqueue(
+        message_type="discovery_notification",
+        payload={
+            "chat_id": get_user_chat_id(),
+            "text": message.text,
+            "buttons": message.buttons,
+            "parse_mode": "Markdown",
+            "discovery_id": discovery.id,
+        },
+        expects_response=expects_response,
+        originating_agent="latent_scout",
+        context_id=str(discovery.id),
+    )
 ```
 
 ### Inline Action Handlers
 
 ```python
-# Telegram callback handlers in Hermes
+# Telegram callback handlers in Hermes (transport only)
 
 @hermes_bot.callback_handler("view_cluster:*")
 def handle_view_cluster(callback_query):
@@ -286,9 +298,12 @@ def handle_view_cluster(callback_query):
 def handle_dismiss(callback_query):
     discovery_id = callback_query.data.split(":")[1]
 
-    # Mark as dismissed and learn from feedback
-    dismiss_discovery(discovery_id)
-    update_confidence_model(discovery_id, feedback='dismissed')
+    # Mark as dismissed and forward feedback via outbox
+    outbox.record_feedback(
+        message_type="discovery_feedback",
+        context_id=discovery_id,
+        payload={"feedback": "dismissed"},
+    )
 
     bot.answer_callback_query(
         callback_query.id,
@@ -300,12 +315,11 @@ def handle_dismiss(callback_query):
 def handle_create_project(callback_query):
     cluster_id = callback_query.data.split(":")[1]
 
-    # Trigger Prometheus to draft project proposal
-    project_brief = prometheus.draft_project_brief(cluster_id)
-
-    bot.send_message(
-        chat_id=callback_query.message.chat.id,
-        text=f"✅ Project brief drafted!\n\n{project_brief}"
+    # Forward intent via outbox for upstream agent to act
+    outbox.record_feedback(
+        message_type="create_project",
+        context_id=cluster_id,
+        payload={"source": "telegram"},
     )
 
 @hermes_bot.callback_handler("remind:*")
@@ -314,8 +328,12 @@ def handle_remind_later(callback_query):
     days = int(parts[1].replace('d', ''))
     discovery_id = parts[2]
 
-    # Schedule reminder
-    schedule_reminder(discovery_id, days_from_now=days)
+    # Forward reminder intent via outbox
+    outbox.record_feedback(
+        message_type="remind_later",
+        context_id=discovery_id,
+        payload={"days": days},
+    )
 
     bot.answer_callback_query(
         callback_query.id,
@@ -323,7 +341,7 @@ def handle_remind_later(callback_query):
     )
 ```
 
-### Learning from Feedback
+### Learning from Feedback (Preferences)
 
 ```python
 class FeedbackLearner:
@@ -353,9 +371,10 @@ class FeedbackLearner:
 ```
 
 ### Dependencies
+- Story 027: Message Outbox Relay (transport queue + responses)
+- Story 016: Project Manager Agent (scheduling, enrichment questions)
 - Story 010: Autonomous Pattern Detection (generates discoveries)
 - Story 011: Radar Vector Exploration (generates weak links)
-- Hermes: Telegram bot infrastructure
 - Alexandria: The Ananke (preferences storage)
 
 ## Affected Components
@@ -376,6 +395,11 @@ class FeedbackLearner:
 - Story 010: Autonomous Pattern Detection (triggers notifications)
 - Story 011: Radar Vector Exploration (sends weak link notifications)
 - Story 013: Discovery Feed Management (alternative to notifications)
+
+## Test Coverage
+- [ ] Unit: message formatting, preference filtering, and outbox payload serialization (mocks ok)
+- [ ] Integration: real Postgres + message outbox + Hermes send path (skip if required env vars missing)
+- [ ] E2E: discovery → outbox → Hermes → Telegram → response recorded → discovery updated
 
 ## Future Enhancements
 - Push notifications to mobile app (if built)
