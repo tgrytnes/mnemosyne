@@ -247,6 +247,160 @@ Reply with a brief description."""
         logger.info(f"Requested description for project {project['id']}")
 
     # ==========================================================================
+    # User Response Handlers (Story 016 - Phase 6)
+    # ==========================================================================
+
+    def handle_importance_response(self, project_id: int, value: int) -> None:
+        """
+        Handle user response to importance question.
+
+        Args:
+            project_id: ID of the project
+            value: Importance rating (1-5)
+        """
+        # Validate input
+        if not (1 <= value <= 5):
+            raise ValueError("Importance must be between 1 and 5")
+
+        # Update via gatekeeper (user-initiated)
+        if self.gatekeeper:
+            self.gatekeeper.update_project_direct(
+                project_id,
+                {"importance": value},
+                user_initiated=True,
+            )
+
+        logger.info(f"Updated importance for project {project_id}: {value}")
+
+        # Continue enrichment (ask next question)
+        self.continue_enrichment(project_id)
+
+    def handle_urgency_response(self, project_id: int, value: int) -> None:
+        """
+        Handle user response to urgency question.
+
+        Args:
+            project_id: ID of the project
+            value: Urgency rating (1-5)
+        """
+        # Validate input
+        if not (1 <= value <= 5):
+            raise ValueError("Urgency must be between 1 and 5")
+
+        # Update via gatekeeper (user-initiated)
+        if self.gatekeeper:
+            self.gatekeeper.update_project_direct(
+                project_id,
+                {"urgency": value},
+                user_initiated=True,
+            )
+
+        logger.info(f"Updated urgency for project {project_id}: {value}")
+
+        # Continue enrichment (ask next question)
+        self.continue_enrichment(project_id)
+
+    def handle_deadline_response(self, project_id: int, deadline_text: str) -> None:
+        """
+        Handle user response to deadline question.
+
+        Args:
+            project_id: ID of the project
+            deadline_text: Deadline as text (ISO date, natural date, or duration)
+        """
+        # Parse deadline
+        deadline = self._parse_deadline(deadline_text)
+
+        # Update via gatekeeper (user-initiated)
+        if self.gatekeeper:
+            self.gatekeeper.update_project_direct(
+                project_id,
+                {"deadline": deadline},
+                user_initiated=True,
+            )
+
+        logger.info(f"Updated deadline for project {project_id}: {deadline}")
+
+        # Continue enrichment (ask next question if needed)
+        self.continue_enrichment(project_id)
+
+    def handle_description_response(self, project_id: int, description: str) -> None:
+        """
+        Handle user response to description question.
+
+        Args:
+            project_id: ID of the project
+            description: Richer project description
+        """
+        # Update via gatekeeper (user-initiated)
+        if self.gatekeeper:
+            self.gatekeeper.update_project_direct(
+                project_id,
+                {"description": description},
+                user_initiated=True,
+            )
+
+        logger.info(f"Updated description for project {project_id}")
+
+    def _parse_deadline(self, deadline_text: str) -> Optional[datetime]:
+        """
+        Parse deadline text into datetime.
+
+        Supports:
+        - ISO format: "2026-03-15"
+        - Natural dates: "March 15", "Jan 20"
+        - Relative durations: "2 weeks", "1 month"
+        - No deadline: "no deadline", "flexible"
+
+        Args:
+            deadline_text: Deadline as text
+
+        Returns:
+            Parsed datetime or None if no deadline
+
+        Raises:
+            ValueError: If deadline text cannot be parsed
+        """
+        import re
+        from dateutil import parser as date_parser
+
+        text = deadline_text.strip().lower()
+
+        # Check for "no deadline"
+        if text in ("no deadline", "flexible", "none"):
+            return None
+
+        # Try parsing relative duration FIRST (before dateutil)
+        # Pattern: "2 weeks", "1 month", "3 days"
+        duration_match = re.match(r"(\d+)\s*(day|week|month)s?", text)
+        if duration_match:
+            amount = int(duration_match.group(1))
+            unit = duration_match.group(2)
+
+            now = datetime.now(timezone.utc)
+
+            if unit == "day":
+                return now + timedelta(days=amount)
+            elif unit == "week":
+                return now + timedelta(weeks=amount)
+            elif unit == "month":
+                # Approximate month as 30 days
+                return now + timedelta(days=amount * 30)
+
+        # Try parsing as ISO date or natural date
+        try:
+            parsed = date_parser.parse(text, fuzzy=True)
+            # Ensure timezone-aware
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed
+        except (ValueError, date_parser.ParserError):
+            pass
+
+        # Could not parse
+        raise ValueError(f"Could not parse deadline: '{deadline_text}'")
+
+    # ==========================================================================
     # Event-Driven Response Handler
     # ==========================================================================
 
