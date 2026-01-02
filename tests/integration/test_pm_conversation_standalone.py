@@ -37,8 +37,13 @@ class MessageOutboxWrapper:
         self._outbox = outbox
         self.db_conn = db_conn
 
-    def enqueue_message(self, content: str, sender: str = "project_manager",
-                       expects_response: bool = False, metadata: dict = None):
+    def enqueue_message(
+        self,
+        content: str,
+        sender: str = "project_manager",
+        expects_response: bool = False,
+        metadata: dict = None,
+    ):
         """Enqueue message using PM's expected API."""
         import json
         import uuid
@@ -57,7 +62,7 @@ class MessageOutboxWrapper:
             "message_type": message_type,
             "sender": sender,
             "expects_response": expects_response,
-            **metadata
+            **metadata,
         }
 
         self._outbox.enqueue(message_type, payload, message_id)
@@ -70,7 +75,7 @@ class MessageOutboxWrapper:
                 INSERT INTO message_outbox (sender, content, message_type, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (sender, content, message_type, datetime.now(UTC).isoformat())
+                (sender, content, message_type, datetime.now(UTC).isoformat()),
             )
             self.db_conn.commit()
 
@@ -95,13 +100,17 @@ class MessageOutboxWrapper:
         placeholders = ",".join(["?" for _ in message_ids])
         self._outbox._conn.execute(
             f"UPDATE message_outbox SET status = 'delivered', updated_at = ? WHERE message_id IN ({placeholders})",
-            (datetime.now(UTC).isoformat(), *message_ids)
+            (datetime.now(UTC).isoformat(), *message_ids),
         )
         self._outbox._conn.commit()
 
         # Now convert to result format
         for msg in messages:
-            payload = json.loads(msg["payload_json"]) if isinstance(msg["payload_json"], str) else msg["payload_json"]
+            payload = (
+                json.loads(msg["payload_json"])
+                if isinstance(msg["payload_json"], str)
+                else msg["payload_json"]
+            )
             result.append((msg["message_id"], payload))
 
         return result
@@ -154,7 +163,7 @@ class SQLiteCursorWrapper:
         from datetime import datetime, timezone
 
         # Convert row to dict if it's a Row object (from sqlite3.Row)
-        if hasattr(row, 'keys'):
+        if hasattr(row, "keys"):
             # Create a custom Row class that supports both dict and tuple access
             class HybridRow:
                 def __init__(self, data):
@@ -181,7 +190,7 @@ class SQLiteCursorWrapper:
                 # Try to parse datetime strings
                 if isinstance(value, str) and len(value) >= 10:
                     # Check if it looks like an ISO datetime
-                    if value[4] == '-' and value[7] == '-':
+                    if value[4] == "-" and value[7] == "-":
                         try:
                             # Parse and ensure UTC timezone
                             dt = date_parser.parse(value)
@@ -870,7 +879,9 @@ def test_pressure_score_updates_after_enrichment(
 
     # Verify pressure score is NULL
     cur.execute("SELECT pressure_score FROM projects WHERE id = ?", (project_id,))
-    assert cur.fetchone()["pressure_score"] is None, "Pressure score should be NULL before enrichment"
+    assert (
+        cur.fetchone()["pressure_score"] is None
+    ), "Pressure score should be NULL before enrichment"
 
     # Set responses (importance=5, urgency=4, deadline in 10 days)
     mock_user.set_response("importance", "5")
@@ -901,7 +912,9 @@ def test_pressure_score_updates_after_enrichment(
     expected = (40.0 / hours_remaining) * (5 * 4)
 
     # Allow 10% tolerance for timing differences
-    assert abs(pressure - expected) / expected < 0.1, f"Pressure score {pressure} should be ~{expected} (deadline: {actual_deadline}, hours: {hours_remaining})"
+    assert (
+        abs(pressure - expected) / expected < 0.1
+    ), f"Pressure score {pressure} should be ~{expected} (deadline: {actual_deadline}, hours: {hours_remaining})"
 
 
 def test_event_driven_enrichment_flow(

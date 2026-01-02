@@ -85,7 +85,9 @@ class MockNexus:
         import sqlite3
 
         # Get pending messages from the SQLite outbox
-        conn = sqlite3.connect(self.outbox._db_path if hasattr(self.outbox, '_db_path') else self.outbox.db_path)
+        conn = sqlite3.connect(
+            self.outbox._db_path if hasattr(self.outbox, "_db_path") else self.outbox.db_path
+        )
         cursor = conn.cursor()
 
         cursor.execute(
@@ -108,10 +110,7 @@ class MockNexus:
             user_response = self.user.respond_to_question(message)
 
             # Mark as delivered
-            cursor.execute(
-                "UPDATE message_outbox SET status = 'delivered' WHERE id = ?",
-                (row_id,)
-            )
+            cursor.execute("UPDATE message_outbox SET status = 'delivered' WHERE id = ?", (row_id,))
 
             if user_response is None:
                 processed += 1
