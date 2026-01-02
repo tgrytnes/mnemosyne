@@ -237,6 +237,25 @@ class ConversationSimulator:
 
 
 @pytest.fixture
+def message_outbox(tmp_path):
+    """Create real SQLite message outbox."""
+    outbox_path = tmp_path / "outbox.db"
+    return MessageOutbox(outbox_path)
+
+
+@pytest.fixture
+def project_manager(postgres_connection, message_outbox):
+    """Create ProjectManagerAgent with real PostgreSQL."""
+    pm = ProjectManagerAgent(
+        db_conn=postgres_connection,
+        message_outbox=message_outbox,
+        gatekeeper=None,
+        max_messages_per_hour=5,
+    )
+    return pm
+
+
+@pytest.fixture
 def mock_user():
     """Create cooperative mock user."""
     return MockUser(behavior="cooperative")

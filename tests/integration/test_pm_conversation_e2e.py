@@ -220,21 +220,13 @@ def message_outbox(tmp_path):
 
 
 @pytest.fixture
-def project_manager(ananke_test_db, message_outbox):
+def project_manager(ananke_test_db, message_outbox, postgres_connection):
     """Create ProjectManagerAgent with real PostgreSQL."""
-    # Create gatekeeper
-    config = GatekeeperConfig(
-        conn=ananke_test_db,
-        user_id="test_user",
-        approval_source="test",
-    )
-    gatekeeper = SQLProjectGatekeeper(config)
-
-    # Create PM agent
+    # Create PM agent (gatekeeper not needed for E2E conversation tests)
     pm = ProjectManagerAgent(
-        db_conn=ananke_test_db,
+        db_conn=postgres_connection,
         message_outbox=message_outbox,
-        gatekeeper=gatekeeper,
+        gatekeeper=None,
         max_messages_per_hour=5,
     )
 

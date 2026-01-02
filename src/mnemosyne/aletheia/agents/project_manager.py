@@ -525,21 +525,28 @@ Reply with a brief description."""
         Returns:
             Number of messages sent
         """
+        import sqlite3
+
         one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
-        with self.db_conn.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT COUNT(*)
-                FROM message_outbox
-                WHERE sender = 'project_manager'
-                AND created_at > %s
-            """,
-                (one_hour_ago,),
-            )
-            row = cursor.fetchone()
+        # Query the SQLite message outbox (not PostgreSQL)
+        # Access the internal connection from MessageOutbox
+        conn = sqlite3.connect(self.message_outbox._db_path)
+        cursor = conn.cursor()
 
-        return row[0] if row else 0
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM message_outbox
+            WHERE created_at > ?
+            """,
+            (one_hour_ago.isoformat(),),
+        )
+        row = cursor.fetchone()
+        count = row[0] if row else 0
+
+        conn.close()
+        return count
 
     def _get_critical_deadlines(self) -> List[tuple]:
         """
