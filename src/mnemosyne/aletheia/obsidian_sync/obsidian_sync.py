@@ -12,7 +12,7 @@ This module handles:
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -165,7 +165,7 @@ class ObsidianSyncManager:
         if not last_synced:
             return False
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         time_since_sync = (now - last_synced).total_seconds()
 
         return time_since_sync < self.sync_cooldown
@@ -222,7 +222,7 @@ class ObsidianSyncManager:
 
     def _update_obsidian_sync_timestamp(self, project_id: int, file_path: str, direction: str):
         """Update sync timestamp in SQL"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if direction == "to_obsidian":
             with self._db.cursor() as cur:
@@ -380,7 +380,7 @@ class ObsidianSyncManager:
             Conflict dict if conflict detected, None otherwise
         """
         # Get file modification time
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path), tz=timezone.utc)
+        file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path), tz=UTC)
 
         # Parse project ID from file
         markdown = Path(file_path).read_text(encoding="utf-8")
