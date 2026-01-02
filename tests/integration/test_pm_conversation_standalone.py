@@ -63,20 +63,30 @@ class MessageOutboxWrapper:
         from datetime import UTC, datetime
 
         messages = self._outbox.dequeue(limit)
-        result = []
 
+        if not messages:
+            return []
+
+        result = []
+        message_ids = []
+
+        # First, mark ALL messages as delivered immediately
         for msg in messages:
-            # Convert to (message_id, payload) tuple
+            message_ids.append(msg["message_id"])
+
+        # Update all at once
+        placeholders = ",".join(["?" for _ in message_ids])
+        self._outbox._conn.execute(
+            f"UPDATE message_outbox SET status = 'delivered', updated_at = ? WHERE message_id IN ({placeholders})",
+            (datetime.now(UTC).isoformat(), *message_ids)
+        )
+        self._outbox._conn.commit()
+
+        # Now convert to result format
+        for msg in messages:
             payload = json.loads(msg["payload_json"]) if isinstance(msg["payload_json"], str) else msg["payload_json"]
             result.append((msg["message_id"], payload))
 
-            # Mark message as delivered so it won't be returned again
-            self._outbox._conn.execute(
-                "UPDATE message_outbox SET status = 'delivered', updated_at = ? WHERE message_id = ?",
-                (datetime.now(UTC).isoformat(), msg["message_id"])
-            )
-
-        self._outbox._conn.commit()
         return result
 
     def __getattr__(self, name):
@@ -358,15 +368,18 @@ class MockNexus:
                 processed += 1
                 continue
 
-            # Route response back to PM
+            # Route response back to PM based on question_type metadata
+            # IMPORTANT: Use metadata, not content parsing! The deadline question
+            # contains the word "importance" in its text, which would cause
+            # incorrect routing if we parsed content.
             project_id = message.get("project_id")
-            content = message.get("content", "")
+            question_type = message.get("question_type", "")
 
-            if "importance" in content.lower():
+            if question_type == "importance":
                 self.pm.handle_importance_response(project_id, int(user_response))
-            elif "urgent" in content.lower():
+            elif question_type == "urgency":
                 self.pm.handle_urgency_response(project_id, int(user_response))
-            elif "deadline" in content.lower():
+            elif question_type == "deadline":
                 self.pm.handle_deadline_response(project_id, user_response)
 
             processed += 1
@@ -396,20 +409,25 @@ class ConversationSimulator:
         self.max_iterations = max_iterations
 
     def run_until_complete(self, project_id: int) -> dict:
-        """Run conversation until project enrichment completes."""
+        """
+        Run conversation until project enrichment completes.
+
+        Uses event-driven flow: PM check cycle kicks off the first question,
+        then response handlers drive the conversation via continue_enrichment().
+        """
         stats = {
             "turns": 0,
             "messages_sent": 0,
             "completed": False,
         }
 
+        # Kick off the conversation with initial PM check cycle
+        self.pm.run_pm_check_cycle()
+
         for i in range(self.max_iterations):
             stats["turns"] = i + 1
 
-            # PM runs check cycle
-            self.pm.run_pm_check_cycle()
-
-            # Nexus polls and delivers messages
+            # Nexus polls and delivers messages (which triggers response handlers)
             messages_processed = self.nexus.poll_and_deliver()
             stats["messages_sent"] += messages_processed
 
