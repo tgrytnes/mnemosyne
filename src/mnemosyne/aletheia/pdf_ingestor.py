@@ -227,6 +227,11 @@ def main():
     import ollama
     import weaviate
 
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     # Get configuration from environment
     pdf_path = os.getenv("PDF_SCAN_PATH")
     if not pdf_path:
