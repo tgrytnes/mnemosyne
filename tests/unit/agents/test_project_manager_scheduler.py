@@ -46,295 +46,309 @@ def project_manager(mock_db, mock_outbox, mock_gatekeeper):
 class TestSchedulerSetup:
     """Test APScheduler setup and job registration."""
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_scheduler_creates_background_scheduler(self, mock_scheduler_class):
+    def test_scheduler_creates_background_scheduler(self, project_manager):
         """Test that scheduler creates a BackgroundScheduler instance."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(
-            project_manager=MagicMock(),
-        )
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()  # Scheduler is created in start()
 
-        # Should create BackgroundScheduler
-        mock_scheduler_class.assert_called_once()
+            # Should create BackgroundScheduler
+            mock_scheduler_class.assert_called_once()
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_scheduler_registers_pm_check_cycle_job(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_scheduler_registers_pm_check_cycle_job(self, project_manager):
         """Test PM check cycle job is registered with 30-minute interval."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Should register PM check cycle job
-        add_job_calls = mock_scheduler.add_job.call_args_list
+            # Should register PM check cycle job
+            add_job_calls = mock_scheduler.add_job.call_args_list
 
-        # Find the PM check cycle job
-        pm_check_job = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pm_check_cycle":
-                pm_check_job = call_args
-                break
+            # Find the PM check cycle job
+            pm_check_job = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pm_check_cycle":
+                    pm_check_job = kwargs
+                    break
 
-        assert pm_check_job is not None
-        assert pm_check_job[1]["trigger"] == "interval"
-        assert pm_check_job[1]["minutes"] == 30
+            assert pm_check_job is not None
+            assert pm_check_job["trigger"] == "interval"
+            assert pm_check_job["minutes"] == 30
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_scheduler_registers_pressure_score_job(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_scheduler_registers_pressure_score_job(self, project_manager):
         """Test pressure score job is registered with 1-hour interval."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Find the pressure score job
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pressure_job = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pressure_score_updater":
-                pressure_job = call_args
-                break
+            # Find the pressure score job
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pressure_job = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pressure_score_updater":
+                    pressure_job = kwargs
+                    break
 
-        assert pressure_job is not None
-        assert pressure_job[1]["trigger"] == "interval"
-        assert pressure_job[1]["hours"] == 1
+            assert pressure_job is not None
+            assert pressure_job["trigger"] == "interval"
+            assert pressure_job["hours"] == 1
 
 
 class TestSchedulerLifecycle:
     """Test scheduler start/stop lifecycle."""
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_start_starts_scheduler(self, mock_scheduler_class, project_manager):
+    def test_start_starts_scheduler(self, project_manager):
         """Test start() starts the APScheduler."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Should start the scheduler
-        mock_scheduler.start.assert_called_once()
+            # Should start the scheduler
+            mock_scheduler.start.assert_called_once()
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_stop_shuts_down_scheduler(self, mock_scheduler_class, project_manager):
+    def test_stop_shuts_down_scheduler(self, project_manager):
         """Test stop() shuts down the APScheduler."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
-        scheduler.stop()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
+            scheduler.stop()
 
-        # Should shutdown the scheduler
-        mock_scheduler.shutdown.assert_called_once()
+            # Should shutdown the scheduler
+            mock_scheduler.shutdown.assert_called_once()
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_context_manager_starts_and_stops(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_context_manager_starts_and_stops(self, project_manager):
         """Test using scheduler as context manager."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        with ProjectManagerScheduler(project_manager=project_manager) as scheduler:
-            pass
+            with ProjectManagerScheduler(project_manager=project_manager) as scheduler:
+                pass
 
-        # Should start and shutdown
-        mock_scheduler.start.assert_called_once()
-        mock_scheduler.shutdown.assert_called_once()
+            # Should start and shutdown
+            mock_scheduler.start.assert_called_once()
+            mock_scheduler.shutdown.assert_called_once()
 
 
 class TestJobExecution:
     """Test that scheduled jobs execute correctly."""
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_pm_check_cycle_job_calls_agent_method(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_pm_check_cycle_job_calls_agent_method(self, project_manager):
         """Test PM check cycle job calls run_pm_check_cycle()."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        # Spy on project_manager.run_pm_check_cycle
-        project_manager.run_pm_check_cycle = Mock()
+            # Spy on project_manager.run_pm_check_cycle
+            project_manager.run_pm_check_cycle = Mock()
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Get the registered job function
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pm_check_func = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pm_check_cycle":
-                pm_check_func = call_args[0][0]  # First positional arg is the function
-                break
+            # Get the registered job function
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pm_check_func = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pm_check_cycle":
+                    pm_check_func = kwargs["func"]  # Function is passed as kwarg
+                    break
 
-        # Execute the job function
-        pm_check_func()
+            # Execute the job function
+            pm_check_func()
 
-        # Should call agent's run_pm_check_cycle
-        project_manager.run_pm_check_cycle.assert_called_once()
+            # Should call agent's run_pm_check_cycle
+            project_manager.run_pm_check_cycle.assert_called_once()
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_pressure_score_job_calls_update_method(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_pressure_score_job_calls_update_method(self, project_manager):
         """Test pressure score job calls _update_pressure_scores()."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        # Spy on project_manager._update_pressure_scores
-        project_manager._update_pressure_scores = Mock()
+            # Spy on project_manager._update_pressure_scores
+            project_manager._update_pressure_scores = Mock()
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Get the registered job function
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pressure_func = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pressure_score_updater":
-                pressure_func = call_args[0][0]
-                break
+            # Get the registered job function
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pressure_func = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pressure_score_updater":
+                    pressure_func = kwargs["func"]  # Function is passed as kwarg
+                    break
 
-        # Execute the job function
-        pressure_func()
+            # Execute the job function
+            pressure_func()
 
-        # Should call agent's _update_pressure_scores
-        project_manager._update_pressure_scores.assert_called_once()
+            # Should call agent's _update_pressure_scores
+            project_manager._update_pressure_scores.assert_called_once()
 
 
 class TestErrorHandling:
     """Test error handling in scheduled jobs."""
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_pm_check_cycle_logs_errors_and_continues(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_pm_check_cycle_logs_errors_and_continues(self, project_manager):
         """Test that errors in PM check cycle are logged but don't crash scheduler."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        # Make run_pm_check_cycle raise an error
-        project_manager.run_pm_check_cycle = Mock(
-            side_effect=Exception("Database error")
-        )
+            # Make run_pm_check_cycle raise an error
+            project_manager.run_pm_check_cycle = Mock(
+                side_effect=Exception("Database error")
+            )
 
-        scheduler = ProjectManagerScheduler(project_manager=project_manager)
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(project_manager=project_manager)
+            scheduler.start()
 
-        # Get the job function
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pm_check_func = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pm_check_cycle":
-                pm_check_func = call_args[0][0]
-                break
+            # Get the job function
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pm_check_func = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pm_check_cycle":
+                    pm_check_func = kwargs["func"]  # Function is passed as kwarg
+                    break
 
-        # Should not raise (error is caught and logged)
-        try:
-            pm_check_func()
-        except Exception:
-            pytest.fail("Job function should catch and log errors, not raise")
+            # Should not raise (error is caught and logged)
+            try:
+                pm_check_func()
+            except Exception:
+                pytest.fail("Job function should catch and log errors, not raise")
 
 
 class TestConfigurableIntervals:
     """Test configurable job intervals."""
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_custom_pm_check_interval(self, mock_scheduler_class, project_manager):
+    def test_custom_pm_check_interval(self, project_manager):
         """Test custom PM check cycle interval."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(
-            project_manager=project_manager,
-            pm_check_interval_minutes=15,  # Custom interval
-        )
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(
+                project_manager=project_manager,
+                pm_check_interval_minutes=15,  # Custom interval
+            )
+            scheduler.start()
 
-        # Find the PM check cycle job
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pm_check_job = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pm_check_cycle":
-                pm_check_job = call_args
-                break
+            # Find the PM check cycle job
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pm_check_job = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pm_check_cycle":
+                    pm_check_job = kwargs
+                    break
 
-        assert pm_check_job[1]["minutes"] == 15
+            assert pm_check_job["minutes"] == 15
 
-    @patch("mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler")
-    def test_custom_pressure_update_interval(
-        self, mock_scheduler_class, project_manager
-    ):
+    def test_custom_pressure_update_interval(self, project_manager):
         """Test custom pressure score update interval."""
         from mnemosyne.aletheia.agents.project_manager_scheduler import (
             ProjectManagerScheduler,
         )
 
-        mock_scheduler = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler
+        with patch(
+            "mnemosyne.aletheia.agents.project_manager_scheduler.BackgroundScheduler"
+        ) as mock_scheduler_class:
+            mock_scheduler = MagicMock()
+            mock_scheduler_class.return_value = mock_scheduler
 
-        scheduler = ProjectManagerScheduler(
-            project_manager=project_manager,
-            pressure_update_interval_hours=2,  # Custom interval
-        )
-        scheduler.start()
+            scheduler = ProjectManagerScheduler(
+                project_manager=project_manager,
+                pressure_update_interval_hours=2,  # Custom interval
+            )
+            scheduler.start()
 
-        # Find the pressure score job
-        add_job_calls = mock_scheduler.add_job.call_args_list
-        pressure_job = None
-        for call_args in add_job_calls:
-            if call_args[1].get("id") == "pressure_score_updater":
-                pressure_job = call_args
-                break
+            # Find the pressure score job
+            add_job_calls = mock_scheduler.add_job.call_args_list
+            pressure_job = None
+            for call_item in add_job_calls:
+                kwargs = call_item.kwargs
+                if kwargs.get("id") == "pressure_score_updater":
+                    pressure_job = kwargs
+                    break
 
-        assert pressure_job[1]["hours"] == 2
+            assert pressure_job["hours"] == 2
