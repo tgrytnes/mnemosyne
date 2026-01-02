@@ -15,6 +15,7 @@
 - [ ] Telegram callback data includes the outbox `message_id` for every inline action
 - [ ] Free-text replies require `/reply <message_id> <value>` or map to the most recent pending question for that chat
 - [ ] If no pending question matches, Hermes sends a help prompt and does not alter outbox state
+- [ ] Hermes stores `telegram_message_id` + `chat_id` on delivery and resolves replies via `reply_to_message` mapping (no manual IDs needed)
 
 ### Notification Preferences + History
 - [ ] Configurable notification preferences (types, thresholds, quiet hours, batch mode)
@@ -75,6 +76,7 @@ To ensure replies go to the correct agent/question:
 - Every outbound question is stored in `message_outbox` with a unique `message_id`.
 - Hermes includes that `message_id` in Telegram callbacks (e.g., `reply:message_id:<value>`).
 - For free-text replies, Hermes requires `/reply <message_id> <value>` or maps to the most recent pending question for that chat.
+- Hermes stores `telegram_message_id` + `chat_id` on delivery and maps `reply_to_message.message_id` back to the outbox record.
 - Hermes writes responses back to `message_outbox` with `response_json` + `response_received_at` and preserves `originating_agent`.
 
 ### Notification Templates
