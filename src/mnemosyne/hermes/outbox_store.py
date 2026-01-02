@@ -2,8 +2,18 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
+
+@dataclass
+class OutboxMessage:
+    message_id: str
+    message_type: str
+    payload_json: dict
+    created_at: str | None
+    delivered_at: str | None
 
 
 class OutboxStore:
@@ -166,3 +176,61 @@ class OutboxStore:
             (chat_id, reply_to_message_id),
         )
         return cursor.fetchone() is not None
+
+    def list_recent_by_chat(
+        self,
+        *,
+        chat_id: str,
+        limit: int = 10,
+        message_type_prefix: str | None = None,
+    ) -> list[OutboxMessage]:
+        cursor = self._conn.cursor()
+        if message_type_prefix:
+            cursor.execute(
+                """
+                SELECT message_id, message_type, payload_json, created_at, delivered_at
+                FROM message_outbox
+                WHERE chat_id = ?
+                  AND message_type LIKE ?
+                ORDER BY delivered_at DESC
+                LIMIT ?
+                """,
+                (chat_id, f"{message_type_prefix}%", limit),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT message_id, message_type, payload_json, created_at, delivered_at
+                FROM message_outbox
+                WHERE chat_id = ?
+                ORDER BY delivered_at DESC
+                LIMIT ?
+                """,
+                (chat_id, limit),
+            )
+        rows = cursor.fetchall()
+        return [
+            OutboxMessage(
+                message_id=row["message_id"],
+                message_type=row["message_type"],
+                payload_json=json.loads(row["payload_json"]),
+                created_at=row["created_at"],
+                delivered_at=row["delivered_at"],
+            )
+            for row in rows
+        ]
+
+    def count_delivered_since(self, *, chat_id: str, since_iso: str) -> int:
+        cursor = self._conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(1) AS total
+            FROM message_outbox
+            WHERE chat_id = ?
+              AND status = 'delivered'
+              AND delivered_at >= ?
+            """,
+            (chat_id, since_iso),
+        )
+        row = cursor.fetchone()
+        return int(row["total"]) if row else 0
