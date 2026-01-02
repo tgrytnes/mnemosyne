@@ -12,15 +12,16 @@ The SQL Gatekeeper is one of two gatekeepers in The Gates layer (along with the 
 
 ## Acceptance Criteria
 - [ ] No direct writes to The Ananke `projects` table without gatekeeper approval
-- [ ] Gatekeeper consumes proposal records from a local queue (SQLite)
-- [ ] High-confidence proposals (>=0.80) can be auto-approved (configurable)
-- [ ] Medium-confidence proposals (0.60-0.79) require explicit approval
-- [ ] Low-confidence proposals (<0.60) are rejected (stored, not escalated)
+- [ ] Gatekeeper consumes proposal records from the Monitor Agent queue (SQLite)
+- [ ] High-confidence proposals can be auto-approved (configurable; default threshold is very high)
+- [ ] Other proposals require explicit approval via gatekeeper CLI/API
+- [ ] Low-confidence proposals are rejected and marked `rejected` in the queue (no escalation here)
 - [ ] SQL write only happens AFTER gatekeeper approval
-- [ ] Rejections are recorded with reasons and marked for escalation
+- [ ] Rejections are recorded in the audit log; escalation is handled by the Monitor Agent
 - [ ] Failed writes logged and retryable
 - [ ] Audit trail: all approved/rejected project writes
-- [ ] Rollback capability (CLI/API)
+- [ ] Rollback capability (CLI/API) with a time window and confirmation token
+- [ ] Prevent duplicate inserts by enforcing unique `discovery_id` in SQL
 
 ## Critical Architectural Decision
 
@@ -70,6 +71,7 @@ CREATE TABLE projects (
 CREATE INDEX idx_projects_status ON projects(status);
 CREATE INDEX idx_projects_confidence ON projects(confidence_score);
 CREATE INDEX idx_projects_verified ON projects(verified_by_user);
+CREATE UNIQUE INDEX idx_projects_discovery_id ON projects(discovery_id);
 ```
 
 ### SQL Gatekeeper Class
@@ -80,9 +82,10 @@ class SQLProjectGatekeeper:
     Controls ALL writes to The Ananke projects table
     Based on project_crystal gatekeeper concept
     """
-    def __init__(self, db_conn, outbox):
+    def __init__(self, db_conn, outbox, proposal_queue):
         self.db = db_conn
         self.outbox = outbox  # Message outbox (Story 027)
+        self.proposal_queue = proposal_queue
         self.pending_approvals = {}
 
     def request_project_write(self, discovery: DiscoveryRecord):
@@ -95,9 +98,9 @@ class SQLProjectGatekeeper:
             log_info(f"Discovery {discovery.id} below threshold (0.60), not requesting approval")
             return
 
-        # 2. High confidence: auto-request approval
+        # 2. High confidence: auto-approve
         if discovery.confidence_score >= 0.80:
-            return self._request_approval(discovery, auto_approve=False)
+            return self._request_approval(discovery, auto_approve=True)
 
         # 3. Medium confidence: require explicit confirmation
         if discovery.confidence_score >= 0.60:
@@ -235,8 +238,8 @@ Approve?
         # Log rejection
         self._log_approval(approval_id, approved=False)
 
-        # Update discovery (mark as reviewed but rejected)
-        self._update_discovery_status(discovery.id, rejected=True)
+        # Update proposal queue (Monitor Agent handles escalation)
+        self.proposal_queue.update_status(discovery.discovery_id, "rejected")
 
         # Remove from pending
         del self.pending_approvals[approval_id]
@@ -273,8 +276,9 @@ Approve?
 ### Gatekeeper Queue (SQLite)
 
 The gatekeeper reads proposals from a local SQLite queue created by the Monitor Agent.
-Decisions are written back to SQLite (approved/rejected/escalate) and only approved
-records are written to The Ananke.
+Decisions are written back to SQLite (approved/rejected/awaiting_approval) and only
+approved records are written to The Ananke. Rejection escalation is handled by the
+Monitor Agent.
 
 ### Rollback Capability (CLI/API)
 
@@ -310,8 +314,8 @@ def confirm_remove(project_id: int, code: str) -> None:
 # Environment variables or config
 CONFIDENCE_THRESHOLDS = {
     'auto_reject': 0.60,      # Below this: don't even ask
-    'require_approval': 0.80,  # Above this: still ask, but flag as high confidence
-    'suggestion_only': 0.60    # Between 0.60-0.80: normal approval flow
+    'auto_approve': 0.90,     # Very high confidence auto-approves (configurable)
+    'require_approval': 0.60  # Between 0.60-0.89: approval required
 }
 ```
 

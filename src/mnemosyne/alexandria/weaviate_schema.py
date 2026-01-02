@@ -122,6 +122,81 @@ class ClusterCentroidCollection:
     ]
 
 
+class TheLethe:
+    """
+    Schema for TheLethe collection (email/PDF archive).
+    """
+
+    collection_name = "TheLethe"
+
+    description = "Archive of emails/PDFs with cleaned text and embeddings."
+
+    vectorizer = "none"  # manual vectors via embedder
+
+    properties = [
+        {
+            "name": "subject",
+            "dataType": ["text"],
+            "description": "Email subject",
+        },
+        {
+            "name": "body",
+            "dataType": ["text"],
+            "description": "Cleaned email body",
+        },
+        {
+            "name": "sender",
+            "dataType": ["text"],
+            "description": "Sender address",
+        },
+        {
+            "name": "date",
+            "dataType": ["text"],
+            "description": "Date string",
+        },
+        {
+            "name": "clusterId",
+            "dataType": ["int"],
+            "description": "Assigned cluster id",
+        },
+        {
+            "name": "keywords",
+            "dataType": ["text[]"],
+            "description": "Extracted keywords",
+        },
+        {
+            "name": "type",
+            "dataType": ["text"],
+            "description": "Artifact type",
+        },
+        {
+            "name": "messageId",
+            "dataType": ["text"],
+            "description": "Stable message identifier",
+        },
+        {
+            "name": "sourcePath",
+            "dataType": ["text"],
+            "description": "Original file/source path",
+        },
+        {
+            "name": "documentType",
+            "dataType": ["text"],
+            "description": "Document type (pdf/email/etc.)",
+        },
+        {
+            "name": "pageNumber",
+            "dataType": ["int"],
+            "description": "Page number for PDF chunks",
+        },
+        {
+            "name": "creationDate",
+            "dataType": ["text"],
+            "description": "Creation date from metadata",
+        },
+    ]
+
+
 class Discoveries:
     """
     Schema for Scout discoveries stored in latent space.
@@ -241,6 +316,8 @@ class WeaviateSchemaManager:
         # Get schema for this collection
         if collection_name == "TheMuses":
             self._create_themuses_collection()
+        elif collection_name == TheLethe.collection_name:
+            self._create_thelethe_collection()
         elif collection_name == ClusterCentroidCollection.collection_name:
             self._create_clustercentroid_collection()
         elif collection_name == Discoveries.collection_name:
@@ -266,6 +343,24 @@ class WeaviateSchemaManager:
             name=TheMuses.collection_name,
             description=TheMuses.description,
             vectorizer_config=Configure.Vectorizer.none(),  # Manual vectors via Ollama
+            properties=properties,
+        )
+
+    def _create_thelethe_collection(self) -> None:
+        """Create TheLethe collection with proper schema"""
+        properties = [
+            Property(
+                name=prop["name"],
+                data_type=self._map_datatype(prop["dataType"][0]),
+                description=prop.get("description", ""),
+            )
+            for prop in TheLethe.properties
+        ]
+
+        self.client.collections.create(
+            name=TheLethe.collection_name,
+            description=TheLethe.description,
+            vectorizer_config=Configure.Vectorizer.none(),
             properties=properties,
         )
 

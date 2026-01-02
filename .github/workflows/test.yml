@@ -39,6 +39,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          command -v poetry >/dev/null 2>&1 || python -m pip install poetry
           poetry install --with dev
 
       - name: Run unit tests
@@ -48,7 +50,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-latest
 
     services:
@@ -217,6 +219,7 @@ jobs:
       - name: Wait for services to be ready
         run: |
           timeout 60 bash -c 'until curl -f http://localhost:8080/v1/.well-known/ready; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://localhost:11434/api/tags; do sleep 2; done'
 
       - name: Run E2E tests
         env:

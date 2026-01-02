@@ -169,7 +169,7 @@ def weaviate_client(test_config):
 @pytest.fixture
 def clean_weaviate_collection(weaviate_client):
     """Clean up test collections before and after tests"""
-    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe_Test"]
+    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe", "TheLethe_Test"]
 
     # Clean before
     for collection_name in test_collections:
@@ -265,6 +265,11 @@ def ananke_test_db(postgres_connection):
     """Create and clean test database schema"""
     cursor = postgres_connection.cursor()
 
+    # Clean slate before create
+    cursor.execute("DROP TABLE IF EXISTS gatekeeper_rollback_tokens CASCADE")
+    cursor.execute("DROP TABLE IF EXISTS gatekeeper_audit CASCADE")
+    cursor.execute("DROP TABLE IF EXISTS projects CASCADE")
+
     # Create projects table
     cursor.execute(
         """
@@ -286,6 +291,9 @@ def ananke_test_db(postgres_connection):
         )
     """
     )
+    cursor.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_discovery_id ON projects(discovery_id)"
+    )
 
     # Create gatekeeper audit table
     cursor.execute(
@@ -296,7 +304,18 @@ def ananke_test_db(postgres_connection):
             approved BOOLEAN NOT NULL,
             project_id INTEGER REFERENCES projects(id),
             decided_at TIMESTAMP DEFAULT NOW(),
-            decided_by TEXT DEFAULT 'telegram_user'
+            decided_by TEXT DEFAULT 'telegram_user',
+            reason TEXT
+        )
+    """
+    )
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS gatekeeper_rollback_tokens (
+            project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+            token TEXT NOT NULL,
+            requested_at TIMESTAMP NOT NULL
         )
     """
     )
@@ -306,6 +325,7 @@ def ananke_test_db(postgres_connection):
     yield cursor
 
     # Clean up
+    cursor.execute("DROP TABLE IF EXISTS gatekeeper_rollback_tokens CASCADE")
     cursor.execute("DROP TABLE IF EXISTS gatekeeper_audit CASCADE")
     cursor.execute("DROP TABLE IF EXISTS projects CASCADE")
     postgres_connection.commit()
