@@ -12,6 +12,9 @@
 - [ ] Hermes writes user responses back to outbox (`response_json`, `response_received_at`)
 - [ ] PM questions use `expects_response=True` (PM decides *when* to ask; Story 12 only delivers)
 - [ ] Every question includes a stable `message_id` and Hermes correlates replies to that outbox record
+- [ ] Telegram callback data includes the outbox `message_id` for every inline action
+- [ ] Free-text replies require `/reply <message_id> <value>` or map to the most recent pending question for that chat
+- [ ] If no pending question matches, Hermes sends a help prompt and does not alter outbox state
 
 ### Notification Preferences + History
 - [ ] Configurable notification preferences (types, thresholds, quiet hours, batch mode)
