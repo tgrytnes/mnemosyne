@@ -127,7 +127,7 @@ class OutboxStore:
 
     def record_response_from_reply(
         self, *, chat_id: str, reply_to_message_id: int, response_json: dict
-    ) -> None:
+    ) -> bool:
         cursor = self._conn.cursor()
         cursor.execute(
             """
@@ -138,11 +138,12 @@ class OutboxStore:
         )
         row = cursor.fetchone()
         if not row:
-            return
+            return False
         self.record_response_by_message_id(
             message_id=row["message_id"],
             response_json=response_json,
         )
+        return True
 
     def get_by_message_id(self, message_id: str) -> sqlite3.Row:
         cursor = self._conn.cursor()
@@ -155,3 +156,13 @@ class OutboxStore:
             raise ValueError(f"Unknown message_id {message_id}")
         return row
 
+    def has_reply_mapping(self, chat_id: str, reply_to_message_id: int) -> bool:
+        cursor = self._conn.cursor()
+        cursor.execute(
+            """
+            SELECT 1 FROM message_outbox
+            WHERE chat_id = ? AND telegram_message_id = ?
+            """,
+            (chat_id, reply_to_message_id),
+        )
+        return cursor.fetchone() is not None
