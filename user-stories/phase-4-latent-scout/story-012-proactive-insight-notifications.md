@@ -11,6 +11,7 @@
 - [ ] Hermes updates outbox status (`pending` → `delivered` / `failed`) and `last_error` on failure
 - [ ] Hermes writes user responses back to outbox (`response_json`, `response_received_at`)
 - [ ] PM questions use `expects_response=True` (PM decides *when* to ask; Story 12 only delivers)
+- [ ] Every question includes a stable `message_id` and Hermes correlates replies to that outbox record
 
 ### Notification Preferences + History
 - [ ] Configurable notification preferences (types, thresholds, quiet hours, batch mode)
@@ -63,6 +64,15 @@ class NotificationPreferences(BaseModel):
 
 # Store in The Ananke (PostgreSQL)
 ```
+
+### Response Correlation Contract
+
+To ensure replies go to the correct agent/question:
+
+- Every outbound question is stored in `message_outbox` with a unique `message_id`.
+- Hermes includes that `message_id` in Telegram callbacks (e.g., `reply:message_id:<value>`).
+- For free-text replies, Hermes requires `/reply <message_id> <value>` or maps to the most recent pending question for that chat.
+- Hermes writes responses back to `message_outbox` with `response_json` + `response_received_at` and preserves `originating_agent`.
 
 ### Notification Templates
 
