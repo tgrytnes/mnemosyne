@@ -291,6 +291,10 @@ class MessageOutbox:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    def dequeue(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Alias for fetch_pending() to maintain API compatibility."""
+        return self.fetch_pending(limit=limit)
+
     def close(self) -> None:
         self._conn.close()
 
