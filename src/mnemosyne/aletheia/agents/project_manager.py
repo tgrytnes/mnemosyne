@@ -6,8 +6,7 @@ Incrementally enriches projects discovered by Latent Scout with metadata
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Optional
+from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ class ProjectManagerAgent:
     # Enrichment Queue Building
     # ==========================================================================
 
-    def _build_enrichment_queue(self) -> List[Dict[str, Any]]:
+    def _build_enrichment_queue(self) -> list[dict[str, Any]]:
         """
         Build prioritized queue of projects needing enrichment.
 
@@ -131,7 +130,7 @@ class ProjectManagerAgent:
     # Question Handlers
     # ==========================================================================
 
-    def _request_importance(self, project: Dict[str, Any]) -> None:
+    def _request_importance(self, project: dict[str, Any]) -> None:
         """
         Request importance rating for a project.
 
@@ -160,7 +159,7 @@ Reply with a number 1-5."""
 
         logger.info(f"Requested importance for project {project['id']}")
 
-    def _request_urgency(self, project: Dict[str, Any]) -> None:
+    def _request_urgency(self, project: dict[str, Any]) -> None:
         """
         Request urgency rating for a project.
 
@@ -189,7 +188,7 @@ Reply with a number 1-5."""
 
         logger.info(f"Requested urgency for project {project['id']}")
 
-    def _request_deadline(self, project: Dict[str, Any]) -> None:
+    def _request_deadline(self, project: dict[str, Any]) -> None:
         """
         Request deadline for a high-priority project.
 
@@ -219,7 +218,7 @@ Reply with:
 
         logger.info(f"Requested deadline for project {project['id']}")
 
-    def _request_description(self, project: Dict[str, Any]) -> None:
+    def _request_description(self, project: dict[str, Any]) -> None:
         """
         Request richer description for a project with vague details.
 
@@ -342,7 +341,7 @@ Reply with a brief description."""
 
         logger.info(f"Updated description for project {project_id}")
 
-    def _parse_deadline(self, deadline_text: str) -> Optional[datetime]:
+    def _parse_deadline(self, deadline_text: str) -> datetime | None:
         """
         Parse deadline text into datetime.
 
@@ -361,8 +360,8 @@ Reply with a brief description."""
         Raises:
             ValueError: If deadline text cannot be parsed
         """
-        import re
         from dateutil import parser as date_parser
+        import re
 
         text = deadline_text.strip().lower()
 
@@ -377,7 +376,7 @@ Reply with a brief description."""
             amount = int(duration_match.group(1))
             unit = duration_match.group(2)
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             if unit == "day":
                 return now + timedelta(days=amount)
@@ -392,7 +391,7 @@ Reply with a brief description."""
             parsed = date_parser.parse(text, fuzzy=True)
             # Ensure timezone-aware
             if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=timezone.utc)
+                parsed = parsed.replace(tzinfo=UTC)
             return parsed
         except (ValueError, date_parser.ParserError):
             pass
@@ -527,7 +526,7 @@ Reply with a brief description."""
         """
         import sqlite3
 
-        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
 
         # Query the SQLite message outbox (not PostgreSQL)
         # Access the internal connection from MessageOutbox
@@ -548,14 +547,14 @@ Reply with a brief description."""
         conn.close()
         return count
 
-    def _get_critical_deadlines(self) -> List[tuple]:
+    def _get_critical_deadlines(self) -> list[tuple]:
         """
         Get projects with deadlines < 24 hours.
 
         Returns:
             List of (id, title, deadline, importance, urgency) tuples
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         critical_threshold = now + timedelta(hours=24)
 
         with self.db_conn.cursor() as cursor:

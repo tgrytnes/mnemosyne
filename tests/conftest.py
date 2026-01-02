@@ -333,7 +333,7 @@ def ananke_test_db(postgres_connection):
 
     postgres_connection.commit()
 
-    yield cursor
+    yield postgres_connection
 
     # Clean up
     cursor.execute("DROP TABLE IF EXISTS gatekeeper_rollback_tokens CASCADE")
