@@ -271,6 +271,7 @@ def ananke_test_db(postgres_connection):
     cursor.execute("DROP TABLE IF EXISTS projects CASCADE")
 
     # Create projects table
+    # Schema includes migration 016 enhancements (importance, urgency, work_estimate, obsidian sync)
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS projects (
@@ -286,6 +287,12 @@ def ananke_test_db(postgres_connection):
             status TEXT DEFAULT 'candidate',
             deadline TIMESTAMP,
             pressure_score FLOAT,
+            importance INTEGER CHECK (importance >= 1 AND importance <= 5),
+            urgency INTEGER CHECK (urgency >= 1 AND urgency <= 5),
+            work_estimate INTEGER,
+            obsidian_file_path TEXT,
+            last_synced_to_obsidian TIMESTAMP,
+            last_synced_from_obsidian TIMESTAMP,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
@@ -296,6 +303,7 @@ def ananke_test_db(postgres_connection):
     )
 
     # Create gatekeeper audit table
+    # Schema includes migration 014 enhancements (action_type, updates_json, user_initiated)
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS gatekeeper_audit (
@@ -305,7 +313,10 @@ def ananke_test_db(postgres_connection):
             project_id INTEGER REFERENCES projects(id),
             decided_at TIMESTAMP DEFAULT NOW(),
             decided_by TEXT DEFAULT 'telegram_user',
-            reason TEXT
+            reason TEXT,
+            action_type TEXT DEFAULT 'approval',
+            updates_json TEXT,
+            user_initiated BOOLEAN DEFAULT FALSE
         )
     """
     )
