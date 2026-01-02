@@ -142,8 +142,13 @@ def test_complete_enrichment_flow_with_real_db(
         ) VALUES (%s, %s, %s, %s, %s)
         RETURNING id
         """,
-        ("Build Testing Framework", "Comprehensive testing for PM agent",
-         "latent_scout", "disco_001", "candidate"),
+        (
+            "Build Testing Framework",
+            "Comprehensive testing for PM agent",
+            "latent_scout",
+            "disco_001",
+            "candidate",
+        ),
     )
     project_id = cursor.fetchone()[0]
     cursor.connection.commit()
@@ -163,8 +168,7 @@ def test_complete_enrichment_flow_with_real_db(
     assert len(messages) > 0
 
     importance_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "importance"),
-        None
+        (m for m in messages if m.get("metadata", {}).get("question_type") == "importance"), None
     )
     assert importance_msg is not None
     assert "importance" in importance_msg["content"].lower()
@@ -179,8 +183,7 @@ def test_complete_enrichment_flow_with_real_db(
     # Verify urgency question was asked
     messages = message_outbox.dequeue(limit=10)
     urgency_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "urgency"),
-        None
+        (m for m in messages if m.get("metadata", {}).get("question_type") == "urgency"), None
     )
     assert urgency_msg is not None
 
@@ -194,8 +197,7 @@ def test_complete_enrichment_flow_with_real_db(
     # Step 6: Since importance + urgency = 9 (>= 7), deadline question should be asked
     messages = message_outbox.dequeue(limit=10)
     deadline_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"),
-        None
+        (m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"), None
     )
     assert deadline_msg is not None
 
@@ -280,9 +282,7 @@ def test_bidirectional_obsidian_sync_with_real_files(
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_pressure_score_calculation_with_real_data(
-    ananke_test_db, project_manager, gatekeeper
-):
+def test_pressure_score_calculation_with_real_data(ananke_test_db, project_manager, gatekeeper):
     """
     Test pressure score calculation using real PostgreSQL data:
     1. Create projects with various deadlines and work estimates
@@ -359,9 +359,7 @@ def test_pressure_score_calculation_with_real_data(
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_file_watcher_real_time_sync(
-    ananke_test_db, obsidian_sync, file_watcher, test_vault
-):
+def test_file_watcher_real_time_sync(ananke_test_db, obsidian_sync, file_watcher, test_vault):
     """
     Test file watcher with real file system:
     1. Create project in SQL
@@ -422,9 +420,7 @@ def test_file_watcher_real_time_sync(
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_event_driven_question_flow(
-    ananke_test_db, project_manager, message_outbox
-):
+def test_event_driven_question_flow(ananke_test_db, project_manager, message_outbox):
     """
     Test event-driven flow with real data:
     1. Low priority project (importance=2, urgency=2) should stop after urgency
@@ -449,7 +445,9 @@ def test_event_driven_question_flow(
 
     # Should NOT ask deadline (total priority = 4 < 7)
     messages = message_outbox.dequeue(limit=10)
-    deadline_msgs = [m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"]
+    deadline_msgs = [
+        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+    ]
     assert len(deadline_msgs) == 0
 
     # Test 2: High priority project
@@ -469,7 +467,9 @@ def test_event_driven_question_flow(
 
     # SHOULD ask deadline (total priority = 9 >= 7)
     messages = message_outbox.dequeue(limit=10)
-    deadline_msgs = [m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"]
+    deadline_msgs = [
+        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+    ]
     assert len(deadline_msgs) == 1
 
 
@@ -480,9 +480,7 @@ def test_event_driven_question_flow(
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_scheduler_runs_real_pm_check_cycle(
-    ananke_test_db, project_manager, message_outbox
-):
+def test_scheduler_runs_real_pm_check_cycle(ananke_test_db, project_manager, message_outbox):
     """
     Test scheduler actually runs PM check cycles with real data:
     1. Create projects needing enrichment
@@ -512,7 +510,9 @@ def test_scheduler_runs_real_pm_check_cycle(
 
     # Verify importance question was asked
     messages = message_outbox.dequeue(limit=10)
-    importance_msgs = [m for m in messages if m.get("metadata", {}).get("question_type") == "importance"]
+    importance_msgs = [
+        m for m in messages if m.get("metadata", {}).get("question_type") == "importance"
+    ]
 
     assert len(importance_msgs) > 0
     assert importance_msgs[0]["metadata"]["project_id"] == project_id
@@ -525,9 +525,7 @@ def test_scheduler_runs_real_pm_check_cycle(
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_throttling_with_real_message_counts(
-    ananke_test_db, project_manager, message_outbox
-):
+def test_throttling_with_real_message_counts(ananke_test_db, project_manager, message_outbox):
     """
     Test throttling with real message outbox:
     1. Set low throttle limit
@@ -598,8 +596,13 @@ def test_complete_round_trip_sql_obsidian_sql(
         VALUES (%s, %s, %s, %s, %s)
         RETURNING id
         """,
-        ("Round Trip Test", "Complete integration test",
-         "latent_scout", "disco_round_trip", "candidate"),
+        (
+            "Round Trip Test",
+            "Complete integration test",
+            "latent_scout",
+            "disco_round_trip",
+            "candidate",
+        ),
     )
     project_id = cursor.fetchone()[0]
     cursor.connection.commit()
@@ -635,10 +638,7 @@ def test_complete_round_trip_sql_obsidian_sql(
     obsidian_sync.sync_obsidian_file_to_sql(str(md_file))
 
     # Step 7: Verify SQL was updated
-    cursor.execute(
-        "SELECT importance, urgency FROM projects WHERE id = %s",
-        (project_id,)
-    )
+    cursor.execute("SELECT importance, urgency FROM projects WHERE id = %s", (project_id,))
     importance, urgency = cursor.fetchone()
 
     assert importance == 4  # Unchanged
@@ -649,6 +649,8 @@ def test_complete_round_trip_sql_obsidian_sql(
     project_manager.continue_enrichment(project_id)
 
     messages = project_manager.message_outbox.dequeue(limit=10)
-    deadline_msgs = [m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"]
+    deadline_msgs = [
+        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+    ]
 
     assert len(deadline_msgs) > 0

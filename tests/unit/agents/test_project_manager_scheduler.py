@@ -269,9 +269,7 @@ class TestErrorHandling:
             mock_scheduler_class.return_value = mock_scheduler
 
             # Make run_pm_check_cycle raise an error
-            project_manager.run_pm_check_cycle = Mock(
-                side_effect=Exception("Database error")
-            )
+            project_manager.run_pm_check_cycle = Mock(side_effect=Exception("Database error"))
 
             scheduler = ProjectManagerScheduler(project_manager=project_manager)
             scheduler.start()

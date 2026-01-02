@@ -19,11 +19,12 @@ import pytest
 # Test Fixtures
 # ==============================================================================
 
+
 @pytest.fixture
 def mock_sync_manager():
     """Mock ObsidianSyncManager"""
     manager = Mock()
-    manager.sync_obsidian_file_to_sql = Mock(return_value={'action': 'updated'})
+    manager.sync_obsidian_file_to_sql = Mock(return_value={"action": "updated"})
     return manager
 
 
@@ -40,6 +41,7 @@ def mock_obsidian_vault(tmp_path):
 # FileSystemWatcher Initialization Tests
 # ==============================================================================
 
+
 class TestFileSystemWatcherInit:
     """Test FileSystemWatcher initialization and configuration"""
 
@@ -48,8 +50,7 @@ class TestFileSystemWatcherInit:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         watcher = ObsidianFileWatcher(
-            vault_path=str(mock_obsidian_vault),
-            sync_manager=mock_sync_manager
+            vault_path=str(mock_obsidian_vault), sync_manager=mock_sync_manager
         )
 
         assert watcher.vault_path == str(mock_obsidian_vault)
@@ -62,7 +63,7 @@ class TestFileSystemWatcherInit:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            projects_folder="Projects"
+            projects_folder="Projects",
         )
 
         assert watcher.projects_folder == "Projects"
@@ -76,10 +77,7 @@ class TestFileSystemWatcherInit:
         vault = tmp_path / "new_vault"
         vault.mkdir()
 
-        watcher = ObsidianFileWatcher(
-            vault_path=str(vault),
-            sync_manager=mock_sync_manager
-        )
+        watcher = ObsidianFileWatcher(vault_path=str(vault), sync_manager=mock_sync_manager)
 
         # Should create Projects folder
         projects_path = vault / "Projects"
@@ -92,7 +90,7 @@ class TestFileSystemWatcherInit:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=5.0
+            debounce_seconds=5.0,
         )
 
         assert watcher.debounce_seconds == 5.0
@@ -101,6 +99,7 @@ class TestFileSystemWatcherInit:
 # ==============================================================================
 # File Event Detection Tests
 # ==============================================================================
+
 
 class TestFileEventDetection:
     """Test detection of file system events"""
@@ -112,7 +111,7 @@ class TestFileEventDetection:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1  # Short debounce for testing
+            debounce_seconds=0.1,  # Short debounce for testing
         )
 
         # Create and modify a file
@@ -140,7 +139,7 @@ class TestFileEventDetection:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         watcher.start()
@@ -164,7 +163,7 @@ class TestFileEventDetection:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         watcher.start()
@@ -188,7 +187,7 @@ class TestFileEventDetection:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         watcher.start()
@@ -216,7 +215,7 @@ class TestFileEventDetection:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         watcher.start()
@@ -238,6 +237,7 @@ class TestFileEventDetection:
 # Debouncing Tests
 # ==============================================================================
 
+
 class TestDebouncing:
     """Test debouncing logic to prevent rapid successive syncs"""
 
@@ -248,7 +248,7 @@ class TestDebouncing:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.5  # 500ms debounce
+            debounce_seconds=0.5,  # 500ms debounce
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
@@ -277,7 +277,7 @@ class TestDebouncing:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.2
+            debounce_seconds=0.2,
         )
 
         file1 = mock_obsidian_vault / "Projects" / "project1.md"
@@ -312,6 +312,7 @@ class TestDebouncing:
 # Error Handling Tests
 # ==============================================================================
 
+
 class TestErrorHandling:
     """Test error handling in file watcher"""
 
@@ -322,13 +323,13 @@ class TestErrorHandling:
         # First sync fails, second succeeds
         mock_sync_manager.sync_obsidian_file_to_sql.side_effect = [
             Exception("Sync failed"),
-            {'action': 'updated'}
+            {"action": "updated"},
         ]
 
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         file1 = mock_obsidian_vault / "Projects" / "file1.md"
@@ -362,7 +363,7 @@ class TestErrorHandling:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
@@ -384,15 +385,13 @@ class TestErrorHandling:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         with pytest.raises(ValueError, match="Vault path does not exist"):
-            ObsidianFileWatcher(
-                vault_path="/nonexistent/path",
-                sync_manager=mock_sync_manager
-            )
+            ObsidianFileWatcher(vault_path="/nonexistent/path", sync_manager=mock_sync_manager)
 
 
 # ==============================================================================
 # Watcher Lifecycle Tests
 # ==============================================================================
+
 
 class TestWatcherLifecycle:
     """Test watcher start/stop/restart lifecycle"""
@@ -402,8 +401,7 @@ class TestWatcherLifecycle:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         watcher = ObsidianFileWatcher(
-            vault_path=str(mock_obsidian_vault),
-            sync_manager=mock_sync_manager
+            vault_path=str(mock_obsidian_vault), sync_manager=mock_sync_manager
         )
 
         assert not watcher.is_running
@@ -419,8 +417,7 @@ class TestWatcherLifecycle:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         watcher = ObsidianFileWatcher(
-            vault_path=str(mock_obsidian_vault),
-            sync_manager=mock_sync_manager
+            vault_path=str(mock_obsidian_vault), sync_manager=mock_sync_manager
         )
 
         watcher.start()
@@ -444,7 +441,7 @@ class TestWatcherLifecycle:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         # Start, stop, restart
@@ -469,7 +466,7 @@ class TestWatcherLifecycle:
         watcher = ObsidianFileWatcher(
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
-            debounce_seconds=0.1
+            debounce_seconds=0.1,
         )
 
         with watcher:
@@ -490,8 +487,7 @@ class TestWatcherLifecycle:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         watcher = ObsidianFileWatcher(
-            vault_path=str(mock_obsidian_vault),
-            sync_manager=mock_sync_manager
+            vault_path=str(mock_obsidian_vault), sync_manager=mock_sync_manager
         )
 
         watcher.start()
@@ -507,8 +503,7 @@ class TestWatcherLifecycle:
         from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 
         watcher = ObsidianFileWatcher(
-            vault_path=str(mock_obsidian_vault),
-            sync_manager=mock_sync_manager
+            vault_path=str(mock_obsidian_vault), sync_manager=mock_sync_manager
         )
 
         watcher.start()
@@ -523,6 +518,7 @@ class TestWatcherLifecycle:
 # Callback Tests
 # ==============================================================================
 
+
 class TestCallbacks:
     """Test custom callback support"""
 
@@ -536,7 +532,7 @@ class TestCallbacks:
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
             debounce_seconds=0.1,
-            on_file_changed=callback_mock
+            on_file_changed=callback_mock,
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
@@ -567,7 +563,7 @@ class TestCallbacks:
             vault_path=str(mock_obsidian_vault),
             sync_manager=mock_sync_manager,
             debounce_seconds=0.1,
-            on_sync_error=error_callback
+            on_sync_error=error_callback,
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
@@ -582,6 +578,6 @@ class TestCallbacks:
             # Error callback should be invoked
             error_callback.assert_called_once()
             call_args = error_callback.call_args
-            assert 'Test error' in str(call_args)
+            assert "Test error" in str(call_args)
         finally:
             watcher.stop()

@@ -153,9 +153,7 @@ class TestResponseHandlers:
         )
 
         # User responds with deadline "2026-03-15"
-        project_manager.handle_deadline_response(
-            project_id=1, deadline_text="2026-03-15"
-        )
+        project_manager.handle_deadline_response(project_id=1, deadline_text="2026-03-15")
 
         # Should parse and update via gatekeeper
         mock_gatekeeper.update_project_direct.assert_called_once()
@@ -261,9 +259,18 @@ class TestResponseValidation:
         # Valid values should not raise
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "candidate",
-            3, None, None, None, None,
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "candidate",
+            3,
+            None,
+            None,
+            None,
+            None,
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
         project_manager.handle_importance_response(project_id=1, value=3)  # OK
 
@@ -293,9 +300,18 @@ class TestGatekeeperIntegration:
         """
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "candidate",
-            5, 4, None, None, None,
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "candidate",
+            5,
+            4,
+            None,
+            None,
+            None,
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         # Test importance response
@@ -317,9 +333,18 @@ class TestGatekeeperIntegration:
         """
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "candidate",
-            5, None, None, None, None,
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "candidate",
+            5,
+            None,
+            None,
+            None,
+            None,
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         project_manager.handle_importance_response(project_id=1, value=5)
@@ -337,9 +362,18 @@ class TestEventDrivenFlow:
         """After importance is set, urgency question is automatically asked."""
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "candidate",
-            5, None, None, None, None,  # urgency missing
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "candidate",
+            5,
+            None,
+            None,
+            None,
+            None,  # urgency missing
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         project_manager.handle_importance_response(project_id=1, value=5)
@@ -355,9 +389,18 @@ class TestEventDrivenFlow:
         """Low priority projects (importance+urgency < 7) don't get deadline question."""
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "candidate",
-            2, 2, None, None, None,  # importance=2, urgency=2 (total=4)
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "candidate",
+            2,
+            2,
+            None,
+            None,
+            None,  # importance=2, urgency=2 (total=4)
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         project_manager.handle_urgency_response(project_id=1, value=2)
@@ -371,9 +414,18 @@ class TestEventDrivenFlow:
         """High priority projects (importance+urgency >= 7) get deadline question."""
         cursor = mock_db.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            1, "Test", "scout", "disco", "active",
-            5, 4, None, None, None,  # importance=5, urgency=4 (total=9)
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            1,
+            "Test",
+            "scout",
+            "disco",
+            "active",
+            5,
+            4,
+            None,
+            None,
+            None,  # importance=5, urgency=4 (total=9)
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         project_manager.handle_urgency_response(project_id=1, value=4)
