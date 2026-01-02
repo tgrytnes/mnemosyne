@@ -12,14 +12,14 @@ This module handles:
 """
 
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .project_markdown import (
-    serialize_project,
-    parse_project_markdown,
     generate_obsidian_path,
+    parse_project_markdown,
+    serialize_project,
 )
 
 

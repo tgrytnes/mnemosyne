@@ -6,7 +6,11 @@ Incrementally enriches projects discovered by Latent Scout with metadata
 """
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from dateutil import parser as date_parser
 
 logger = logging.getLogger(__name__)
 
@@ -360,9 +364,6 @@ Reply with a brief description."""
         Raises:
             ValueError: If deadline text cannot be parsed
         """
-        from dateutil import parser as date_parser
-        import re
-
         text = deadline_text.strip().lower()
 
         # Check for "no deadline"
@@ -572,20 +573,22 @@ Reply with a brief description."""
             )
             return cursor.fetchall()
 
-    def _handle_critical_deadline(self, project: Dict[str, Any]) -> None:
+    def _handle_critical_deadline(self, project: dict[str, Any]) -> None:
         """
         Send urgent reminder for critical deadline.
 
         Args:
             project: Project dictionary with deadline info
         """
-        hours_remaining = (project["deadline"] - datetime.now(timezone.utc)).total_seconds() / 3600
+        hours_remaining = (project["deadline"] - datetime.now(UTC)).total_seconds() / 3600
 
         message_content = f"""🚨 **Urgent: {project['title']}**
 
 Deadline is in {hours_remaining:.1f} hours!
 
-This is a high-priority project (importance: {project['importance']}, urgency: {project['urgency']}).
+This is a high-priority project (importance: {project['importance']}, urgency: {
+            project['urgency']
+        }).
 
 Just a heads up! 👍"""
 
@@ -614,7 +617,7 @@ Just a heads up! 👍"""
 
         Overdue projects get maximum pressure (999.0).
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         with self.db_conn.cursor() as cursor:
             # Get projects with deadlines and work estimates
@@ -670,7 +673,7 @@ Just a heads up! 👍"""
     # Reminder Handlers
     # ==========================================================================
 
-    def _send_gentle_reminder(self, project: Dict[str, Any], question_type: str) -> None:
+    def _send_gentle_reminder(self, project: dict[str, Any], question_type: str) -> None:
         """
         Send gentle, friendly reminder for unanswered question.
 
@@ -680,7 +683,9 @@ Just a heads up! 👍"""
         """
         message_content = f"""👋 Hey! Just a gentle reminder about **{project['title']}**
 
-No pressure, but when you have a moment, could you share the {question_type} for this project?
+No pressure, but when you have a moment, could you share the {
+            question_type
+        } for this project?
 
 Thanks! 😊"""
 
@@ -697,7 +702,7 @@ Thanks! 😊"""
 
         logger.info(f"Sent gentle reminder for project {project['id']}")
 
-    def _send_escalated_reminder(self, project: Dict[str, Any], question_type: str) -> None:
+    def _send_escalated_reminder(self, project: dict[str, Any], question_type: str) -> None:
         """
         Send escalated reminder for high-priority items.
 
@@ -707,9 +712,12 @@ Thanks! 😊"""
         """
         message_content = f"""⚡ **Important: {project['title']}**
 
-This is a high-priority project (importance: {project['importance']}, urgency: {project['urgency']}).
+This is a high-priority project (importance: {project['importance']}, urgency: {
+            project['urgency']
+        }).
 
-Could you help me understand the {question_type} for this project? It would really help with planning!
+Could you help me understand the {question_type} for this project?
+It would really help with planning!
 
 Thanks for your time! 🙏"""
 
@@ -744,7 +752,7 @@ Thanks for your time! 🙏"""
                 user_initiated=False,
             )
 
-    def _should_stop_asking(self, project: Dict[str, Any]) -> bool:
+    def _should_stop_asking(self, project: dict[str, Any]) -> bool:
         """
         Determine if we should stop asking questions for a project.
 

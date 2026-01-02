@@ -6,9 +6,9 @@ automatically syncs edits back to PostgreSQL (The Ananke).
 """
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -30,8 +30,8 @@ class ObsidianFileWatcher:
         sync_manager,
         projects_folder: str = "Projects",
         debounce_seconds: float = 2.0,
-        on_file_changed: Optional[Callable[[str], None]] = None,
-        on_sync_error: Optional[Callable[[str, Exception], None]] = None,
+        on_file_changed: Callable[[str], None] | None = None,
+        on_sync_error: Callable[[str, Exception], None] | None = None,
     ):
         """
         Initialize Obsidian file watcher.
@@ -69,7 +69,7 @@ class ObsidianFileWatcher:
             debounce_seconds=debounce_seconds,
         )
 
-        self.observer: Optional[Observer] = None
+        self.observer: Observer | None = None
         self.is_running = False
 
     def start(self):

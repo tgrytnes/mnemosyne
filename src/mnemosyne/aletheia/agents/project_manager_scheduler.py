@@ -6,7 +6,6 @@ on a natural rhythm (30 minutes / 1 hour).
 """
 
 import logging
-from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -40,7 +39,7 @@ class ProjectManagerScheduler:
         self.pm_check_interval_minutes = pm_check_interval_minutes
         self.pressure_update_interval_hours = pressure_update_interval_hours
 
-        self.scheduler: Optional[BackgroundScheduler] = None
+        self.scheduler: BackgroundScheduler | None = None
         self.is_running = False
 
     def start(self):
@@ -78,7 +77,8 @@ class ProjectManagerScheduler:
         )
 
         logger.info(
-            f"Registered pressure score update job (every {self.pressure_update_interval_hours} hour)"
+            f"Registered pressure score update job "
+            f"(every {self.pressure_update_interval_hours} hour)"
         )
 
         # Start the scheduler
