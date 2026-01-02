@@ -17,6 +17,7 @@ import pytest
 # Test Fixtures
 # ==============================================================================
 
+
 @pytest.fixture
 def mock_db_conn():
     """Mock PostgreSQL connection"""
@@ -112,10 +113,13 @@ def sample_projects():
 # Enrichment Queue Tests
 # ==============================================================================
 
+
 class TestEnrichmentQueue:
     """Test building prioritized enrichment queue"""
 
-    def test_build_queue_prioritizes_new_projects_first(self, mock_db_conn, mock_outbox, sample_projects):
+    def test_build_queue_prioritizes_new_projects_first(
+        self, mock_db_conn, mock_outbox, sample_projects
+    ):
         """Test that new projects without any metadata come first"""
         from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
 
@@ -131,7 +135,9 @@ class TestEnrichmentQueue:
         assert queue[0]["id"] == 1
         assert queue[0]["stage"] == "importance"
 
-    def test_build_queue_stage_1_requests_importance(self, mock_db_conn, mock_outbox, sample_projects):
+    def test_build_queue_stage_1_requests_importance(
+        self, mock_db_conn, mock_outbox, sample_projects
+    ):
         """Test Stage 1: Request importance for projects missing it"""
         from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
 
@@ -159,7 +165,9 @@ class TestEnrichmentQueue:
         urgency_items = [q for q in queue if q["stage"] == "urgency"]
         assert any(item["id"] == 2 for item in urgency_items)
 
-    def test_build_queue_stage_3_focuses_on_high_priority(self, mock_db_conn, mock_outbox, sample_projects):
+    def test_build_queue_stage_3_focuses_on_high_priority(
+        self, mock_db_conn, mock_outbox, sample_projects
+    ):
         """Test Stage 3: Focus on high-priority projects (importance+urgency >= 7)"""
         from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
 
@@ -174,7 +182,9 @@ class TestEnrichmentQueue:
         high_priority = [q for q in queue if q["id"] == 3 and q["stage"] == "deadline"]
         assert len(high_priority) > 0
 
-    def test_build_queue_skips_fully_enriched_projects(self, mock_db_conn, mock_outbox, sample_projects):
+    def test_build_queue_skips_fully_enriched_projects(
+        self, mock_db_conn, mock_outbox, sample_projects
+    ):
         """Test that fully enriched projects don't appear in queue"""
         from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
 
@@ -203,6 +213,7 @@ class TestEnrichmentQueue:
 # ==============================================================================
 # Question Handler Tests
 # ==============================================================================
+
 
 class TestQuestionHandlers:
     """Test question formatting and enqueueing"""
@@ -293,7 +304,10 @@ class TestQuestionHandlers:
         mock_outbox.enqueue_message.assert_called_once()
         call_args = mock_outbox.enqueue_message.call_args[1]
 
-        assert "describe" in call_args["content"].lower() or "description" in call_args["content"].lower()
+        assert (
+            "describe" in call_args["content"].lower()
+            or "description" in call_args["content"].lower()
+        )
         assert call_args["expects_response"] is True
         assert call_args["metadata"]["question_type"] == "description"
 
@@ -301,6 +315,7 @@ class TestQuestionHandlers:
 # ==============================================================================
 # Event-Driven Response Handler Tests
 # ==============================================================================
+
 
 class TestResponseHandler:
     """Test event-driven enrichment continuation"""
@@ -314,9 +329,18 @@ class TestResponseHandler:
         # Project just got importance, now needs urgency
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            42, "Test Project", "latent_scout", "d1", "active",
-            5, None, None, None, None,  # has importance, missing urgency
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            42,
+            "Test Project",
+            "latent_scout",
+            "d1",
+            "active",
+            5,
+            None,
+            None,
+            None,
+            None,  # has importance, missing urgency
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         agent.continue_enrichment(project_id=42)
@@ -335,9 +359,18 @@ class TestResponseHandler:
         # Fully enriched project
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = (
-            42, "Test Project", "latent_scout", "d1", "active",
-            5, 4, datetime.now(timezone.utc) + timedelta(days=30), 20, 0.5,
-            datetime.now(timezone.utc), datetime.now(timezone.utc)
+            42,
+            "Test Project",
+            "latent_scout",
+            "d1",
+            "active",
+            5,
+            4,
+            datetime.now(timezone.utc) + timedelta(days=30),
+            20,
+            0.5,
+            datetime.now(timezone.utc),
+            datetime.now(timezone.utc),
         )
 
         agent.continue_enrichment(project_id=42)
@@ -364,16 +397,24 @@ class TestResponseHandler:
 # PM Check Cycle Tests
 # ==============================================================================
 
+
 class TestPMCheckCycle:
     """Test natural PM rhythm check cycle"""
 
-    def test_run_pm_check_cycle_processes_new_projects(self, mock_db_conn, mock_outbox, sample_projects):
+    def test_run_pm_check_cycle_processes_new_projects(
+        self, mock_db_conn, mock_outbox, sample_projects
+    ):
         """Test that check cycle processes new projects"""
         from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
 
         agent = ProjectManagerAgent(mock_db_conn, mock_outbox)
 
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
+        # Mock fetchone for multiple queries (message count, then project details)
+        cursor.fetchone.side_effect = [
+            (0,),  # Message count
+            (1, "New Project", None, None, "Description"),  # Project details
+        ]
         cursor.fetchall.return_value = sample_projects
 
         agent.run_pm_check_cycle()
@@ -425,9 +466,7 @@ class TestPMCheckCycle:
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project with deadline in 12 hours
-        cursor.fetchall.return_value = [
-            (42, "Urgent Project", now + timedelta(hours=12), 5, 5)
-        ]
+        cursor.fetchall.return_value = [(42, "Urgent Project", now + timedelta(hours=12), 5, 5)]
 
         critical = agent._get_critical_deadlines()
 
@@ -455,12 +494,15 @@ class TestPMCheckCycle:
         call_args = mock_outbox.enqueue_message.call_args[1]
 
         # Should be urgent tone
-        assert "urgent" in call_args["content"].lower() or "deadline" in call_args["content"].lower()
+        assert (
+            "urgent" in call_args["content"].lower() or "deadline" in call_args["content"].lower()
+        )
 
 
 # ==============================================================================
 # Pressure Score Tests
 # ==============================================================================
+
 
 class TestPressureScore:
     """Test pressure score calculation"""
@@ -475,9 +517,7 @@ class TestPressureScore:
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project: 20 hours work, 10 days remaining
-        cursor.fetchall.return_value = [
-            (42, 20, now + timedelta(days=10), 5, 4)
-        ]
+        cursor.fetchall.return_value = [(42, 20, now + timedelta(days=10), 5, 4)]
 
         agent._update_pressure_scores()
 
@@ -500,9 +540,7 @@ class TestPressureScore:
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project is overdue (deadline in the past)
-        cursor.fetchall.return_value = [
-            (42, 20, now - timedelta(days=1), 5, 5)
-        ]
+        cursor.fetchall.return_value = [(42, 20, now - timedelta(days=1), 5, 5)]
 
         agent._update_pressure_scores()
 
@@ -518,9 +556,7 @@ class TestPressureScore:
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project without deadline
-        cursor.fetchall.return_value = [
-            (42, 20, None, 5, 4)
-        ]
+        cursor.fetchall.return_value = [(42, 20, None, 5, 4)]
 
         agent._update_pressure_scores()
 
@@ -531,6 +567,7 @@ class TestPressureScore:
 # ==============================================================================
 # Reminder Handler Tests
 # ==============================================================================
+
 
 class TestReminderHandlers:
     """Test reminder escalation logic"""
@@ -577,7 +614,10 @@ class TestReminderHandlers:
         call_args = mock_outbox.enqueue_message.call_args[1]
 
         # Should mention high priority
-        assert "important" in call_args["content"].lower() or "priority" in call_args["content"].lower()
+        assert (
+            "important" in call_args["content"].lower()
+            or "priority" in call_args["content"].lower()
+        )
 
     def test_mark_as_avoiding_after_many_questions(self, mock_db_conn, mock_gatekeeper):
         """Test marking project as user avoiding after 5+ unanswered questions"""
