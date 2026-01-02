@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr-nor \
     ghostscript \
     poppler-utils \
-    libtiff5 \
+    libtiff6 \
     libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 

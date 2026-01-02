@@ -218,3 +218,71 @@ class PDFIngestor:
             return data.decode("latin-1", errors="ignore")
         except Exception:
             return ""
+
+
+def main():
+    """CLI entry point for PDF ingestion."""
+    import sys
+
+    import ollama
+    import weaviate
+
+    # Get configuration from environment
+    pdf_path = os.getenv("PDF_SCAN_PATH")
+    if not pdf_path:
+        logger.error("PDF_SCAN_PATH environment variable not set")
+        sys.exit(1)
+
+    weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
+    weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
+    weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+    logger.info("=" * 60)
+    logger.info("PDF Ingestion Pipeline")
+    logger.info("=" * 60)
+    logger.info(f"PDF Path: {pdf_path}")
+    logger.info(f"Weaviate: {weaviate_host}:{weaviate_port}")
+    logger.info(f"Ollama: {ollama_url}")
+    logger.info(f"Embedding Model: {embedding_model}")
+    logger.info("=" * 60)
+
+    # Connect to services
+    logger.info("Connecting to Weaviate...")
+    weaviate_client = weaviate.connect_to_local(
+        host=weaviate_host,
+        port=weaviate_port,
+        grpc_port=weaviate_grpc_port,
+    )
+
+    logger.info("Connecting to Ollama...")
+    ollama_client = ollama.Client(host=ollama_url)
+
+    # Create embedder function
+    def embedder(text: str) -> list[float]:
+        """Generate embedding using Ollama."""
+        response = ollama_client.embeddings(model=embedding_model, prompt=text)
+        return response["embedding"]
+
+    # Create ingestor and run
+    logger.info("Starting PDF ingestion...")
+    ingestor = PDFIngestor(input_dir=pdf_path, weaviate_client=weaviate_client, embedder=embedder)
+
+    try:
+        ingestor.ingest_pdfs()
+        logger.info("=" * 60)
+        logger.info("PDF Ingestion Complete!")
+        logger.info("=" * 60)
+    except Exception as e:
+        logger.error(f"Error during PDF ingestion: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+    finally:
+        weaviate_client.close()
+
+
+if __name__ == "__main__":
+    main()
