@@ -1,6 +1,4 @@
-"""
-Unit tests for Story 024: email cleaning/dedup pipeline.
-"""
+"""Unit tests for Story 024: email cleaning/dedup pipeline."""
 
 
 def test_clean_body_removes_html_urls_emails_and_tracking():
