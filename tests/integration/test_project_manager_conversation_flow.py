@@ -363,22 +363,22 @@ def test_high_priority_project_enriched_first(
     cur = ananke_test_db.cursor()
     cur.execute(
         """
-        INSERT INTO projects (title, discovery_id, status, cluster_count)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO projects (title, discovery_id, status)
+        VALUES (%s, %s, %s)
         RETURNING id
         """,
-        ("Low Priority", "disc-low", "active", 1),
+        ("Low Priority", "disc-low", "active"),
     )
     low_id = cur.fetchone()[0]
 
     # Insert high priority project
     cur.execute(
         """
-        INSERT INTO projects (title, discovery_id, status, cluster_count)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO projects (title, discovery_id, status)
+        VALUES (%s, %s, %s)
         RETURNING id
         """,
-        ("High Priority", "disc-high", "active", 5),
+        ("High Priority", "disc-high", "active"),
     )
     high_id = cur.fetchone()[0]
     ananke_test_db.commit()
@@ -487,11 +487,11 @@ def test_multiple_projects_enriched_sequentially(
     for i in range(3):
         cur.execute(
             """
-            INSERT INTO projects (title, discovery_id, status, cluster_count)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO projects (title, discovery_id, status)
+            VALUES (%s, %s, %s)
             RETURNING id
             """,
-            (f"Project {i+1}", f"disc-multi-{i+1}", "active", 3 - i),  # Different priorities
+            (f"Project {i+1}", f"disc-multi-{i+1}", "active"),
         )
         project_ids.append(cur.fetchone()[0])
 
@@ -636,11 +636,11 @@ def test_pressure_score_updates_after_enrichment(
     cur = ananke_test_db.cursor()
     cur.execute(
         """
-        INSERT INTO projects (title, discovery_id, status, estimated_work_hours)
+        INSERT INTO projects (title, discovery_id, status, work_estimate)
         VALUES (%s, %s, %s, %s)
         RETURNING id
         """,
-        ("Pressure Test", "disc-pressure", "active", 40.0),
+        ("Pressure Test", "disc-pressure", "active", 40),
     )
     project_id = cur.fetchone()[0]
     ananke_test_db.commit()

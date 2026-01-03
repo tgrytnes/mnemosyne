@@ -151,7 +151,7 @@ How important is this project to you? (Rate importance from 1-5)
 
 Reply with a number 1-5."""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,
@@ -180,7 +180,7 @@ How urgent is this project? (Rate urgency from 1-5)
 
 Reply with a number 1-5."""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,
@@ -210,7 +210,7 @@ Reply with:
 • A duration (e.g., "2 weeks" or "1 month")
 • "no deadline" if flexible"""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,
@@ -237,7 +237,7 @@ What specifically needs to be done?
 
 Reply with a brief description."""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,
@@ -530,9 +530,8 @@ Reply with a brief description."""
         one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
 
         # Query the SQLite message outbox (not PostgreSQL)
-        # Access the internal connection from MessageOutbox
-        conn = sqlite3.connect(self.message_outbox._db_path)
-        cursor = conn.cursor()
+        # Use the existing MessageOutbox connection
+        cursor = self.message_outbox.db.cursor()
 
         cursor.execute(
             """
@@ -545,7 +544,7 @@ Reply with a brief description."""
         row = cursor.fetchone()
         count = row[0] if row else 0
 
-        conn.close()
+        cursor.close()
         return count
 
     def _get_critical_deadlines(self) -> list[tuple]:
@@ -592,7 +591,7 @@ This is a high-priority project (importance: {project['importance']}, urgency: {
 
 Just a heads up! 👍"""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=False,
@@ -689,7 +688,7 @@ No pressure, but when you have a moment, could you share the {
 
 Thanks! 😊"""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,
@@ -721,7 +720,7 @@ It would really help with planning!
 
 Thanks for your time! 🙏"""
 
-        self.message_outbox.enqueue_message(
+        self.message_outbox.enqueue(
             content=message_content,
             sender="project_manager",
             expects_response=True,

@@ -327,11 +327,11 @@ def test_e2e_multiple_projects_sequential(
         for i in range(3):
             cur.execute(
                 """
-                INSERT INTO projects (title, discovery_id, status, cluster_count)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO projects (title, discovery_id, status)
+                VALUES (%s, %s, %s)
                 RETURNING id
                 """,
-                (f"E2E Project {i+1}", f"disc-e2e-multi-{i+1}", "active", 3 - i),
+                (f"E2E Project {i+1}", f"disc-e2e-multi-{i+1}", "active"),
             )
             project_ids.append(cur.fetchone()[0])
     ananke_test_db.commit()
