@@ -19,7 +19,8 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 
@@ -49,21 +50,21 @@ class OutboxMessage:
     id: int
     message_id: str
     message_type: str
-    originating_agent: Optional[str]
-    context_id: Optional[str]
-    payload: Dict[str, Any]
+    originating_agent: str | None
+    context_id: str | None
+    payload: dict[str, Any]
     status: str
     expects_response: bool
-    response_received_at: Optional[datetime]
-    response: Optional[Dict[str, Any]]
+    response_received_at: datetime | None
+    response: dict[str, Any] | None
     attempts: int
-    last_error: Optional[str]
+    last_error: str | None
     created_at: datetime
-    last_attempted_at: Optional[datetime]
-    delivered_at: Optional[datetime]
+    last_attempted_at: datetime | None
+    delivered_at: datetime | None
 
     @classmethod
-    def from_row(cls, row: Dict[str, Any]) -> "OutboxMessage":
+    def from_row(cls, row: dict[str, Any]) -> "OutboxMessage":
         """
         Create OutboxMessage from database row
 
@@ -141,23 +142,88 @@ class MessageOutbox:
     # Max delivery attempts before marking as failed
     MAX_ATTEMPTS = 3
 
-    def __init__(self, db: sqlite3.Connection):
+    def __init__(self, db: sqlite3.Connection | str | Path):
         """
         Initialize MessageOutbox
 
         Args:
-            db: SQLite database connection with message_outbox table
+            db: SQLite database connection or path to database file
         """
-        self.db = db
+        if isinstance(db, (str, Path)):
+            self._db_path = str(db)
+            self.db = sqlite3.connect(self._db_path)
+            self._owns_connection = True
+            self._ensure_schema()
+        else:
+            self.db = db
+            self._db_path = None
+            self._owns_connection = False
+
         self.db.row_factory = sqlite3.Row
+
+    def _ensure_schema(self):
+        """Create message_outbox table and indexes if they don't exist."""
+        cursor = self.db.cursor()
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS message_outbox (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id TEXT NOT NULL UNIQUE,
+                message_type TEXT NOT NULL,
+                originating_agent TEXT,
+                context_id TEXT,
+                payload_json TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                expects_response BOOLEAN DEFAULT FALSE,
+                response_received_at TIMESTAMP,
+                response_json TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_attempted_at TIMESTAMP,
+                delivered_at TIMESTAMP,
+                CHECK (message_type IN (
+                    'notification', 'approval_request', 'escalation', 'question'
+                )),
+                CHECK (status IN (
+                    'pending', 'delivered', 'failed', 'awaiting_response'
+                )),
+                CHECK (attempts >= 0)
+            )
+        """
+        )
+
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_message_id ON message_outbox(message_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_status ON message_outbox(status)"
+        )
+        cursor.execute(
+            """CREATE INDEX IF NOT EXISTS idx_message_outbox_agent
+            ON message_outbox(originating_agent)"""
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_context ON message_outbox(context_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_created ON message_outbox(created_at)"
+        )
+        cursor.execute(
+            """CREATE INDEX IF NOT EXISTS idx_message_outbox_response_routing
+            ON message_outbox(context_id, expects_response, status)"""
+        )
+
+        self.db.commit()
 
     def enqueue(
         self,
         message_type: str,
         payload: dict,
-        message_id: Optional[str] = None,
-        originating_agent: Optional[str] = None,
-        context_id: Optional[str] = None,
+        message_id: str | None = None,
+        originating_agent: str | None = None,
+        context_id: str | None = None,
         expects_response: bool = False,
     ) -> str:
         """
@@ -220,7 +286,7 @@ class MessageOutbox:
         return message_id
 
     def send_message(
-        self, text: str, agent: Optional[str] = None, context_id: Optional[str] = None
+        self, text: str, agent: str | None = None, context_id: str | None = None
     ) -> str:
         """
         Simple helper for text-only notifications
@@ -240,7 +306,7 @@ class MessageOutbox:
             context_id=context_id,
         )
 
-    def fetch_pending(self, limit: int = 50) -> List[OutboxMessage]:
+    def fetch_pending(self, limit: int = 50) -> list[OutboxMessage]:
         """
         Pull pending messages for delivery
 
@@ -323,7 +389,7 @@ class MessageOutbox:
 
         self.db.commit()
 
-    def record_response(self, context_id: str, response_data: dict) -> Optional[str]:
+    def record_response(self, context_id: str, response_data: dict) -> str | None:
         """
         Record user response to an interactive message
         Routes response back to originating agent
@@ -423,7 +489,7 @@ class MessageOutbox:
 # ==============================================================================
 
 
-def _parse_timestamp(timestamp_str: Optional[str]) -> Optional[datetime]:
+def _parse_timestamp(timestamp_str: str | None) -> datetime | None:
     """
     Parse ISO format timestamp string to datetime
 

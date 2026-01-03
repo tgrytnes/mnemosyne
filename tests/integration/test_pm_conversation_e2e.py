@@ -213,9 +213,6 @@ def message_outbox(tmp_path):
     outbox_path = tmp_path / "outbox.db"
     outbox = MessageOutbox(outbox_path)
 
-    # Store the path for MockNexus to access
-    outbox.db_path = outbox_path
-
     yield outbox
 
 

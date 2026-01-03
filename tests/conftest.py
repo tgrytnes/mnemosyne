@@ -333,16 +333,15 @@ def ananke_test_db(postgres_connection):
 
     postgres_connection.commit()
 
-    yield postgres_connection
+    yield cursor
 
     # Clean up - rollback any failed transaction first
     postgres_connection.rollback()
-    cleanup_cursor = postgres_connection.cursor()
-    cleanup_cursor.execute("DROP TABLE IF EXISTS gatekeeper_rollback_tokens CASCADE")
-    cleanup_cursor.execute("DROP TABLE IF EXISTS gatekeeper_audit CASCADE")
-    cleanup_cursor.execute("DROP TABLE IF EXISTS projects CASCADE")
+    cursor.execute("DROP TABLE IF EXISTS gatekeeper_rollback_tokens CASCADE")
+    cursor.execute("DROP TABLE IF EXISTS gatekeeper_audit CASCADE")
+    cursor.execute("DROP TABLE IF EXISTS projects CASCADE")
     postgres_connection.commit()
-    cleanup_cursor.close()
+    cursor.close()
 
 
 # ============================================================================
