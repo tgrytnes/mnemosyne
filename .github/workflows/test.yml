@@ -107,6 +107,11 @@ jobs:
           # Pull generation model for cluster metadata synthesis
           docker exec ollama ollama pull qwen3:0.6b
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng ghostscript poppler-utils
+
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
