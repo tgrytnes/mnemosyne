@@ -16,18 +16,16 @@ Tests the complete flow:
 5. Scheduler running actual PM check cycles
 """
 
-from datetime import datetime, timezone, timedelta, UTC
-from pathlib import Path
 import time
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
-from mnemosyne.aletheia.agents.project_manager_scheduler import ProjectManagerScheduler
-from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
-from mnemosyne.alexandria.sql_gatekeeper import SQLProjectGatekeeper, GatekeeperConfig
+from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 from mnemosyne.alexandria.message_outbox import MessageOutbox
-
+from mnemosyne.alexandria.sql_gatekeeper import GatekeeperConfig, SQLProjectGatekeeper
 
 # ==============================================================================
 # Test Fixtures
@@ -56,7 +54,6 @@ def message_outbox(tmp_path):
 @pytest.fixture
 def obsidian_sync(test_vault, postgres_connection):
     """Create real ObsidianSyncManager."""
-    from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 
     return ObsidianSyncManager(
         vault_path=str(test_vault),
@@ -290,7 +287,7 @@ def test_pressure_score_calculation_with_real_data(ananke_test_db, project_manag
     3. Verify pressure scores are calculated correctly
     """
     cursor = ananke_test_db
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Project 1: Overdue (should get pressure = 999.0)
     cursor.execute(

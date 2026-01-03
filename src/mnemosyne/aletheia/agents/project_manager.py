@@ -529,7 +529,6 @@ Reply with a brief description."""
         Returns:
             Number of messages sent
         """
-        import sqlite3
 
         one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
 
