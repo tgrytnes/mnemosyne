@@ -161,14 +161,14 @@ def test_complete_enrichment_flow_with_real_db(
     project_manager.run_pm_check_cycle()
 
     # Verify message was enqueued
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     assert len(messages) > 0
 
     importance_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "importance"), None
+        (m for m in messages if m.payload.get("question_type") == "importance"), None
     )
     assert importance_msg is not None
-    assert "importance" in importance_msg["content"].lower()
+    assert "importance" in importance_msg.payload.get("text", "").lower()
 
     # Step 4: User responds with importance=5
     project_manager.handle_importance_response(project_id=project_id, value=5)
@@ -178,9 +178,9 @@ def test_complete_enrichment_flow_with_real_db(
     assert cursor.fetchone()[0] == 5
 
     # Verify urgency question was asked
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     urgency_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "urgency"), None
+        (m for m in messages if m.payload.get("question_type") == "urgency"), None
     )
     assert urgency_msg is not None
 
@@ -192,9 +192,9 @@ def test_complete_enrichment_flow_with_real_db(
     assert cursor.fetchone()[0] == 4
 
     # Step 6: Since importance + urgency = 9 (>= 7), deadline question should be asked
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     deadline_msg = next(
-        (m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"), None
+        (m for m in messages if m.payload.get("question_type") == "deadline"), None
     )
     assert deadline_msg is not None
 
@@ -208,7 +208,7 @@ def test_complete_enrichment_flow_with_real_db(
 
     # Verify no more questions (fully enriched)
     project_manager.continue_enrichment(project_id)
-    messages_after = message_outbox.dequeue(limit=10)
+    messages_after = message_outbox.fetch_pending(limit=10)
     # Should have no new questions
     assert len(messages_after) == 0
 
@@ -441,9 +441,9 @@ def test_event_driven_question_flow(ananke_test_db, project_manager, message_out
     project_manager.handle_urgency_response(project_id=low_priority_id, value=2)
 
     # Should NOT ask deadline (total priority = 4 < 7)
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     deadline_msgs = [
-        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+        m for m in messages if m.payload.get("question_type") == "deadline"
     ]
     assert len(deadline_msgs) == 0
 
@@ -463,9 +463,9 @@ def test_event_driven_question_flow(ananke_test_db, project_manager, message_out
     project_manager.handle_urgency_response(project_id=high_priority_id, value=4)
 
     # SHOULD ask deadline (total priority = 9 >= 7)
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     deadline_msgs = [
-        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+        m for m in messages if m.payload.get("question_type") == "deadline"
     ]
     assert len(deadline_msgs) == 1
 
@@ -506,13 +506,14 @@ def test_scheduler_runs_real_pm_check_cycle(ananke_test_db, project_manager, mes
     project_manager.run_pm_check_cycle()
 
     # Verify importance question was asked
-    messages = message_outbox.dequeue(limit=10)
+    messages = message_outbox.fetch_pending(limit=10)
     importance_msgs = [
-        m for m in messages if m.get("metadata", {}).get("question_type") == "importance"
+        m for m in messages if m.payload.get("question_type") == "importance"
     ]
 
     assert len(importance_msgs) > 0
-    assert importance_msgs[0]["metadata"]["project_id"] == project_id
+    # Context ID should contain the project ID
+    assert str(project_id) in importance_msgs[0].context_id
 
 
 # ==============================================================================
@@ -551,17 +552,17 @@ def test_throttling_with_real_message_counts(ananke_test_db, project_manager, me
 
     # First check cycle - should process 1 project
     throttled_pm.run_pm_check_cycle()
-    messages1 = message_outbox.dequeue(limit=10)
+    messages1 = message_outbox.fetch_pending(limit=10)
     assert len(messages1) == 1
 
     # Second check cycle - should process 1 more project
     throttled_pm.run_pm_check_cycle()
-    messages2 = message_outbox.dequeue(limit=10)
+    messages2 = message_outbox.fetch_pending(limit=10)
     assert len(messages2) == 1
 
     # Third check cycle - should be throttled (already sent 2 messages)
     throttled_pm.run_pm_check_cycle()
-    messages3 = message_outbox.dequeue(limit=10)
+    messages3 = message_outbox.fetch_pending(limit=10)
     assert len(messages3) == 0  # Throttled!
 
 
@@ -645,9 +646,9 @@ def test_complete_round_trip_sql_obsidian_sql(
     # Since importance + urgency = 7 (>= 7), should ask for deadline
     project_manager.continue_enrichment(project_id)
 
-    messages = project_manager.message_outbox.dequeue(limit=10)
+    messages = project_manager.message_outbox.fetch_pending(limit=10)
     deadline_msgs = [
-        m for m in messages if m.get("metadata", {}).get("question_type") == "deadline"
+        m for m in messages if m.payload.get("question_type") == "deadline"
     ]
 
     assert len(deadline_msgs) > 0
