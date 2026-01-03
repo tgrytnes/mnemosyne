@@ -82,13 +82,9 @@ class MockNexus:
         """Poll outbox, deliver to user, and route responses back to PM."""
         # For E2E tests, we query the real message outbox
         import json
-        import sqlite3
 
-        # Get pending messages from the SQLite outbox
-        conn = sqlite3.connect(
-            self.outbox._db_path if hasattr(self.outbox, "_db_path") else self.outbox.db_path
-        )
-        cursor = conn.cursor()
+        # Use the existing MessageOutbox connection
+        cursor = self.outbox.db.cursor()
 
         cursor.execute(
             """
@@ -129,8 +125,8 @@ class MockNexus:
 
             processed += 1
 
-        conn.commit()
-        conn.close()
+        self.outbox.db.commit()
+        cursor.close()
 
         return processed
 
@@ -497,10 +493,7 @@ def test_e2e_message_outbox_persistence(
     project_manager.run_pm_check_cycle()
 
     # Verify message in outbox
-    import sqlite3
-
-    conn = sqlite3.connect(message_outbox.db_path)
-    cursor = conn.cursor()
+    cursor = message_outbox.db.cursor()
 
     cursor.execute(
         """
@@ -509,6 +502,6 @@ def test_e2e_message_outbox_persistence(
         """
     )
     count = cursor.fetchone()[0]
-    conn.close()
+    cursor.close()
 
     assert count >= 1, "Should have at least 1 pending message in outbox"
