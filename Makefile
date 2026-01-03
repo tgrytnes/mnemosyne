@@ -46,29 +46,49 @@ help:
 # Installation
 install:
 	@echo "Installing dependencies..."
-	poetry install --with dev
+	./.venv/bin/poetry install --with dev
+
+# Versioning
+version:
+	@echo "Usage: make version-patch | version-minor | version-major"
+
+version-patch:
+	@./.venv/bin/poetry version patch
+
+version-minor:
+	@./.venv/bin/poetry version minor
+
+version-major:
+	@./.venv/bin/poetry version major
+
+tag:
+	@git tag v$(shell ./.venv/bin/poetry version -s)
+
+debug-poetry-path:
+	@echo "which poetry: $(shell which ./.venv/bin/poetry)"
+	@echo "which poetry run: $(shell which ./.venv/bin/poetry)"
 
 # Unit tests (fast, no Docker needed)
 test: test-unit
 
 test-unit:
 	@echo "Running unit tests..."
-	poetry run pytest tests/unit -v -m unit
+	./.venv/bin/poetry run pytest tests/unit -v -m unit
 
 # Integration tests (requires Docker services)
 test-integration: services-up
 	@echo "Running integration tests..."
-	poetry run pytest tests/integration -v -m integration
+	./.venv/bin/poetry run pytest tests/integration -v -m integration
 
 # E2E tests
 test-e2e: services-up
 	@echo "Running end-to-end tests..."
-	poetry run pytest tests/e2e -v -m e2e
+	./.venv/bin/poetry run pytest tests/e2e -v -m e2e
 
 # All tests with coverage
 test-all: services-up
 	@echo "Running all tests with coverage..."
-	poetry run pytest -v --cov=. --cov-report=term-missing --cov-report=html
+	./.venv/bin/poetry run pytest -v --cov=. --cov-report=term-missing --cov-report=html
 
 # Coverage report
 coverage: test-all
@@ -99,13 +119,13 @@ services-logs:
 # Code quality
 lint:
 	@echo "Running ruff linter..."
-	poetry run ruff check .
+	./.venv/bin/poetry run ruff check .
 	@echo "Running mypy type checker..."
-	poetry run mypy . --ignore-missing-imports || true
+	./.venv/bin/poetry run mypy . --ignore-missing-imports || true
 
 format:
 	@echo "Formatting code with Black..."
-	poetry run black .
+	./.venv/bin/poetry run black .
 
 check: format lint test-unit
 	@echo "✅ All quality checks passed!"
