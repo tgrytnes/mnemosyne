@@ -19,7 +19,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
 from uuid import uuid4
 
 
@@ -49,21 +49,21 @@ class OutboxMessage:
     id: int
     message_id: str
     message_type: str
-    originating_agent: Optional[str]
-    context_id: Optional[str]
-    payload: Dict[str, Any]
+    originating_agent: str | None
+    context_id: str | None
+    payload: dict[str, Any]
     status: str
     expects_response: bool
-    response_received_at: Optional[datetime]
-    response: Optional[Dict[str, Any]]
+    response_received_at: datetime | None
+    response: dict[str, Any] | None
     attempts: int
-    last_error: Optional[str]
+    last_error: str | None
     created_at: datetime
-    last_attempted_at: Optional[datetime]
-    delivered_at: Optional[datetime]
+    last_attempted_at: datetime | None
+    delivered_at: datetime | None
 
     @classmethod
-    def from_row(cls, row: Dict[str, Any]) -> "OutboxMessage":
+    def from_row(cls, row: dict[str, Any]) -> "OutboxMessage":
         """
         Create OutboxMessage from database row
 
@@ -155,9 +155,9 @@ class MessageOutbox:
         self,
         message_type: str,
         payload: dict,
-        message_id: Optional[str] = None,
-        originating_agent: Optional[str] = None,
-        context_id: Optional[str] = None,
+        message_id: str | None = None,
+        originating_agent: str | None = None,
+        context_id: str | None = None,
         expects_response: bool = False,
     ) -> str:
         """
@@ -220,7 +220,7 @@ class MessageOutbox:
         return message_id
 
     def send_message(
-        self, text: str, agent: Optional[str] = None, context_id: Optional[str] = None
+        self, text: str, agent: str | None = None, context_id: str | None = None
     ) -> str:
         """
         Simple helper for text-only notifications
@@ -240,7 +240,7 @@ class MessageOutbox:
             context_id=context_id,
         )
 
-    def fetch_pending(self, limit: int = 50) -> List[OutboxMessage]:
+    def fetch_pending(self, limit: int = 50) -> list[OutboxMessage]:
         """
         Pull pending messages for delivery
 
@@ -323,7 +323,7 @@ class MessageOutbox:
 
         self.db.commit()
 
-    def record_response(self, context_id: str, response_data: dict) -> Optional[str]:
+    def record_response(self, context_id: str, response_data: dict) -> str | None:
         """
         Record user response to an interactive message
         Routes response back to originating agent
@@ -423,7 +423,7 @@ class MessageOutbox:
 # ==============================================================================
 
 
-def _parse_timestamp(timestamp_str: Optional[str]) -> Optional[datetime]:
+def _parse_timestamp(timestamp_str: str | None) -> datetime | None:
     """
     Parse ISO format timestamp string to datetime
 
