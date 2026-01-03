@@ -230,7 +230,8 @@ class SQLProjectGatekeeper:
 
         Args:
             project_id: Existing project ID in The Ananke
-            updates: Dict of fields to update (importance, urgency, deadline, description, status, work_estimate)
+            updates: Dict of fields to update (importance, urgency, deadline,
+                description, status, work_estimate)
             user_initiated: Must be True (safety check to prevent agent misuse)
 
         Returns:
@@ -311,7 +312,7 @@ class SQLProjectGatekeeper:
 
             return True
 
-        except Exception as e:
+        except Exception:
             # Rollback on any error
             self._db.rollback()
             return False
