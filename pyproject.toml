@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mnemosyne"
-version = "0.1.1"
+version = "0.1.2"
 description = "Personal Knowledge Management System with AI-powered pattern discovery"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
