@@ -276,7 +276,7 @@ class TestConsumerAPI:
         assert row["delivered_at"] is not None
 
     def test_mark_delivered_response_expected(self, message_outbox):
-        """Test marking message as delivered when response expected (should go to awaiting_response)""" # noqa: E501
+        """Test marking message as delivered when response expected (should go to awaiting_response)"""  # noqa: E501
         message_id = message_outbox.enqueue(
             message_type="question",
             payload={"text": "How important? (1-5)"},
@@ -385,7 +385,7 @@ class TestResponseRouting:
         # Verify status changed to 'delivered' and response stored
         cursor = message_outbox.db.cursor()
         cursor.execute(
-            "SELECT status, response_json, response_received_at FROM message_outbox WHERE message_id = ?", # noqa: E501
+            "SELECT status, response_json, response_received_at FROM message_outbox WHERE message_id = ?",  # noqa: E501
             (message_id,),
         )
         row = cursor.fetchone()

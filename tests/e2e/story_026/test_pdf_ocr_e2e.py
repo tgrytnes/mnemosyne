@@ -11,7 +11,7 @@ import pytest
 # Skip entire module if ocrmypdf is not available
 # Note: ocrmypdf may fail to import if leptonica/tesseract are not installed
 try:
-    import ocrmypdf # noqa: F401
+    import ocrmypdf  # noqa: F401
 except (ImportError, Exception) as e:
     pytest.skip(f"ocrmypdf not available: {e}", allow_module_level=True)
 

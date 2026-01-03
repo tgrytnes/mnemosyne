@@ -365,7 +365,9 @@ Updated description from Obsidian
 
         # Should call SQL update (gatekeeper or direct)
         # Note: Implementation may use gatekeeper, so we just verify some update happened
-        assert cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called # noqa: F821
+        assert (
+            cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called  # noqa: F821
+        )
 
     def test_sync_obsidian_validates_id_exists(self, mock_db_conn, mock_obsidian_vault):
         """Test that sync validates project ID exists in SQL"""
@@ -507,11 +509,11 @@ importance: 5
         files = [
             (
                 "Project-1.md",
-                "---\nid: 1\ntitle: P1\ndiscovered_by: test\ndiscovery_id: d1\ncluster_ids: [c1]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P1\n", # noqa: E501
+                "---\nid: 1\ntitle: P1\ndiscovered_by: test\ndiscovery_id: d1\ncluster_ids: [c1]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P1\n",  # noqa: E501
             ),
             (
                 "Project-2.md",
-                "---\nid: 2\ntitle: P2\ndiscovered_by: test\ndiscovery_id: d2\ncluster_ids: [c2]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P2\n", # noqa: E501
+                "---\nid: 2\ntitle: P2\ndiscovered_by: test\ndiscovery_id: d2\ncluster_ids: [c2]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P2\n",  # noqa: E501
             ),
         ]
 
