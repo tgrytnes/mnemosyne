@@ -129,7 +129,7 @@ def test_complete_enrichment_flow_with_real_db(
     7. PM asks deadline (high priority)
     8. Project fully enriched
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Step 1: Insert a new project (simulating Scout discovery)
     cursor.execute(
@@ -230,7 +230,7 @@ def test_bidirectional_obsidian_sync_with_real_files(
     3. User edits Obsidian file manually
     4. File watcher detects change and syncs back to SQL (Obsidian → SQL)
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Step 1: Create project in DB
     cursor.execute(
@@ -286,7 +286,7 @@ def test_pressure_score_calculation_with_real_data(ananke_test_db, project_manag
     2. Run pressure score update
     3. Verify pressure scores are calculated correctly
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
     now = datetime.now(UTC)
 
     # Project 1: Overdue (should get pressure = 999.0)
@@ -365,7 +365,7 @@ def test_file_watcher_real_time_sync(ananke_test_db, obsidian_sync, file_watcher
     4. Modify Obsidian file
     5. File watcher detects and syncs back
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Step 1: Create project
     cursor.execute(
@@ -423,7 +423,7 @@ def test_event_driven_question_flow(ananke_test_db, project_manager, message_out
     1. Low priority project (importance=2, urgency=2) should stop after urgency
     2. High priority project (importance=5, urgency=4) should continue to deadline
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Test 1: Low priority project
     cursor.execute(
@@ -485,7 +485,7 @@ def test_scheduler_runs_real_pm_check_cycle(ananke_test_db, project_manager, mes
     3. Wait for scheduler to run
     4. Verify messages were sent
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Create a project needing importance
     cursor.execute(
@@ -529,7 +529,7 @@ def test_throttling_with_real_message_counts(ananke_test_db, project_manager, me
     2. Send messages up to limit
     3. Verify PM respects throttle
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Create PM with low throttle limit
     throttled_pm = ProjectManagerAgent(
@@ -584,7 +584,7 @@ def test_complete_round_trip_sql_obsidian_sql(
     5. File watcher syncs → SQL updated
     6. PM sees updated data → continues enrichment
     """
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Step 1: Scout discovers project
     cursor.execute(
