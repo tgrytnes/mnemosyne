@@ -5,9 +5,9 @@ Tests the APScheduler integration for running PM check cycles and
 pressure score updates on a natural rhythm (30 min / 1 hour).
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, Mock, patch, call
 
 
 @pytest.fixture
@@ -175,7 +175,7 @@ class TestSchedulerLifecycle:
             mock_scheduler = MagicMock()
             mock_scheduler_class.return_value = mock_scheduler
 
-            with ProjectManagerScheduler(project_manager=project_manager) as scheduler:
+            with ProjectManagerScheduler(project_manager=project_manager):
                 pass
 
             # Should start and shutdown

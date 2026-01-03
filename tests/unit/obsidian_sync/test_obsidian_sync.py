@@ -7,13 +7,10 @@ Covers both SQL → Obsidian and Obsidian → SQL sync operations.
 TDD Approach: These tests are written BEFORE implementation (RED phase).
 """
 
-import json
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, call
+from datetime import UTC, datetime, timedelta
+from unittest.mock import Mock, patch
 
 import pytest
-
 
 # ==============================================================================
 # Test Fixtures
@@ -57,12 +54,12 @@ def sample_project_from_sql():
         "status": "active",
         "importance": 5,
         "urgency": 4,
-        "deadline": datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        "deadline": datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
         "work_estimate": 20,
         "pressure_score": 1.25,
         "verified_by_user": True,
-        "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 1, 1, 14, 30, 0, tzinfo=timezone.utc),
+        "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+        "updated_at": datetime(2026, 1, 1, 14, 30, 0, tzinfo=UTC),
         "obsidian_file_path": None,  # Not yet synced
         "last_synced_to_obsidian": None,
         "last_synced_from_obsidian": None,
@@ -241,8 +238,8 @@ More custom content
                 "discovery_id": "d1",
                 "cluster_ids": ["c1"],
                 "confidence_score": 0.8,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
             },
             {
                 "id": 2,
@@ -253,8 +250,8 @@ More custom content
                 "discovery_id": "d2",
                 "cluster_ids": ["c2"],
                 "confidence_score": 0.9,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
             },
         ]
 
@@ -277,7 +274,7 @@ More custom content
         from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 
         # Mark project as synced 30 seconds ago
-        sample_project_from_sql["last_synced_to_obsidian"] = datetime.now(timezone.utc) - timedelta(
+        sample_project_from_sql["last_synced_to_obsidian"] = datetime.now(UTC) - timedelta(
             seconds=30
         )
 
@@ -297,7 +294,7 @@ More custom content
         from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 
         # Mark as recently synced
-        sample_project_from_sql["last_synced_to_obsidian"] = datetime.now(timezone.utc) - timedelta(
+        sample_project_from_sql["last_synced_to_obsidian"] = datetime.now(UTC) - timedelta(
             seconds=10
         )
 
@@ -356,7 +353,7 @@ Updated description from Obsidian
             (
                 42,
                 "Test",
-                datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+                datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
                 None,
             ),  # detect_conflict check
         ]
@@ -368,7 +365,7 @@ Updated description from Obsidian
 
         # Should call SQL update (gatekeeper or direct)
         # Note: Implementation may use gatekeeper, so we just verify some update happened
-        assert cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called
+        assert cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called  # noqa: F821
 
     def test_sync_obsidian_validates_id_exists(self, mock_db_conn, mock_obsidian_vault):
         """Test that sync validates project ID exists in SQL"""
@@ -438,7 +435,7 @@ Description
             (
                 42,
                 "Test",
-                datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+                datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
                 None,
             ),  # detect_conflict check
         ]
@@ -486,7 +483,7 @@ importance: 5
             (
                 42,
                 "Test",
-                datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+                datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
                 None,
             ),  # detect_conflict check
         ]
@@ -510,11 +507,11 @@ importance: 5
         files = [
             (
                 "Project-1.md",
-                "---\nid: 1\ntitle: P1\ndiscovered_by: test\ndiscovery_id: d1\ncluster_ids: [c1]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P1\n",
+                "---\nid: 1\ntitle: P1\ndiscovered_by: test\ndiscovery_id: d1\ncluster_ids: [c1]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P1\n",  # noqa: E501
             ),
             (
                 "Project-2.md",
-                "---\nid: 2\ntitle: P2\ndiscovered_by: test\ndiscovery_id: d2\ncluster_ids: [c2]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P2\n",
+                "---\nid: 2\ntitle: P2\ndiscovered_by: test\ndiscovery_id: d2\ncluster_ids: [c2]\nconfidence_score: 0.8\nstatus: active\ncreated_at: 2026-01-01T10:00:00+00:00\nupdated_at: 2026-01-01T14:00:00+00:00\n---\n# P2\n",  # noqa: E501
             ),
         ]
 
@@ -543,10 +540,10 @@ class TestConflictDetection:
         from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 
         # SQL was updated at 14:30
-        sql_updated_at = datetime(2026, 1, 1, 14, 30, 0, tzinfo=timezone.utc)
+        sql_updated_at = datetime(2026, 1, 1, 14, 30, 0, tzinfo=UTC)
 
         # Obsidian was last synced at 14:00
-        last_synced_from_obsidian = datetime(2026, 1, 1, 14, 0, 0, tzinfo=timezone.utc)
+        last_synced_from_obsidian = datetime(2026, 1, 1, 14, 0, 0, tzinfo=UTC)
 
         # File was modified at 14:45 (after SQL update)
         file_path = mock_obsidian_vault / "Projects" / "test.md"
@@ -587,10 +584,10 @@ updated_at: 2026-01-01T14:00:00+00:00
         from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 
         # SQL updated at 15:00
-        sql_updated_at = datetime(2026, 1, 1, 15, 0, 0, tzinfo=timezone.utc)
+        sql_updated_at = datetime(2026, 1, 1, 15, 0, 0, tzinfo=UTC)
 
         # Obsidian last synced at 14:00, file not modified since
-        last_synced = datetime(2026, 1, 1, 14, 0, 0, tzinfo=timezone.utc)
+        last_synced = datetime(2026, 1, 1, 14, 0, 0, tzinfo=UTC)
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
         file_path.write_text(
@@ -656,7 +653,7 @@ importance: 3
         conflict = {
             "type": "both_modified",
             "project_id": 42,
-            "sql_updated_at": datetime.now(timezone.utc),
+            "sql_updated_at": datetime.now(UTC),
         }
 
         # Mock database responses for _project_exists, detect_conflict, and _fetch_project_from_sql
@@ -679,8 +676,8 @@ importance: 3
                 20,
                 1.0,
                 True,
-                datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-                datetime(2026, 1, 1, 14, 0, 0, tzinfo=timezone.utc),
+                datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+                datetime(2026, 1, 1, 14, 0, 0, tzinfo=UTC),
                 str(file_path),
                 None,
                 None,
@@ -689,7 +686,6 @@ importance: 3
 
         with patch.object(sync_manager, "detect_conflict", return_value=conflict):
             with patch.object(sync_manager, "sync_project_to_obsidian") as mock_sync:
-                from unittest.mock import ANY
 
                 sync_manager.sync_obsidian_file_to_sql(str(file_path))
 

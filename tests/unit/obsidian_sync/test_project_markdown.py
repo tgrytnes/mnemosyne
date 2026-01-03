@@ -7,12 +7,9 @@ markdown files with YAML frontmatter.
 TDD Approach: These tests are written BEFORE implementation (RED phase).
 """
 
-import json
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
 import pytest
-
 
 # ==============================================================================
 # Test Fixtures
@@ -33,14 +30,14 @@ def sample_project_dict():
         "status": "active",
         "importance": 5,
         "urgency": 4,
-        "deadline": datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        "deadline": datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
         "work_estimate": 20,
         "pressure_score": 1.25,
         "verified_by_user": True,
-        "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-        "updated_at": datetime(2026, 1, 1, 14, 30, 0, tzinfo=timezone.utc),
+        "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+        "updated_at": datetime(2026, 1, 1, 14, 30, 0, tzinfo=UTC),
         "obsidian_file_path": "Projects/Implement-dark-mode-toggle.md",
-        "last_synced_to_obsidian": datetime(2026, 1, 1, 14, 30, 0, tzinfo=timezone.utc),
+        "last_synced_to_obsidian": datetime(2026, 1, 1, 14, 30, 0, tzinfo=UTC),
         "last_synced_from_obsidian": None,
     }
 
@@ -124,8 +121,8 @@ class TestMarkdownSerialization:
             "cluster_ids": ["cluster_1"],
             "confidence_score": 0.75,
             "status": "candidate",
-            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
         }
 
         markdown = serialize_project(minimal_project)
@@ -162,8 +159,8 @@ class TestMarkdownSerialization:
             "deadline": None,  # NULL
             "work_estimate": None,  # NULL
             "pressure_score": None,  # NULL
-            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
         }
 
         markdown = serialize_project(project)
@@ -185,8 +182,8 @@ class TestMarkdownSerialization:
             "cluster_ids": ["c1"],
             "confidence_score": 0.80,
             "status": "active",
-            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+            "updated_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
         }
 
         markdown = serialize_project(project)
@@ -212,9 +209,9 @@ class TestMarkdownSerialization:
             "cluster_ids": ["c1"],
             "confidence_score": 0.80,
             "status": "active",
-            "deadline": datetime(2026, 6, 15, 12, 30, 45, tzinfo=timezone.utc),
-            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
-            "updated_at": datetime(2026, 1, 1, 11, 0, 0, tzinfo=timezone.utc),
+            "deadline": datetime(2026, 6, 15, 12, 30, 45, tzinfo=UTC),
+            "created_at": datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC),
+            "updated_at": datetime(2026, 1, 1, 11, 0, 0, tzinfo=UTC),
         }
 
         markdown = serialize_project(project)
@@ -391,8 +388,8 @@ class TestMarkdownRoundtrip:
     def test_roundtrip_preserves_data(self, sample_project_dict):
         """Test that roundtrip conversion preserves all data"""
         from mnemosyne.aletheia.obsidian_sync.project_markdown import (
-            serialize_project,
             parse_project_markdown,
+            serialize_project,
         )
 
         # Serialize to markdown
@@ -413,8 +410,8 @@ class TestMarkdownRoundtrip:
     def test_roundtrip_markdown_stability(self, sample_project_dict):
         """Test that serialize → parse → serialize produces same markdown"""
         from mnemosyne.aletheia.obsidian_sync.project_markdown import (
-            serialize_project,
             parse_project_markdown,
+            serialize_project,
         )
 
         # First serialization
@@ -477,6 +474,6 @@ class TestFilePathGeneration:
 
         # Should include project_id if title collision risk
         path1 = generate_obsidian_path("Same Title", project_id=1)
-        path2 = generate_obsidian_path("Same Title", project_id=2)
+        generate_obsidian_path("Same Title", project_id=2)
         # Paths should be based on title, but we track by ID to handle renames
         assert "Same-Title.md" in path1
