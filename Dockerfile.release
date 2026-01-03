@@ -1,0 +1,61 @@
+FROM python:3.11-slim
+
+# Add build arguments for flexibility
+ARG GIT_TAG=main
+ARG REPO_URL=https://github.com/tgrytnes/mnemosyne.git
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-deu \
+    tesseract-ocr-nor \
+    ghostscript \
+    poppler-utils \
+    libtiff6 \
+    libjpeg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone the repository and checkout the specified tag
+RUN git clone ${REPO_URL} . \
+    && git checkout ${GIT_TAG}
+
+# Install Poetry and project dependencies
+# Note: `poetry install` requires `pyproject.toml` and `poetry.lock` to be present.
+RUN pip install --no-cache-dir poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --only main --no-interaction --no-ansi
+
+# Clean up unnecessary files for a lean release image *after* dependencies are installed
+RUN rm -rf \
+    .git \
+    .github \
+    .venv \
+    .venv_local_integration \
+    .pytest_cache \
+    htmlcov \
+    tests \
+    test_data \
+    user-stories \
+    docs \
+    Makefile \
+    poetry.lock
+
+# Create state directories and ensure script is executable
+RUN mkdir -p /app/state /state && \
+    chmod +x ./scripts/start_ingestion.sh
+
+# Non-root user
+RUN useradd -m -u 1000 mnemosyne && \
+    chown -R mnemosyne:mnemosyne /app /state
+USER mnemosyne
+
+# Ensure Python can find the package in src/
+ENV PYTHONPATH=/app/src
+
+# Default command runs the startup script that ingests everything and keeps the vault watcher alive
+CMD ["./scripts/start_ingestion.sh"]
