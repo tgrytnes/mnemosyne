@@ -15,7 +15,7 @@ class TestProjectsTable:
 
     def test_insert_project(self, ananke_test_db):
         """Test inserting a project into The Ananke"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor().cursor()
 
         cursor.execute(
             """
@@ -42,7 +42,7 @@ class TestProjectsTable:
 
     def test_query_projects_by_status(self, ananke_test_db):
         """Test querying projects by status"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor().cursor()
 
         # Insert test projects
         statuses = ["active", "candidate", "paused"]
@@ -66,7 +66,7 @@ class TestProjectsTable:
 
     def test_update_pressure_score(self, ananke_test_db):
         """Test updating pressure scores"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor()
 
         # Insert project
         cursor.execute(
@@ -103,7 +103,7 @@ class TestProjectsTable:
 
     def test_projects_with_approaching_deadlines(self, ananke_test_db):
         """Test querying projects with approaching deadlines"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor()
 
         # Insert projects with various deadlines
         now = datetime.now()
@@ -148,7 +148,7 @@ class TestGatekeeperAudit:
 
     def test_log_approval_decision(self, ananke_test_db):
         """Test logging gatekeeper decisions"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor()
 
         # Create a project
         cursor.execute(
@@ -190,7 +190,7 @@ class TestGatekeeperAudit:
 
     def test_rejection_logged(self, ananke_test_db):
         """Test rejection is logged without project_id"""
-        cursor = ananke_test_db
+        cursor = ananke_test_db.cursor()
 
         cursor.execute(
             """
