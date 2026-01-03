@@ -364,7 +364,7 @@ class ObsidianSyncManager:
     # Conflict Detection
     # ==========================================================================
 
-    def detect_conflict(self, file_path: str) -> Optional[dict[str, Any]]:
+    def detect_conflict(self, file_path: str) -> dict[str, Any] | None:
         """
         Detect if there's a conflict between SQL and Obsidian versions.
 
