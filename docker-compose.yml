@@ -48,7 +48,7 @@ services:
       - mnemosyne_net
 
   mnemosyne_ingestor:
-    image: ghcr.io/tgrytnes/mnemosyne:${APP_VERSION:-latest}
+    image: ghcr.io/tgrytnes/mnemosyne:latest
     container_name: mnemosyne_ingestor
     restart: unless-stopped
     depends_on:

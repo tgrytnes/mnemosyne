@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     libtiff6 \
     libjpeg-dev \
+    libleptonica-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone the repository and checkout the specified tag
