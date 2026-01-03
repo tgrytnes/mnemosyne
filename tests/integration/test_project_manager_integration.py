@@ -52,18 +52,18 @@ def message_outbox(tmp_path):
 
 
 @pytest.fixture
-def obsidian_sync(test_vault, postgres_connection):
+def obsidian_sync(test_vault, ananke_test_db):
     """Create real ObsidianSyncManager."""
 
     return ObsidianSyncManager(
         vault_path=str(test_vault),
-        db_conn=postgres_connection,
+        db_conn=ananke_test_db,
         projects_folder="Projects",
     )
 
 
 @pytest.fixture
-def gatekeeper(postgres_connection, message_outbox, obsidian_sync, tmp_path):
+def gatekeeper(ananke_test_db, message_outbox, obsidian_sync, tmp_path):
     """Create real SQL Gatekeeper with Obsidian sync."""
     from mnemosyne.argus.scout.monitor_agent import ProposalQueue
 
@@ -71,7 +71,7 @@ def gatekeeper(postgres_connection, message_outbox, obsidian_sync, tmp_path):
     proposal_queue = ProposalQueue(str(queue_path))
 
     gatekeeper = SQLProjectGatekeeper(
-        postgres_connection,
+        ananke_test_db,
         proposal_queue,
         message_outbox,
         GatekeeperConfig(
@@ -87,10 +87,10 @@ def gatekeeper(postgres_connection, message_outbox, obsidian_sync, tmp_path):
 
 
 @pytest.fixture
-def project_manager(postgres_connection, message_outbox, gatekeeper):
+def project_manager(ananke_test_db, message_outbox, gatekeeper):
     """Create real ProjectManagerAgent."""
     return ProjectManagerAgent(
-        db_conn=postgres_connection,
+        db_conn=ananke_test_db,
         message_outbox=message_outbox,
         gatekeeper=gatekeeper,
         max_messages_per_hour=100,  # High limit for tests
@@ -533,7 +533,7 @@ def test_throttling_with_real_message_counts(ananke_test_db, project_manager, me
 
     # Create PM with low throttle limit
     throttled_pm = ProjectManagerAgent(
-        db_conn=ananke_test_db.connection,
+        db_conn=ananke_test_db,
         message_outbox=message_outbox,
         max_messages_per_hour=2,  # Only 2 messages per hour
     )
