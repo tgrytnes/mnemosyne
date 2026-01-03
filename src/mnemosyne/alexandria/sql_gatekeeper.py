@@ -216,6 +216,154 @@ class SQLProjectGatekeeper:
             age = datetime.now(UTC) - created_at
             return age <= timedelta(days=self._config.rollback_window_days)
 
+    def update_project_direct(
+        self,
+        project_id: int,
+        updates: dict[str, Any],
+        user_initiated: bool = True,
+    ) -> bool:
+        """
+        Direct project update (bypasses approval for user-initiated changes)
+
+        Used by Project Manager when user provides metadata via Telegram/Obsidian.
+        This is safe because the user is DIRECTLY making the change.
+
+        Args:
+            project_id: Existing project ID in The Ananke
+            updates: Dict of fields to update (importance, urgency, deadline,
+                description, status, work_estimate)
+            user_initiated: Must be True (safety check to prevent agent misuse)
+
+        Returns:
+            True if update succeeded, False otherwise
+
+        Raises:
+            ValueError: If user_initiated=False or trying to update protected fields
+
+        Example:
+            success = gatekeeper.update_project_direct(
+                project_id=42,
+                updates={'importance': 5, 'urgency': 4},
+                user_initiated=True
+            )
+        """
+        # Validate user_initiated flag
+        if not user_initiated:
+            raise ValueError("Direct updates require user_initiated=True flag")
+
+        # Whitelist of allowed fields for direct updates
+        allowed_fields = {
+            "importance",
+            "urgency",
+            "deadline",
+            "description",
+            "status",
+            "work_estimate",
+        }
+
+        update_fields = set(updates.keys())
+
+        # Check for disallowed fields
+        if not update_fields.issubset(allowed_fields):
+            disallowed = update_fields - allowed_fields
+            raise ValueError(
+                f"Cannot update fields via direct update: {disallowed}. "
+                f"Allowed fields: {allowed_fields}"
+            )
+
+        # Handle empty updates
+        if not updates:
+            return True
+
+        # Build dynamic UPDATE query
+        set_clauses = []
+        values = []
+
+        for field, value in updates.items():
+            set_clauses.append(f"{field} = %s")
+            values.append(value)
+
+        # Always update timestamp
+        set_clauses.append("updated_at = %s")
+        values.append(datetime.now(UTC))
+
+        values.append(project_id)
+
+        query = f"""
+            UPDATE projects
+            SET {', '.join(set_clauses)}
+            WHERE id = %s
+            RETURNING id
+        """
+
+        try:
+            with self._db.cursor() as cur:
+                cur.execute(query, values)
+                result = cur.fetchone()
+
+                if not result:
+                    # Project not found
+                    return False
+
+            self._db.commit()
+
+            # Log to audit trail
+            self._log_direct_update(project_id, updates, user_initiated=True)
+
+            return True
+
+        except Exception:
+            # Rollback on any error
+            self._db.rollback()
+            return False
+
+    def _log_direct_update(
+        self,
+        project_id: int,
+        updates: dict[str, Any],
+        user_initiated: bool,
+    ) -> None:
+        """
+        Audit trail for direct user updates
+
+        Args:
+            project_id: Project that was updated
+            updates: Dict of fields that were updated
+            user_initiated: Whether this was a user-initiated update
+        """
+        # Convert datetime objects to ISO format strings for JSON serialization
+        serializable_updates = {}
+        for key, value in updates.items():
+            if isinstance(value, datetime):
+                serializable_updates[key] = value.isoformat()
+            else:
+                serializable_updates[key] = value
+
+        with self._db.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO gatekeeper_audit (
+                    approval_id,
+                    action_type,
+                    project_id,
+                    updates_json,
+                    user_initiated,
+                    decided_at,
+                    decided_by
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    None,  # No approval_id for direct updates
+                    "direct_update",
+                    project_id,
+                    json.dumps(serializable_updates),
+                    user_initiated,
+                    datetime.now(UTC),
+                    "telegram_user",
+                ),
+            )
+        self._db.commit()
+
     def _ensure_schema(self) -> None:
         with self._db.cursor() as cur:
             cur.execute(
@@ -228,13 +376,22 @@ class SQLProjectGatekeeper:
                 """
                 CREATE TABLE IF NOT EXISTS gatekeeper_audit (
                     id SERIAL PRIMARY KEY,
-                    approval_id TEXT NOT NULL,
-                    approved BOOLEAN NOT NULL,
+                    approval_id TEXT,
+                    action_type TEXT DEFAULT 'approval',
+                    approved BOOLEAN,
                     project_id INTEGER REFERENCES projects(id),
+                    updates_json TEXT,
+                    user_initiated BOOLEAN DEFAULT FALSE,
                     decided_at TIMESTAMP DEFAULT NOW(),
                     decided_by TEXT DEFAULT 'gatekeeper',
                     reason TEXT
                 )
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_gatekeeper_audit_action
+                ON gatekeeper_audit(action_type)
                 """
             )
             cur.execute(

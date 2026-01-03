@@ -142,3 +142,86 @@ class EmailIngestor:
                     "message_id": message_id,
                     "date": date,
                 }
+
+
+def main():
+    """CLI entry point for email ingestion."""
+    import logging
+    import os
+    import sys
+
+    import ollama
+    import weaviate
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    logger = logging.getLogger(__name__)
+
+    # Get configuration from environment
+    email_tsv = os.getenv("EMAIL_TSV")
+    if not email_tsv:
+        logger.error("EMAIL_TSV environment variable not set")
+        sys.exit(1)
+
+    weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
+    weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
+    weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+    logger.info("=" * 60)
+    logger.info("Email Ingestion Pipeline")
+    logger.info("=" * 60)
+    logger.info(f"Email TSV: {email_tsv}")
+    logger.info(f"Weaviate: {weaviate_host}:{weaviate_port}")
+    logger.info(f"Ollama: {ollama_url}")
+    logger.info(f"Embedding Model: {embedding_model}")
+    logger.info("=" * 60)
+
+    # Connect to services
+    logger.info("Connecting to Weaviate...")
+    weaviate_client = weaviate.connect_to_local(
+        host=weaviate_host,
+        port=weaviate_port,
+        grpc_port=weaviate_grpc_port,
+    )
+
+    logger.info("Connecting to Ollama...")
+    ollama_client = ollama.Client(host=ollama_url)
+
+    # Create embedder function
+    def embedder(text: str) -> list[float]:
+        """Generate embedding using Ollama."""
+        response = ollama_client.embeddings(model=embedding_model, prompt=text)
+        return response["embedding"]
+
+    # Create config and ingestor
+    config = EmailIngestConfig(tsv_path=Path(email_tsv))
+
+    logger.info("Starting email ingestion...")
+    ingestor = EmailIngestor(config=config, weaviate_client=weaviate_client, embedder=embedder)
+
+    try:
+        summary = ingestor.run()
+        logger.info("=" * 60)
+        logger.info("Email Ingestion Complete!")
+        logger.info("=" * 60)
+        logger.info(f"Total loaded: {summary.total_loaded}")
+        logger.info(f"Total stored: {summary.total_stored}")
+        logger.info(f"Duplicates: {summary.duplicates}")
+        logger.info(f"Rejected: {summary.rejected}")
+        logger.info("=" * 60)
+    except Exception as e:
+        logger.error(f"Error during email ingestion: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+    finally:
+        weaviate_client.close()
+
+
+if __name__ == "__main__":
+    main()
