@@ -19,6 +19,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -141,15 +142,80 @@ class MessageOutbox:
     # Max delivery attempts before marking as failed
     MAX_ATTEMPTS = 3
 
-    def __init__(self, db: sqlite3.Connection):
+    def __init__(self, db: sqlite3.Connection | str | Path):
         """
         Initialize MessageOutbox
 
         Args:
-            db: SQLite database connection with message_outbox table
+            db: SQLite database connection or path to database file
         """
-        self.db = db
+        if isinstance(db, (str, Path)):
+            self._db_path = str(db)
+            self.db = sqlite3.connect(self._db_path)
+            self._owns_connection = True
+            self._ensure_schema()
+        else:
+            self.db = db
+            self._db_path = None
+            self._owns_connection = False
+
         self.db.row_factory = sqlite3.Row
+
+    def _ensure_schema(self):
+        """Create message_outbox table and indexes if they don't exist."""
+        cursor = self.db.cursor()
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS message_outbox (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id TEXT NOT NULL UNIQUE,
+                message_type TEXT NOT NULL,
+                originating_agent TEXT,
+                context_id TEXT,
+                payload_json TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                expects_response BOOLEAN DEFAULT FALSE,
+                response_received_at TIMESTAMP,
+                response_json TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_attempted_at TIMESTAMP,
+                delivered_at TIMESTAMP,
+                CHECK (message_type IN (
+                    'notification', 'approval_request', 'escalation', 'question'
+                )),
+                CHECK (status IN (
+                    'pending', 'delivered', 'failed', 'awaiting_response'
+                )),
+                CHECK (attempts >= 0)
+            )
+        """
+        )
+
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_message_id ON message_outbox(message_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_status ON message_outbox(status)"
+        )
+        cursor.execute(
+            """CREATE INDEX IF NOT EXISTS idx_message_outbox_agent
+            ON message_outbox(originating_agent)"""
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_context ON message_outbox(context_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_created ON message_outbox(created_at)"
+        )
+        cursor.execute(
+            """CREATE INDEX IF NOT EXISTS idx_message_outbox_response_routing
+            ON message_outbox(context_id, expects_response, status)"""
+        )
+
+        self.db.commit()
 
     def enqueue(
         self,
