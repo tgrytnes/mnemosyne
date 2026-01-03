@@ -8,12 +8,9 @@ TDD Approach: These tests are written BEFORE implementation (RED phase).
 """
 
 import time
-from datetime import datetime, timezone
-from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, call
+from unittest.mock import Mock
 
 import pytest
-
 
 # ==============================================================================
 # Test Fixtures
@@ -77,7 +74,7 @@ class TestFileSystemWatcherInit:
         vault = tmp_path / "new_vault"
         vault.mkdir()
 
-        watcher = ObsidianFileWatcher(vault_path=str(vault), sync_manager=mock_sync_manager)
+        ObsidianFileWatcher(vault_path=str(vault), sync_manager=mock_sync_manager)
 
         # Should create Projects folder
         projects_path = vault / "Projects"

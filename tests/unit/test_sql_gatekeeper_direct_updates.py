@@ -12,10 +12,8 @@ import sqlite3
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import pytest
-
 
 # ==============================================================================
 # PostgreSQL-style SQLite Cursor Wrapper
@@ -225,8 +223,9 @@ def sample_project(gatekeeper_db):
 @pytest.fixture
 def sql_gatekeeper(gatekeeper_db):
     """Create SQLProjectGatekeeper instance"""
-    from mnemosyne.alexandria.sql_gatekeeper import SQLProjectGatekeeper
     from unittest.mock import MagicMock, patch
+
+    from mnemosyne.alexandria.sql_gatekeeper import SQLProjectGatekeeper
 
     # Create mocks for proposal_queue and outbox
     mock_queue = MagicMock()

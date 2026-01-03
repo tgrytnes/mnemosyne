@@ -5,9 +5,10 @@ Tests the event-driven response processing when users answer questions
 via Telegram commands (routed through Nexus/Hermes and Message Outbox).
 """
 
+from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, call
 
 
 @pytest.fixture
@@ -68,8 +69,8 @@ class TestResponseHandlers:
             None,  # deadline
             None,  # work_estimate
             None,  # pressure_score
-            datetime.now(timezone.utc),  # created_at
-            datetime.now(timezone.utc),  # updated_at
+            datetime.now(UTC),  # created_at
+            datetime.now(UTC),  # updated_at
         )
 
         # User responds with importance=5
@@ -109,8 +110,8 @@ class TestResponseHandlers:
             None,  # deadline (missing)
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         # User responds with urgency=4
@@ -145,11 +146,11 @@ class TestResponseHandlers:
             "active",
             5,  # importance
             4,  # urgency
-            datetime.now(timezone.utc) + timedelta(days=30),  # deadline (just set)
+            datetime.now(UTC) + timedelta(days=30),  # deadline (just set)
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         # User responds with deadline "2026-03-15"
@@ -185,8 +186,8 @@ class TestResponseHandlers:
             None,
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         # User provides description
@@ -220,7 +221,7 @@ class TestDeadlineParsing:
 
     def test_parse_relative_duration_weeks(self, project_manager):
         """Parse relative duration: 2 weeks"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = project_manager._parse_deadline("2 weeks")
 
         # Should be ~14 days from now
@@ -229,7 +230,7 @@ class TestDeadlineParsing:
 
     def test_parse_relative_duration_months(self, project_manager):
         """Parse relative duration: 1 month"""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = project_manager._parse_deadline("1 month")
 
         # Should be ~30 days from now
@@ -269,8 +270,8 @@ class TestResponseValidation:
             None,
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
         project_manager.handle_importance_response(project_id=1, value=3)  # OK
 
@@ -310,8 +311,8 @@ class TestGatekeeperIntegration:
             None,
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         # Test importance response
@@ -343,8 +344,8 @@ class TestGatekeeperIntegration:
             None,
             None,
             None,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         project_manager.handle_importance_response(project_id=1, value=5)
@@ -372,8 +373,8 @@ class TestEventDrivenFlow:
             None,
             None,
             None,  # urgency missing
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         project_manager.handle_importance_response(project_id=1, value=5)
@@ -399,8 +400,8 @@ class TestEventDrivenFlow:
             None,
             None,
             None,  # importance=2, urgency=2 (total=4)
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         project_manager.handle_urgency_response(project_id=1, value=2)
@@ -424,8 +425,8 @@ class TestEventDrivenFlow:
             None,
             None,
             None,  # importance=5, urgency=4 (total=9)
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         project_manager.handle_urgency_response(project_id=1, value=4)

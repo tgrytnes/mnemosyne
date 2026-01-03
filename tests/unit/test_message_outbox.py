@@ -10,13 +10,9 @@ TDD Approach: These tests are written BEFORE implementation.
 import json
 import sqlite3
 import tempfile
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
-from uuid import uuid4
 
 import pytest
-
 
 # ==============================================================================
 # Test Fixtures
@@ -280,7 +276,7 @@ class TestConsumerAPI:
         assert row["delivered_at"] is not None
 
     def test_mark_delivered_response_expected(self, message_outbox):
-        """Test marking message as delivered when response expected (should go to awaiting_response)"""
+        """Test marking message as delivered when response expected (should go to awaiting_response)""" # noqa: E501
         message_id = message_outbox.enqueue(
             message_type="question",
             payload={"text": "How important? (1-5)"},
@@ -389,7 +385,7 @@ class TestResponseRouting:
         # Verify status changed to 'delivered' and response stored
         cursor = message_outbox.db.cursor()
         cursor.execute(
-            "SELECT status, response_json, response_received_at FROM message_outbox WHERE message_id = ?",
+            "SELECT status, response_json, response_received_at FROM message_outbox WHERE message_id = ?", # noqa: E501
             (message_id,),
         )
         row = cursor.fetchone()
@@ -405,7 +401,7 @@ class TestResponseRouting:
     def test_record_response_only_for_awaiting_response(self, message_outbox):
         """Test that record_response only works for messages in awaiting_response state"""
         # Enqueue message but don't mark as delivered
-        message_id = message_outbox.enqueue(
+        message_outbox.enqueue(
             message_type="question",
             payload={"text": "Test"},
             originating_agent="project_manager",
@@ -594,7 +590,6 @@ class TestEdgeCases:
 
     def test_enqueue_with_invalid_message_type(self, message_outbox):
         """Test that invalid message types are rejected"""
-        valid_types = ["notification", "approval_request", "escalation", "question"]
 
         with pytest.raises(ValueError, match="Invalid message_type"):
             message_outbox.enqueue(message_type="invalid_type", payload={"text": "Test"})

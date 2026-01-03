@@ -7,11 +7,10 @@ natural PM rhythm, and pressure score calculations.
 TDD Approach: These tests are written BEFORE implementation (RED phase).
 """
 
-from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, MagicMock, patch, call
+from datetime import UTC, datetime, timedelta
+from unittest.mock import Mock
 
 import pytest
-
 
 # ==============================================================================
 # Test Fixtures
@@ -48,7 +47,7 @@ def mock_gatekeeper():
 @pytest.fixture
 def sample_projects():
     """Sample project data for testing"""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         {
             "id": 1,
@@ -339,8 +338,8 @@ class TestResponseHandler:
             None,
             None,
             None,  # has importance, missing urgency
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         agent.continue_enrichment(project_id=42)
@@ -366,11 +365,11 @@ class TestResponseHandler:
             "active",
             5,
             4,
-            datetime.now(timezone.utc) + timedelta(days=30),
+            datetime.now(UTC) + timedelta(days=30),
             20,
             0.5,
-            datetime.now(timezone.utc),
-            datetime.now(timezone.utc),
+            datetime.now(UTC),
+            datetime.now(UTC),
         )
 
         agent.continue_enrichment(project_id=42)
@@ -428,7 +427,7 @@ class TestPMCheckCycle:
 
         agent = ProjectManagerAgent(mock_db_conn, mock_outbox)
 
-        now = datetime.now(timezone.utc)
+        datetime.now(UTC)
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # 3 messages in last hour, 2 older
@@ -462,7 +461,7 @@ class TestPMCheckCycle:
 
         agent = ProjectManagerAgent(mock_db_conn, mock_outbox)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project with deadline in 12 hours
@@ -479,7 +478,7 @@ class TestPMCheckCycle:
 
         agent = ProjectManagerAgent(mock_db_conn, mock_outbox)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         project = {
             "id": 42,
             "title": "Urgent Task",
@@ -513,7 +512,7 @@ class TestPressureScore:
 
         agent = ProjectManagerAgent(mock_db_conn, Mock(), mock_gatekeeper)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project: 20 hours work, 10 days remaining
@@ -536,7 +535,7 @@ class TestPressureScore:
 
         agent = ProjectManagerAgent(mock_db_conn, Mock(), mock_gatekeeper)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         cursor = mock_db_conn.cursor.return_value.__enter__.return_value
 
         # Project is overdue (deadline in the past)
