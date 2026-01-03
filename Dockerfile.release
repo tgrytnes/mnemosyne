@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff6 \
     libjpeg-dev \
     libleptonica-dev \
+    liblept5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone the repository and checkout the specified tag
