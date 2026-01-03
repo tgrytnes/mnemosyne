@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.docker }}
+          token: ${{ secrets.PAT_WORKFLOW }}
 
       - name: Get latest tag
         id: get_tag
@@ -44,7 +44,7 @@ jobs:
 
       - name: Create and push tag
         env:
-          GITHUB_TOKEN: ${{ secrets.docker }}
+          GITHUB_TOKEN: ${{ secrets.PAT_WORKFLOW }}
         run: |
           NEW_TAG="${{ steps.bump_version.outputs.new_tag }}"
 
