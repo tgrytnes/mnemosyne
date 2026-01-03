@@ -109,25 +109,46 @@ class PDFIngestor:
             return self._binary_fallback(pdf_path)
 
     def extract_ocr_pdf(self, pdf_path: Path) -> str:
-        try:
-            import ocrmypdf
-        except ImportError:
-            logger.warning("ocrmypdf not installed; returning empty OCR text")
+        import shutil
+        import subprocess
+
+        # Check if ocrmypdf command is available
+        if not shutil.which("ocrmypdf"):
+            logger.warning("ocrmypdf command not found; returning empty OCR text")
             return ""
 
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             output_path = tmp.name
         try:
-            ocrmypdf.ocr(
-                str(pdf_path),
-                output_path,
-                language=["eng", "deu", "nor"],
-                deskew=True,
-                optimize=1,
-                force_ocr=True,
-                skip_text=False,
+            # Run ocrmypdf as a subprocess
+            result = subprocess.run(
+                [
+                    "ocrmypdf",
+                    "--language",
+                    "eng+deu+nor",
+                    "--deskew",
+                    "--optimize",
+                    "1",
+                    "--force-ocr",
+                    str(pdf_path),
+                    output_path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
             )
+            if result.returncode != 0:
+                logger.warning(
+                    "ocrmypdf failed for %s: %s", pdf_path, result.stderr or result.stdout
+                )
+                return ""
             return self.extract_text_pdf(Path(output_path))
+        except subprocess.TimeoutExpired:
+            logger.warning("ocrmypdf timed out for %s", pdf_path)
+            return ""
+        except Exception as exc:
+            logger.warning("ocrmypdf subprocess failed for %s: %s", pdf_path, exc)
+            return ""
         finally:
             try:
                 os.remove(output_path)
