@@ -42,6 +42,8 @@ jobs:
           echo "New tag: $NEW_TAG"
 
       - name: Create and push tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           NEW_TAG="${{ steps.bump_version.outputs.new_tag }}"
 
@@ -49,6 +51,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git tag -a "$NEW_TAG" -m "Auto-generated release $NEW_TAG"
-          git push origin "$NEW_TAG"
 
-          echo "✅ Created and pushed tag: $NEW_TAG"
+          # Push using gh cli to trigger release workflow
+          gh release create "$NEW_TAG" --generate-notes --title "$NEW_TAG"
+
+          echo "✅ Created release: $NEW_TAG"
