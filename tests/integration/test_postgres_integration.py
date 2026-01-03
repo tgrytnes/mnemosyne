@@ -222,7 +222,7 @@ def test_concurrent_project_updates(ananke_test_db):
     """Test concurrent updates to projects"""
     import threading
 
-    cursor = ananke_test_db
+    cursor = ananke_test_db.cursor()
 
     # Create project
     cursor.execute(
