@@ -15,7 +15,7 @@ class TestProjectsTable:
 
     def test_insert_project(self, ananke_test_db):
         """Test inserting a project into The Ananke"""
-        cursor = ananke_test_db.cursor().cursor()
+        cursor = ananke_test_db.cursor()
 
         cursor.execute(
             """
@@ -42,7 +42,7 @@ class TestProjectsTable:
 
     def test_query_projects_by_status(self, ananke_test_db):
         """Test querying projects by status"""
-        cursor = ananke_test_db.cursor().cursor()
+        cursor = ananke_test_db.cursor()
 
         # Insert test projects
         statuses = ["active", "candidate", "paused"]
