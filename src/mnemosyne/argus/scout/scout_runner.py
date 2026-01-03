@@ -25,6 +25,7 @@ from mnemosyne.argus.scout.radar import (
     ConceptPrototype,
     LatentRadar,
     best_margin_score,
+    discovery_identity,
 )
 
 Embedder = Callable[[str], list[float]]
@@ -233,6 +234,9 @@ class ScoutRunner:
                 score, pos_max, neg_max, best_embedding = best
                 if score < concept.threshold:
                     continue
+                discovery_job_key, candidate_key, discovery_id = discovery_identity(
+                    concept.key, [cluster_id]
+                )
                 detections.append(
                     ConceptDetection(
                         concept_key=concept.key,
@@ -246,6 +250,9 @@ class ScoutRunner:
                             "rep_count": float(len(rep_embeddings)),
                         },
                         embedding=best_embedding,
+                        discovery_job_key=discovery_job_key,
+                        candidate_key=candidate_key,
+                        discovery_id=discovery_id,
                     )
                 )
         return detections

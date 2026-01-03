@@ -8,11 +8,9 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from mnemosyne.aletheia.email_cleaner import (
-    clean_email_body,
-    contains_mojibake,
-    truncate_body,
-)
+from weaviate.classes.config import DataType, Property
+
+from mnemosyne.aletheia.email_cleaner import clean_email_body, contains_mojibake, truncate_body
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 
 
@@ -63,8 +61,6 @@ class EmailIngestor:
             "messageId": "text",
             "sourcePath": "text",
         }
-        from weaviate.classes.config import DataType, Property
-
         for name, dtype in needed.items():
             if name in existing:
                 continue

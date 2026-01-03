@@ -365,7 +365,9 @@ Updated description from Obsidian
 
         # Should call SQL update (gatekeeper or direct)
         # Note: Implementation may use gatekeeper, so we just verify some update happened
-        assert cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called  # noqa: F821
+        assert (
+            cursor_mock.execute.called or mock_gatekeeper.update_project_direct.called  # noqa: F821
+        )
 
     def test_sync_obsidian_validates_id_exists(self, mock_db_conn, mock_obsidian_vault):
         """Test that sync validates project ID exists in SQL"""

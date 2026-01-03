@@ -77,6 +77,12 @@ class DiscoveryStore:
                     "errors": json.dumps(run_metadata.errors, sort_keys=True),
                     "dryRun": run_metadata.dry_run,
                 }
+                if detection.discovery_id:
+                    properties["discoveryId"] = detection.discovery_id
+                if detection.discovery_job_key:
+                    properties["discoveryJobKey"] = detection.discovery_job_key
+                if detection.candidate_key:
+                    properties["candidateKey"] = detection.candidate_key
                 response = collection.data.insert(
                     properties=properties,
                     vector=detection.embedding,

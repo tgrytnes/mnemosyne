@@ -38,6 +38,9 @@ class ConceptDetection:
     confidence_score: float
     signals: dict[str, float]
     embedding: list[float]
+    discovery_job_key: str | None = None
+    candidate_key: str | None = None
+    discovery_id: str | None = None
 
 
 class LatentRadar:
@@ -66,6 +69,9 @@ class LatentRadar:
             score, pos_max, neg_max = self.score(cluster.embedding, positive_vecs, negative_vecs)
             if score < concept.threshold:
                 continue
+            discovery_job_key, candidate_key, discovery_id = discovery_identity(
+                concept.key, [cluster.cluster_id]
+            )
             detections.append(
                 ConceptDetection(
                     concept_key=concept.key,
@@ -78,6 +84,9 @@ class LatentRadar:
                         "threshold": concept.threshold,
                     },
                     embedding=cluster.embedding,
+                    discovery_job_key=discovery_job_key,
+                    candidate_key=candidate_key,
+                    discovery_id=discovery_id,
                 )
             )
 
@@ -141,3 +150,24 @@ def _margin_score(
         default=0.0,
     )
     return pos_max - neg_max, pos_max, neg_max
+
+
+def discovery_identity(concept_key: str, cluster_ids: Iterable[str]) -> tuple[str, str, str]:
+    candidate_key = _candidate_key(cluster_ids)
+    return concept_key, candidate_key, f"{concept_key}:{candidate_key}"
+
+
+def _candidate_key(cluster_ids: Iterable[str]) -> str:
+    normalized = [_slugify(cluster_id) for cluster_id in cluster_ids]
+    return "-".join(sorted(normalized))
+
+
+def _slugify(value: str) -> str:
+    cleaned = []
+    for ch in value.strip().lower():
+        if ch.isalnum() or ch in {"-", "_"}:
+            cleaned.append(ch)
+        elif ch.isspace():
+            cleaned.append("_")
+    slug = "".join(cleaned)
+    return slug.strip("_") or "unknown"

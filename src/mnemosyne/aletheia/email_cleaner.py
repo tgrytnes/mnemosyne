@@ -8,7 +8,10 @@ from bs4 import BeautifulSoup
 
 
 def clean_email_body(raw: str) -> str:
-    """Clean email body: strip HTML, URLs, emails, tracking params, signatures."""
+    """Clean email body.
+
+    Strip HTML, URLs, emails, tracking params, signatures, and normalize whitespace.
+    """
     soup = BeautifulSoup(raw or "", "html.parser")
     text = soup.get_text(separator="\n")
     text = re.sub(r"https?://\S+", "", text)
@@ -29,6 +32,7 @@ def clean_email_body(raw: str) -> str:
     for pattern in signature_patterns:
         text = re.sub(pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
     text = text.replace("Sent from my iPhone", "")
+    # Catch residual "sent from my ..." even without newline context
     text = re.sub(r"sent from my [^\n]+", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip()
     return text

@@ -9,7 +9,8 @@
       "Bash(gh pr view:*)",
       "Bash(.venv/bin/python:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix integration test failures: restore cursor fixture and update MessageOutbox\n\n- Fix ananke_test_db fixture to yield cursor instead of connection \\(tests expect cursor\\)\n- Update MessageOutbox to accept either connection or path for flexibility\n- Add _ensure_schema\\(\\) method to initialize database when path is provided\n- Fix all type hints in message_outbox.py \\(Optional → |None, List → list, Dict → dict\\)\n- Fix line length violations in message_outbox.py\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix integration test failures: restore cursor fixture and update MessageOutbox\n\n- Fix ananke_test_db fixture to yield cursor instead of connection \\(tests expect cursor\\)\n- Update MessageOutbox to accept either connection or path for flexibility\n- Add _ensure_schema\\(\\) method to initialize database when path is provided\n- Fix all type hints in message_outbox.py \\(Optional → |None, List → list, Dict → dict\\)\n- Fix line length violations in message_outbox.py\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(.venv/bin/ruff check .)"
     ]
   }
 }
