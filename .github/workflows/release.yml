@@ -44,4 +44,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            GIT_TAG=${{ github.ref_name }} # Pass the git tag to the Dockerfile.release
+            GIT_TAG=${{ github.ref_name }}
