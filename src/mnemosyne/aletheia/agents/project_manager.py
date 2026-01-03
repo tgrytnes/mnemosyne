@@ -152,13 +152,14 @@ How important is this project to you? (Rate importance from 1-5)
 Reply with a number 1-5."""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": "importance",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Requested importance for project {project['id']}")
@@ -181,13 +182,14 @@ How urgent is this project? (Rate urgency from 1-5)
 Reply with a number 1-5."""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": "urgency",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Requested urgency for project {project['id']}")
@@ -211,13 +213,14 @@ Reply with:
 • "no deadline" if flexible"""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": "deadline",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Requested deadline for project {project['id']}")
@@ -238,13 +241,14 @@ What specifically needs to be done?
 Reply with a brief description."""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": "description",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Requested description for project {project['id']}")
@@ -592,13 +596,14 @@ This is a high-priority project (importance: {project['importance']}, urgency: {
 Just a heads up! 👍"""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=False,
-            metadata={
-                "project_id": project["id"],
-                "message_type": "critical_deadline_reminder",
+            message_type="notification",
+            payload={
+                "text": message_content,
+                "reminder_type": "critical_deadline",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=False,
         )
 
         logger.info(f"Sent critical deadline reminder for project {project['id']}")
@@ -689,14 +694,15 @@ No pressure, but when you have a moment, could you share the {
 Thanks! 😊"""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": question_type,
                 "reminder_type": "gentle",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Sent gentle reminder for project {project['id']}")
@@ -721,14 +727,15 @@ It would really help with planning!
 Thanks for your time! 🙏"""
 
         self.message_outbox.enqueue(
-            content=message_content,
-            sender="project_manager",
-            expects_response=True,
-            metadata={
-                "project_id": project["id"],
+            message_type="question",
+            payload={
+                "text": message_content,
                 "question_type": question_type,
                 "reminder_type": "escalated",
             },
+            originating_agent="project_manager",
+            context_id=f"project:{project['id']}",
+            expects_response=True,
         )
 
         logger.info(f"Sent escalated reminder for project {project['id']}")

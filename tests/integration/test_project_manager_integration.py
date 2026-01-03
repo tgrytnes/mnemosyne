@@ -26,7 +26,7 @@ from mnemosyne.aletheia.agents.project_manager_scheduler import ProjectManagerSc
 from mnemosyne.aletheia.obsidian_sync.obsidian_sync import ObsidianSyncManager
 from mnemosyne.aletheia.obsidian_sync.file_watcher import ObsidianFileWatcher
 from mnemosyne.alexandria.sql_gatekeeper import SQLProjectGatekeeper, GatekeeperConfig
-from mnemosyne.argus.scout.monitor_agent import MessageOutbox
+from mnemosyne.alexandria.message_outbox import MessageOutbox
 
 
 # ==============================================================================
