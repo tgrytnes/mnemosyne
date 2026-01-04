@@ -83,6 +83,29 @@ services:
     networks:
       - mnemosyne_net
 
+  mnemosyne_scheduler:
+    image: ghcr.io/tgrytnes/mnemosyne:latest
+    container_name: mnemosyne_scheduler
+    restart: unless-stopped
+    depends_on:
+      - weaviate
+      - mnemosyne_ingestor
+    env_file:
+      - .env.production
+    environment:
+      WEAVIATE_HTTP_HOST: weaviate
+      WEAVIATE_HTTP_PORT: 8080
+      WEAVIATE_GRPC_PORT: 50051
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      SCHEDULER_INTERVAL_HOURS: ${SCHEDULER_INTERVAL_HOURS:-24}
+      N_CLUSTERS: ${N_CLUSTERS:-50}
+      PYTHONPATH: /app/src
+    command: ["python", "-m", "mnemosyne.cli.scheduler"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - mnemosyne_net
+
 networks:
   mnemosyne_net:
     driver: bridge
