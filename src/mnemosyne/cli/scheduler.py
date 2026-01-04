@@ -169,9 +169,7 @@ def run_graph_taxonomy_task():
             password=postgres_password,
         )
 
-        neo4j_driver = GraphDatabase.driver(
-            neo4j_uri, auth=(neo4j_user, neo4j_password)
-        )
+        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig(
@@ -190,7 +188,10 @@ def run_graph_taxonomy_task():
 
         result = pipeline.build_graph()
 
-        logger.info(f"Graph taxonomy task completed: {len(result['nodes'])} nodes, {len(result['edges'])} edges")
+        logger.info(
+            f"Graph taxonomy task completed: "
+            f"{len(result['nodes'])} nodes, {len(result['edges'])} edges"
+        )
 
         # Cleanup
         weaviate_client.close()

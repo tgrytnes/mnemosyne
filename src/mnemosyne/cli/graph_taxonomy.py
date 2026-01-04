@@ -63,9 +63,7 @@ def main():
         )
 
         logger.info("Connecting to Neo4j...")
-        neo4j_driver = GraphDatabase.driver(
-            neo4j_uri, auth=(neo4j_user, neo4j_password)
-        )
+        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig(
