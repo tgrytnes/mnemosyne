@@ -3,16 +3,19 @@ set -euo pipefail
 
 echo "Starting one-time ingestion pipelines..."
 
-echo "1/4: Running Obsidian vault initial load..."
+echo "1/5: Running Obsidian vault initial load..."
 python -m mnemosyne.cli.ingest once --vault-path "${OBSIDIAN_VAULT_PATH:-/data/fake_vault}"
 
-echo "2/4: Running PDF ingestion..."
+echo "2/5: Running PDF ingestion..."
 python -m mnemosyne.aletheia.pdf_ingestor
 
-echo "3/4: Running email ingestion..."
+echo "3/5: Running email ingestion..."
 python -m mnemosyne.aletheia.email_ingest
 
-echo "4/4: Running Scout pattern detection..."
+echo "4/5: Running clustering..."
+python -m mnemosyne.cli.cluster run --n-clusters "${N_CLUSTERS:-50}"
+
+echo "5/5: Running Scout pattern detection..."
 python -m mnemosyne.cli.scout
 
 echo "Launching vault watcher (keeps running)..."
