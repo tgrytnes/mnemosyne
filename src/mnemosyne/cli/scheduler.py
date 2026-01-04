@@ -1,4 +1,4 @@
-"""Periodic scheduler for clustering and Scout pattern detection."""
+"""Periodic scheduler for clustering, Scout pattern detection, and graph taxonomy."""
 
 import logging
 import os
@@ -8,8 +8,12 @@ import time
 from datetime import datetime
 
 import ollama
+import psycopg2
 import weaviate
+from neo4j import GraphDatabase
 
+from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
+from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import run_clustering
@@ -128,6 +132,78 @@ def run_scout_task():
         traceback.print_exc()
 
 
+def run_graph_taxonomy_task():
+    """Run graph taxonomy building task."""
+    logger.info("=" * 60)
+    logger.info("Running periodic graph taxonomy building")
+    logger.info("=" * 60)
+
+    try:
+        # Get configuration from environment
+        weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
+        weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
+        weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+
+        postgres_host = os.getenv("POSTGRES_HOST", "localhost")
+        postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
+        postgres_db = os.getenv("POSTGRES_DB", "mnemosyne_dev")
+        postgres_user = os.getenv("POSTGRES_USER", "postgres")
+        postgres_password = os.getenv("POSTGRES_PASSWORD", "")
+
+        neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+        neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+        neo4j_password = os.getenv("NEO4J_PASSWORD", "neo4j")
+
+        # Connect to services
+        weaviate_client = weaviate.connect_to_local(
+            host=weaviate_host,
+            port=weaviate_port,
+            grpc_port=weaviate_grpc_port,
+        )
+
+        postgres_conn = psycopg2.connect(
+            host=postgres_host,
+            port=postgres_port,
+            dbname=postgres_db,
+            user=postgres_user,
+            password=postgres_password,
+        )
+
+        neo4j_driver = GraphDatabase.driver(
+            neo4j_uri, auth=(neo4j_user, neo4j_password)
+        )
+
+        # Configure graph taxonomy
+        config = GraphTaxonomyConfig(
+            similarity_threshold=0.5,
+            overlap_threshold=0.3,
+            min_cluster_size=2,
+        )
+
+        # Build graph
+        pipeline = GraphTaxonomyPipeline(
+            weaviate_client=weaviate_client,
+            postgres_connection=postgres_conn,
+            neo4j_driver=neo4j_driver,
+            config=config,
+        )
+
+        result = pipeline.build_graph()
+
+        logger.info(f"Graph taxonomy task completed: {len(result['nodes'])} nodes, {len(result['edges'])} edges")
+
+        # Cleanup
+        weaviate_client.close()
+        postgres_conn.close()
+        neo4j_driver.close()
+
+    except Exception as e:
+        logger.error(f"Graph taxonomy task failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+
 def main():
     """Main scheduler loop."""
     global shutdown_flag
@@ -144,7 +220,7 @@ def main():
     logger.info("Mnemosyne Periodic Scheduler")
     logger.info("=" * 60)
     logger.info(f"Interval: {interval_hours} hours ({interval_seconds} seconds)")
-    logger.info("Tasks: Clustering + Scout pattern detection")
+    logger.info("Tasks: Clustering + Scout pattern detection + Graph taxonomy")
     logger.info("=" * 60)
 
     iteration = 0
@@ -163,6 +239,12 @@ def main():
 
         # Run Scout
         run_scout_task()
+
+        if shutdown_flag:
+            break
+
+        # Run graph taxonomy
+        run_graph_taxonomy_task()
 
         if shutdown_flag:
             break

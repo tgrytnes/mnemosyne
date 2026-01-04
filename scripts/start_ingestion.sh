@@ -12,11 +12,14 @@ python -m mnemosyne.aletheia.pdf_ingestor
 echo "3/5: Running email ingestion..."
 python -m mnemosyne.aletheia.email_ingest
 
-echo "4/5: Running clustering..."
+echo "4/6: Running clustering..."
 python -m mnemosyne.cli.cluster run --n-clusters "${N_CLUSTERS:-50}"
 
-echo "5/5: Running Scout pattern detection..."
+echo "5/6: Running Scout pattern detection..."
 python -m mnemosyne.cli.scout
+
+echo "6/6: Building graph taxonomy in Neo4j..."
+python -m mnemosyne.cli.graph_taxonomy
 
 echo "Launching vault watcher (keeps running)..."
 exec python -m mnemosyne.cli.ingest watch --vault-path "${OBSIDIAN_VAULT_PATH:-/data/fake_vault}"

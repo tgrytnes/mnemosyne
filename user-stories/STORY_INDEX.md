@@ -10,6 +10,7 @@ Quick reference for all user stories with status tracking.
 | 024 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
 | 025 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
 | 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
+| 031 | Raw Email Ingestion | Medium | 8 pts | 📝 Draft | - |
 
 **Phase Total**: 42 story points (8 completed)
 
