@@ -66,11 +66,7 @@ def main():
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
         # Configure graph taxonomy
-        config = GraphTaxonomyConfig(
-            similarity_threshold=0.5,
-            overlap_threshold=0.3,
-            min_cluster_size=2,
-        )
+        config = GraphTaxonomyConfig()
 
         # Build graph
         logger.info("Building graph taxonomy...")

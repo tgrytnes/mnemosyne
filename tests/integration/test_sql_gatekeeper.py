@@ -22,11 +22,19 @@ def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -
     )
 
 
+def _reset_gatekeeper_tables(postgres_connection) -> None:
+    cursor = postgres_connection.cursor()
+    cursor.execute("DELETE FROM proposal_queue")
+    cursor.execute("DELETE FROM message_outbox")
+    postgres_connection.commit()
+
+
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_auto_reject_updates_queue_and_audit(tmp_path, postgres_connection, ananke_test_db):
-    queue = ProposalQueue(tmp_path / "queue.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_auto_reject_updates_queue_and_audit(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
@@ -49,9 +57,10 @@ def test_auto_reject_updates_queue_and_audit(tmp_path, postgres_connection, anan
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_auto_approve_inserts_project(tmp_path, postgres_connection, ananke_test_db):
-    queue = ProposalQueue(tmp_path / "queue.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_auto_approve_inserts_project(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
@@ -73,9 +82,10 @@ def test_auto_approve_inserts_project(tmp_path, postgres_connection, ananke_test
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_requires_approval_sends_outbox(tmp_path, postgres_connection, ananke_test_db):
-    queue = ProposalQueue(tmp_path / "queue.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_requires_approval_sends_outbox(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
@@ -94,9 +104,10 @@ def test_requires_approval_sends_outbox(tmp_path, postgres_connection, ananke_te
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_manual_approval_flow(tmp_path, postgres_connection, ananke_test_db):
-    queue = ProposalQueue(tmp_path / "queue.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_manual_approval_flow(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
@@ -120,9 +131,10 @@ def test_manual_approval_flow(tmp_path, postgres_connection, ananke_test_db):
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_rollback_with_token(tmp_path, postgres_connection, ananke_test_db):
-    queue = ProposalQueue(tmp_path / "queue.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_rollback_with_token(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,

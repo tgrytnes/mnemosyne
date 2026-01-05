@@ -34,8 +34,9 @@ class _InMemoryOutbox:
 
 @pytest.mark.integration
 @pytest.mark.weaviate
+@pytest.mark.postgres
 def test_monitor_creates_proposal_from_weaviate_discovery(
-    weaviate_client, postgres_connection, ananke_test_db, tmp_path
+    weaviate_client, postgres_connection, ananke_test_db
 ):
     if weaviate_client.collections.exists(Discoveries.collection_name):
         weaviate_client.collections.delete(Discoveries.collection_name)
@@ -57,8 +58,12 @@ def test_monitor_creates_proposal_from_weaviate_discovery(
         vector=[0.1, 0.2],
     )
 
-    proposal_queue = ProposalQueue(tmp_path / "proposals.db")
-    state_store = MonitorStateStore(tmp_path / "monitor_state.db")
+    proposal_queue = ProposalQueue(postgres_connection)
+    state_store = MonitorStateStore(postgres_connection)
+    cursor = postgres_connection.cursor()
+    cursor.execute("DELETE FROM proposal_queue")
+    cursor.execute("DELETE FROM monitor_state")
+    postgres_connection.commit()
     outbox = _InMemoryOutbox()
 
     reader = WeaviateDiscoveryReader(weaviate_client)
