@@ -8,12 +8,14 @@
 - Current host: Raspberry Pi with 8GB RAM.
 - We will run **one environment at a time** (sequential) to avoid resource contention.
 - Isolation uses separate compose projects, env files, and volumes per environment.
+- Each environment uses its own host data directory (no shared data folders).
 - Images are built in CI and pulled by tag on the host (no local build on the Pi).
 
 ## Acceptance Criteria
 - [ ] Base compose file remains `docker-compose.yml`; environment overrides use `docker-compose.dev.yml`, `docker-compose.staging.yml`, `docker-compose.prod.yml`.
 - [ ] Each environment has its own env file: `.env.dev`, `.env.staging`, `.env.prod`.
 - [ ] Compose projects are isolated via `-p mnemosyne-<env>` and do not share volumes or networks.
+- [ ] Each environment uses a separate host data directory (e.g., `/srv/mnemosyne/<env>`), configured via `DATA_ROOT`, with per-service subfolders.
 - [ ] A single command per environment brings it up, using the same base compose file and the env override.
 - [ ] `IMAGE_TAG` (or equivalent) pins the exact image version; staging and prod can be promoted by reusing the same tag.
 - [ ] Secrets are sourced from env files or Docker secrets; no hard-coded credentials.
@@ -24,6 +26,7 @@
 ## Configuration
 Required env vars (per environment):
 - `IMAGE_TAG`
+- `DATA_ROOT` (host path prefix for per-env data folders)
 - `WEAVIATE_HTTP_HOST`, `WEAVIATE_HTTP_PORT`, `WEAVIATE_GRPC_PORT`
 - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`

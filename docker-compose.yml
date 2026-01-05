@@ -13,7 +13,7 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       CLUSTER_HOSTNAME: "node1"
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - ${DATA_ROOT}/weaviate:/var/lib/weaviate
     networks:
       - mnemosyne_net
 
@@ -27,7 +27,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-mnemosyne_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DATA_ROOT}/postgres:/var/lib/postgresql/data
     networks:
       - mnemosyne_net
 
@@ -40,7 +40,7 @@ services:
     environment:
       NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4jpassword}"
     volumes:
-      - neo4j_data:/data
+      - ${DATA_ROOT}/neo4j:/data
     networks:
       - mnemosyne_net
 
@@ -52,10 +52,10 @@ services:
       - postgres
       - neo4j
     environment:
-      OBSIDIAN_VAULT_PATH: /data/fake_vault
-      EMAIL_ARCHIVE_PATH: /data/fake_emails
-      PDF_SCAN_PATH: /data/fake_pdfs
-      EMAIL_TSV: /data/fake_emails/cleaned_emails_full.tsv
+      OBSIDIAN_VAULT_PATH: /data/vault
+      EMAIL_ARCHIVE_PATH: /data/emails
+      PDF_SCAN_PATH: /data/pdfs
+      EMAIL_TSV: /data/emails/cleaned_emails_full.tsv
       WEAVIATE_HTTP_HOST: weaviate
       WEAVIATE_HTTP_PORT: 8080
       WEAVIATE_GRPC_PORT: 50051
@@ -68,10 +68,10 @@ services:
       INGESTION_STATE_DB: /state/ingestion_state.db
       PYTHONPATH: /app/src
     volumes:
-      - ./test_data/fake_vault:/data/fake_vault:ro
-      - ./test_data/fake_emails:/data/fake_emails:ro
-      - ./test_data/fake_pdfs:/data/fake_pdfs:ro
-      - ingestion_state:/state
+      - ${DATA_ROOT}/vault:/data/vault:ro
+      - ${DATA_ROOT}/emails:/data/emails:ro
+      - ${DATA_ROOT}/pdfs:/data/pdfs:ro
+      - ${DATA_ROOT}/ingestion_state:/state
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -110,9 +110,3 @@ services:
 networks:
   mnemosyne_net:
     driver: bridge
-
-volumes:
-  weaviate_data:
-  postgres_data:
-  neo4j_data:
-  ingestion_state:

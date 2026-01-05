@@ -9,6 +9,7 @@ Only one environment should be up at a time to avoid resource contention.
 - Overrides: `docker-compose.dev.yml`, `docker-compose.staging.yml`, `docker-compose.prod.yml`
 - Env files: `.env.dev`, `.env.staging`, `.env.prod`
 - Compose project names: `mnemosyne-dev`, `mnemosyne-staging`, `mnemosyne-prod`
+- Data root: `DATA_ROOT` points to the per-environment host directory
 
 ## Image Promotion
 
@@ -40,6 +41,28 @@ make env-down ENV=prod
 Check status:
 ```
 make env-status ENV=staging
+```
+
+## Data Directories
+
+Each environment uses its own data root (example):
+
+```
+/srv/mnemosyne/dev/
+/srv/mnemosyne/staging/
+/srv/mnemosyne/prod/
+```
+
+Expected subfolders:
+
+```
+weaviate/
+postgres/
+neo4j/
+ingestion_state/
+vault/
+emails/
+pdfs/
 ```
 
 ## Moving Staging or Prod to Another Host
