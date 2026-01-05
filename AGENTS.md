@@ -11,6 +11,7 @@
 
 ## Story Quality Gate
 - Every change must be documented as a user story, change request, or hotfix. If no existing doc covers the work, create a new one first.
+- Always update `user-stories/STORY_INDEX.md` when creating or updating a story/CR/hotfix.
 - Before development, ensure the user story is absolutely clear.
 - Ensure acceptance criteria are excellent and complete.
 - Ensure test coverage plan is excellent (unit + integration + e2e).

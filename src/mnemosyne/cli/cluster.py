@@ -12,6 +12,7 @@ from sklearn.cluster import MiniBatchKMeans
 
 from mnemosyne.alexandria.weaviate_schema import (
     ClusterCentroidCollection,
+    TheLethe,
     TheMuses,
     WeaviateSchemaManager,
 )
@@ -31,25 +32,37 @@ class ClusteringConfig:
         self.weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         self.weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         self.weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+        self.n_clusters_default = int(os.getenv("N_CLUSTERS", "50"))
+        self.n_clusters_muses = int(os.getenv("N_CLUSTERS_MUSES", str(self.n_clusters_default)))
+        self.n_clusters_lethe = int(os.getenv("N_CLUSTERS_LETHE", str(self.n_clusters_default)))
+
+    def resolve_n_clusters(self, collection_name: str) -> int:
+        if collection_name == TheLethe.collection_name:
+            return self.n_clusters_lethe
+        return self.n_clusters_muses
 
 
 class ClusterManager:
     """Handles the clustering process."""
 
-    def __init__(self, client: weaviate.WeaviateClient):
+    def __init__(
+        self,
+        client: weaviate.WeaviateClient,
+        collection_name: str = TheMuses.collection_name,
+        centroid_collection_name: str = ClusterCentroidCollection.collection_name,
+    ):
         self.client = client
-        self.muses_collection = self.client.collections.get(TheMuses.collection_name)
-        self.centroid_collection = self.client.collections.get(
-            ClusterCentroidCollection.collection_name
-        )
+        self.collection_name = collection_name
+        self.collection = self.client.collections.get(collection_name)
+        self.centroid_collection = self.client.collections.get(centroid_collection_name)
 
     def fetch_all_vectors(self) -> tuple[np.ndarray, list[str]]:
-        """Fetch all vectors and their UUIDs from TheMuses collection."""
-        logger.info("Fetching all vectors from TheMuses collection...")
+        """Fetch all vectors and their UUIDs from the target collection."""
+        logger.info("Fetching all vectors from %s collection...", self.collection_name)
         vectors = []
         uuids = []
 
-        query_result = self.muses_collection.iterator(include_vector=True)
+        query_result = self.collection.iterator(include_vector=True)
 
         for item in query_result:
             vectors.append(item.vector["default"])
@@ -78,7 +91,7 @@ class ClusterManager:
         logger.info("Updating cluster IDs for all chunks...")
         # Use data.update() for each chunk to properly update existing objects
         for uuid_str, label in zip(uuids, labels):
-            self.muses_collection.data.update(
+            self.collection.data.update(
                 uuid=uuid_str,
                 properties={"clusterId": int(label)},
             )
@@ -136,7 +149,11 @@ class ClusterManager:
         logger.info("Finished storing cluster centroids.")
 
 
-def run_clustering(n_clusters: int):
+def run_clustering(
+    n_clusters: int,
+    collection_name: str = TheMuses.collection_name,
+    centroid_collection_name: str = ClusterCentroidCollection.collection_name,
+):
     """
     Main function to run the clustering process.
 
@@ -155,6 +172,7 @@ def run_clustering(n_clusters: int):
         logger.info("Starting Chunk Clustering")
         logger.info("=" * 60)
         logger.info(f"Weaviate: {config.weaviate_host}:{config.weaviate_port}")
+        logger.info(f"Collection: {collection_name}")
         logger.info(f"Number of clusters: {n_clusters}")
         logger.info("=" * 60)
 
@@ -166,10 +184,14 @@ def run_clustering(n_clusters: int):
 
         # Ensure collections exist
         schema_manager = WeaviateSchemaManager(client)
-        schema_manager.ensure_collection_exists(TheMuses.collection_name)
-        schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+        schema_manager.ensure_collection_exists(collection_name)
+        schema_manager.ensure_collection_exists(centroid_collection_name)
 
-        manager = ClusterManager(client)
+        manager = ClusterManager(
+            client,
+            collection_name=collection_name,
+            centroid_collection_name=centroid_collection_name,
+        )
 
         vectors, uuids = manager.fetch_all_vectors()
         if len(vectors) == 0:

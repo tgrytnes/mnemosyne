@@ -12,6 +12,12 @@ import psycopg2
 import weaviate
 from neo4j import GraphDatabase
 
+from mnemosyne.alexandria.weaviate_schema import (
+    ClusterCentroidCollection,
+    ClusterCentroidLethe,
+    TheLethe,
+    TheMuses,
+)
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
 from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
 from mnemosyne.argus.scout.monitor_agent import (
@@ -25,7 +31,7 @@ from mnemosyne.argus.scout.monitor_agent import (
 )
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
-from mnemosyne.cli.cluster import run_clustering
+from mnemosyne.cli.cluster import ClusteringConfig, run_clustering
 
 # Configure logging
 logging.basicConfig(
@@ -50,8 +56,30 @@ def run_clustering_task():
     logger.info("Running periodic clustering task")
     logger.info("=" * 60)
     try:
-        n_clusters = int(os.getenv("N_CLUSTERS", "50"))
-        run_clustering(n_clusters)
+        config = ClusteringConfig()
+        clustering_targets = [
+            (
+                TheMuses.collection_name,
+                ClusterCentroidCollection.collection_name,
+                config.n_clusters_muses,
+            ),
+            (
+                TheLethe.collection_name,
+                ClusterCentroidLethe.collection_name,
+                config.n_clusters_lethe,
+            ),
+        ]
+        for collection_name, centroid_name, n_clusters in clustering_targets:
+            logger.info(
+                "Clustering %s with %s clusters",
+                collection_name,
+                n_clusters,
+            )
+            run_clustering(
+                n_clusters,
+                collection_name=collection_name,
+                centroid_collection_name=centroid_name,
+            )
         logger.info("Clustering task completed successfully")
     except Exception as e:
         logger.error(f"Clustering task failed: {e}")
@@ -149,6 +177,7 @@ def run_graph_taxonomy_task():
 
     try:
         # Get configuration from environment
+        graph_taxonomy_source = os.getenv("GRAPH_TAXONOMY_SOURCE", "lethe").lower()
         weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
@@ -182,6 +211,12 @@ def run_graph_taxonomy_task():
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig()
+        centroid_collection_name = (
+            ClusterCentroidLethe.collection_name
+            if graph_taxonomy_source == "lethe"
+            else ClusterCentroidCollection.collection_name
+        )
+        logger.info("Graph taxonomy source: %s", graph_taxonomy_source)
 
         # Build graph
         pipeline = GraphTaxonomyPipeline(
@@ -189,6 +224,8 @@ def run_graph_taxonomy_task():
             postgres_connection=postgres_conn,
             neo4j_driver=neo4j_driver,
             config=config,
+            centroid_collection_name=centroid_collection_name,
+            profile_source=graph_taxonomy_source,
         )
 
         result = pipeline.build_graph()

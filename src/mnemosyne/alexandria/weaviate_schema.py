@@ -122,6 +122,38 @@ class ClusterCentroidCollection:
     ]
 
 
+class ClusterCentroidLethe:
+    """
+    Schema for ClusterCentroidLethe collection.
+
+    Stores the calculated centroid for each Lethe cluster.
+    """
+
+    collection_name = "ClusterCentroidLethe"
+
+    description = "Stores the calculated centroid vector and metadata for each Lethe cluster."
+
+    vectorizer = "none"  # We provide vectors
+
+    properties = [
+        {
+            "name": "clusterId",
+            "dataType": ["int"],
+            "description": "The ID of the cluster.",
+        },
+        {
+            "name": "clusterSize",
+            "dataType": ["int"],
+            "description": "Number of items in the cluster.",
+        },
+        {
+            "name": "lastUpdated",
+            "dataType": ["date"],
+            "description": "Timestamp when the centroid was last calculated.",
+        },
+    ]
+
+
 class TheLethe:
     """
     Schema for TheLethe collection (email/PDF archive).
@@ -320,6 +352,8 @@ class WeaviateSchemaManager:
             self._create_thelethe_collection()
         elif collection_name == ClusterCentroidCollection.collection_name:
             self._create_clustercentroid_collection()
+        elif collection_name == ClusterCentroidLethe.collection_name:
+            self._create_clustercentroid_lethe_collection()
         elif collection_name == Discoveries.collection_name:
             self._create_discoveries_collection()
         else:
@@ -378,6 +412,24 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=ClusterCentroidCollection.collection_name,
             description=ClusterCentroidCollection.description,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=properties,
+        )
+
+    def _create_clustercentroid_lethe_collection(self) -> None:
+        """Create ClusterCentroidLethe collection with proper schema"""
+        properties = [
+            Property(
+                name=prop["name"],
+                data_type=self._map_datatype(prop["dataType"][0]),
+                description=prop.get("description", ""),
+            )
+            for prop in ClusterCentroidLethe.properties
+        ]
+
+        self.client.collections.create(
+            name=ClusterCentroidLethe.collection_name,
+            description=ClusterCentroidLethe.description,
             vectorizer_config=Configure.Vectorizer.none(),
             properties=properties,
         )

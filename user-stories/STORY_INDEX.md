@@ -29,6 +29,7 @@ Note: CR-000-003 updated to include per-environment data directories and optiona
 | 001 | Cluster Centroid Node | High | 5 pts | ✅ Done | - |
 | 002 | Structured Metadata Synthesis | High | 8 pts | ✅ Done | - |
 | 003 | Automated Graph Taxonomy | Medium | 8 pts | 📝 Draft | - |
+| 003-CR-001 | Dual-Collection Clustering and Lethe-Only Graph Taxonomy | High | 8-13 pts | 📝 Draft | - |
 | 019 | Quality Assurance Framework | High | 8 pts | ✅ Done | - |
 | 020 | Hierarchical Structure Preservation | High | 5 pts | ✅ Done | - |
 | 021 | Semantic Chunking with LLM | High | 13 pts | ✅ Done | - |
