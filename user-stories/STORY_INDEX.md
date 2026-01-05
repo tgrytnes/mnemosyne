@@ -19,6 +19,7 @@ Quick reference for all user stories with status tracking.
 | ID | Title | Priority | Estimate | Status | Assignee |
 |----|-------|----------|----------|--------|----------|
 | CR-000-003 | Single-Host Dev/Staging/Prod Compose Environments | High | 8-13 pts | 📝 Draft | - |
+| CR-000-004 | Unique Host Ports per Environment | High | 3-5 pts | 📝 Draft | - |
 
 Note: CR-000-003 updated to include per-environment data directories and optional .env.<env>.local overrides (2026-01-05).
 

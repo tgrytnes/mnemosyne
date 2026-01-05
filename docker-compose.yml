@@ -3,8 +3,8 @@ services:
     image: cr.weaviate.io/semitechnologies/weaviate:1.27.0
     restart: unless-stopped
     ports:
-      - "8081:8080"
-      - "50061:50051"
+      - "${WEAVIATE_HOST_PORT}:8080"
+      - "${WEAVIATE_GRPC_HOST_PORT}:50051"
     environment:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
       PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
@@ -21,7 +21,7 @@ services:
     image: postgres:15
     restart: unless-stopped
     ports:
-      - "55432:5432"
+      - "${POSTGRES_HOST_PORT}:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mnemosyne}
       POSTGRES_USER: ${POSTGRES_USER:-mnemosyne_user}
@@ -35,8 +35,8 @@ services:
     image: neo4j:5
     restart: unless-stopped
     ports:
-      - "17474:7474"
-      - "17687:7687"
+      - "${NEO4J_HTTP_HOST_PORT}:7474"
+      - "${NEO4J_BOLT_HOST_PORT}:7687"
     environment:
       NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4jpassword}"
     volumes:

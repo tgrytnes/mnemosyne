@@ -12,6 +12,18 @@ Only one environment should be up at a time to avoid resource contention.
 - Compose project names: `mnemosyne-dev`, `mnemosyne-staging`, `mnemosyne-prod`
 - Data root: `DATA_ROOT` points to the per-environment host directory
 
+## Host Port Map (Dev/Staging/Prod)
+
+The base compose file binds host ports using env vars:
+`WEAVIATE_HOST_PORT`, `WEAVIATE_GRPC_HOST_PORT`, `POSTGRES_HOST_PORT`,
+`NEO4J_HTTP_HOST_PORT`, `NEO4J_BOLT_HOST_PORT`.
+
+| Environment | Weaviate HTTP | Weaviate gRPC | Postgres | Neo4j HTTP | Neo4j Bolt |
+|-------------|---------------|---------------|----------|------------|------------|
+| dev         | 8082          | 50062         | 55433    | 17475      | 17688      |
+| staging     | 8081          | 50061         | 55432    | 17474      | 17687      |
+| prod        | 8083          | 50063         | 55434    | 17476      | 17689      |
+
 ## Image Promotion
 
 All environments use the same image, pinned by `IMAGE_TAG`.
