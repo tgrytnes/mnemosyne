@@ -24,6 +24,7 @@
 - Prioritize broad, realistic tests to uncover architectural or logical flaws.
 
 ## Branching & CI Workflow
+- Quality Gate #2.5: run `black` and `ruff` locally and fix issues before pushing code to CI.
 - Quality Gate #3: never push directly to main. Always use a new worktree and feature branch, commit locally, push the branch, and open a PR so CI runs on GitHub.
 - For each new story, create a new git worktree and a dedicated feature branch before starting work.
 - Pull the latest `main` before starting work on a feature branch.
