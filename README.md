@@ -121,6 +121,15 @@ make test-integration
 make test-all
 ```
 
+> **Tip:** the local dev `docker-compose` maps Weaviate to `localhost:8082` and gRPC to `50062`. When you run `make test-integration` (or `pytest tests/integration/test_story_001_integration.py::test_clustering_and_representation_pipeline`) against that stack, export the same overrides that the CI workflow uses:
+
+```bash
+export TEST_WEAVIATE_PORT=8082
+export TEST_WEAVIATE_GRPC_PORT=50062
+export OLLAMA_BASE_URL=http://localhost:11434
+make test-integration
+```
+
 ### Services
 
 **Required**:

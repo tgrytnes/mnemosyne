@@ -92,7 +92,7 @@ class GetClusterRepresentatives:
 
         # Query for 5 nearest neighbors to the centroid
         try:
-            response = self.muses_collection.query.near_vector(
+            response = self.chunk_collection.query.near_vector(
                 near_vector=centroid_vector.tolist(),
                 limit=5,
                 return_metadata=["distance"],
