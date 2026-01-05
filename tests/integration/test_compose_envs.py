@@ -25,34 +25,46 @@ def _read_env_file(env_name: str) -> dict[str, str]:
 def _compose_config(env_name: str) -> subprocess.CompletedProcess:
     repo_root = Path(__file__).resolve().parents[2]
     env_file = repo_root / f".env.{env_name}"
+    local_env_file = repo_root / f".env.{env_name}.local"
     compose_file = repo_root / f"docker-compose.{env_name}.yml"
 
     assert env_file.exists(), f"Missing env file: {env_file}"
     assert compose_file.exists(), f"Missing compose override: {compose_file}"
 
+    created_local = False
+    if not local_env_file.exists():
+        local_env_file.touch()
+        created_local = True
+
     if shutil.which("docker") is None:
         pytest.skip("docker CLI not available")
 
-    result = subprocess.run(
-        [
-            "docker",
-            "compose",
-            "-p",
-            f"mnemosyne-{env_name}",
-            "--env-file",
-            str(env_file),
-            "-f",
-            "docker-compose.yml",
-            "-f",
-            str(compose_file),
-            "config",
-        ],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-        env=os.environ.copy(),
-    )
+    try:
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-p",
+                f"mnemosyne-{env_name}",
+                "--env-file",
+                str(env_file),
+                "--env-file",
+                str(local_env_file),
+                "-f",
+                "docker-compose.yml",
+                "-f",
+                str(compose_file),
+                "config",
+            ],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=os.environ.copy(),
+        )
+    finally:
+        if created_local:
+            local_env_file.unlink()
     return result
 
 

@@ -7,7 +7,8 @@ Only one environment should be up at a time to avoid resource contention.
 
 - Base compose: `docker-compose.yml`
 - Overrides: `docker-compose.dev.yml`, `docker-compose.staging.yml`, `docker-compose.prod.yml`
-- Env files: `.env.dev`, `.env.staging`, `.env.prod`
+- Env files: `.env.dev`, `.env.staging`, `.env.prod` (tracked templates)
+- Local overrides: `.env.dev.local`, `.env.staging.local`, `.env.prod.local` (ignored)
 - Compose project names: `mnemosyne-dev`, `mnemosyne-staging`, `mnemosyne-prod`
 - Data root: `DATA_ROOT` points to the per-environment host directory
 
@@ -21,6 +22,17 @@ Example flow:
 3) Run staging, execute E2E tests, verify health.
 4) Promote by setting the same `IMAGE_TAG` in `.env.prod`.
 5) Roll back by setting `IMAGE_TAG` to a previous known-good tag.
+
+## Local Overrides
+
+Use `.env.<env>.local` for secrets and host-specific values. These files are ignored
+by git and override values in the tracked `.env.<env>` templates.
+
+Example:
+```
+cp .env.staging .env.staging.local
+# edit .env.staging.local with real credentials + tag
+```
 
 ## Commands
 
