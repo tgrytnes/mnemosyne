@@ -5,24 +5,45 @@
 **So that** high-value discoveries don't get lost when the gatekeeper denies them
 
 ## Acceptance Criteria
-- [ ] Background agent runs daily (scheduled job) or via CLI
-- [ ] Queries Weaviate `Discoveries` for project_candidate records
-- [ ] Each discovery job has a stable `discovery_job_key` (e.g., `private_projects`)
-- [ ] Each discovery has a deterministic `discovery_id` based on job + candidate (e.g., `private_projects:house_painting`)
-- [ ] Creates proposal records in SQLite with durable dedup keys based on `discovery_id`
-- [ ] Avoids repeated proposals for the same discovery (long-term memory)
-- [ ] Submits proposals to the SQL Gatekeeper queue
-- [ ] Monitors gatekeeper decisions via proposal queue status changes
-- [ ] Escalates rejected items to the Message Outbox using `discovery_id`
-- [ ] Escalation is written to the Message Outbox (no direct Telegram)
-- [ ] Logs reconciliation state to avoid re-asking
-- [ ] Performance: Complete scan in <5 minutes for 100+ discoveries
-- [ ] Configurable scan frequency (daily, weekly)
-- [ ] Proposal payload includes `discovery_id`, `discovery_job_key`, `candidate_key`, `cluster_ids`, `confidence_score`, `detected_at`
-- [ ] Proposal queue enforces idempotency on `discovery_id`
-- [ ] Re-ask policy is explicit: cooldown, max asks, and confidence delta thresholds
-- [ ] Integration tests use real Weaviate + SQLite + Postgres
-- [ ] E2E test covers discovery -> proposal -> rejection -> escalation loop
+
+### Entry Point and Scheduling
+- [ ] Provide a CLI entrypoint `python -m mnemosyne.cli.monitor run` that performs a single reconciliation pass and exits 0 on success.
+- [ ] Daily scheduling is achieved via external scheduler (cron/systemd) invoking the same CLI; document a sample daily command and required env vars.
+
+### Discovery Inputs and Identity
+- [ ] Query Weaviate `Discoveries` with filters `patternType=project_candidate` and `confidenceScore >= MONITOR_CONFIDENCE_THRESHOLD`, limited by `MONITOR_SCAN_LIMIT`.
+- [ ] Each discovery record includes `discoveryJobKey`, `candidateKey`, and `discoveryId`.
+- [ ] `discoveryId` is exactly `{discovery_job_key}:{candidate_key}`.
+- [ ] `candidateKey` is a slugified label (lowercase, alnum, `_`, `-`); if no label is available, use a deterministic hash derived from sorted `clusterIds`.
+- [ ] Proposal payload includes `discovery_id`, `discovery_job_key`, `candidate_key`, `cluster_ids`, `confidence_score`, `detected_at`.
+
+### Proposal Queue and State (SQLite)
+- [ ] Proposal queue persists to SQLite table `proposal_queue` with unique `discovery_id` (idempotent inserts/updates).
+- [ ] Monitor state persists to SQLite table `monitor_state` with fields: `discovery_id`, `asked_at`, `ask_count`, `rejected_at`, `rejected_confidence`, `snoozed_until`, `archived_at`.
+- [ ] Re-ask policy is enforced using `cooldown_days`, `max_asks`, and `confidence_delta` with defaults 14, 3, 0.15.
+
+### Gatekeeper and Escalation
+- [ ] For each eligible discovery not in SQL projects, a proposal is created/updated in the queue with status `pending`.
+- [ ] Rejected proposals (`status=rejected`) are escalated once to the Message Outbox with deterministic `message_id` `proposal_escalation:{discovery_id}`.
+- [ ] Escalation writes to the Message Outbox only (no direct Telegram send path).
+
+### Logging, Resilience, Performance
+- [ ] Logs include counts for scanned discoveries, proposals queued, skipped reasons (already project, cooldown, snooze, max_asks), and escalations emitted.
+- [ ] Agent does not crash on empty discovery sets or missing optional fields.
+- [ ] Performance: reconcile 100 discoveries in <5 minutes on a dev machine (can be a separate `@pytest.mark.performance` check).
+
+### Configuration
+- [ ] Monitor config via env vars: `MONITOR_CONFIDENCE_THRESHOLD`, `MONITOR_SCAN_LIMIT`, `MONITOR_COOLDOWN_DAYS`, `MONITOR_MAX_ASKS`, `MONITOR_CONFIDENCE_DELTA`, `MONITOR_QUEUE_DB_PATH`, `MONITOR_STATE_DB_PATH`, `MONITOR_OUTBOX_DB_PATH`.
+- [ ] Weaviate connection uses `WEAVIATE_HTTP_HOST`, `WEAVIATE_HTTP_PORT`, `WEAVIATE_GRPC_PORT`.
+- [ ] Postgres connection uses `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`.
+
+### Tests
+- [ ] Unit tests cover re-ask policy, idempotency, and rejection escalation behavior.
+- [ ] Integration tests use real Weaviate + SQLite + Postgres (no mocks).
+- [ ] E2E test covers discovery -> proposal -> rejection -> escalation loop with real services.
+
+## Scope Notes
+- Scheduler integration inside the app is out of scope for this story; external scheduling via CLI is required.
 
 ## Critical Architectural Role
 

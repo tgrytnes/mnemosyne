@@ -73,6 +73,8 @@ Note: CR-000-003 updated to include per-environment data directories and optiona
 
 **Phase Total**: 79 story points
 
+Note: Story 015 acceptance criteria updated 2026-01-05.
+
 ---
 
 ## Summary
