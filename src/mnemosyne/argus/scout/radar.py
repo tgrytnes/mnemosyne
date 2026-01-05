@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from hashlib import sha256
 from math import sqrt
 
 Embedder = Callable[[str], list[float]]
@@ -152,14 +153,26 @@ def _margin_score(
     return pos_max - neg_max, pos_max, neg_max
 
 
-def discovery_identity(concept_key: str, cluster_ids: Iterable[str]) -> tuple[str, str, str]:
-    candidate_key = _candidate_key(cluster_ids)
+def discovery_identity(
+    concept_key: str,
+    cluster_ids: Iterable[str],
+    candidate_label: str | None = None,
+) -> tuple[str, str, str]:
+    candidate_key = _candidate_key(cluster_ids, candidate_label=candidate_label)
     return concept_key, candidate_key, f"{concept_key}:{candidate_key}"
 
 
-def _candidate_key(cluster_ids: Iterable[str]) -> str:
-    normalized = [_slugify(cluster_id) for cluster_id in cluster_ids]
-    return "-".join(sorted(normalized))
+def _candidate_key(cluster_ids: Iterable[str], candidate_label: str | None = None) -> str:
+    if candidate_label:
+        return _slugify(candidate_label)
+    return _hash_cluster_ids(cluster_ids)
+
+
+def _hash_cluster_ids(cluster_ids: Iterable[str]) -> str:
+    normalized = sorted(str(cluster_id) for cluster_id in cluster_ids)
+    payload = "|".join(normalized)
+    digest = sha256(payload.encode("utf-8")).hexdigest()
+    return digest[:12]
 
 
 def _slugify(value: str) -> str:

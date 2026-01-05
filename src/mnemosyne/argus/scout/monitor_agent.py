@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
@@ -11,6 +12,8 @@ from typing import Any
 from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.weaviate_schema import Discoveries
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -405,52 +408,85 @@ class MonitorAgent:
         self._config = config or MonitorConfig()
 
     def run(self) -> None:
-        self._escalate_rejections()
-        self._reconcile_discoveries()
+        escalated = self._escalate_rejections()
+        stats = self._reconcile_discoveries()
+        logger.info(
+            "Monitor run complete scanned=%s queued=%s "
+            "skipped_already_project=%s skipped_snoozed=%s "
+            "skipped_max_asks=%s skipped_cooldown=%s escalated=%s",
+            stats["scanned"],
+            stats["queued"],
+            stats["skipped_already_project"],
+            stats["skipped_snoozed"],
+            stats["skipped_max_asks"],
+            stats["skipped_cooldown"],
+            escalated,
+        )
 
-    def _reconcile_discoveries(self) -> None:
+    def _reconcile_discoveries(self) -> dict[str, int]:
         discoveries = self._reader.fetch_project_candidates(
             threshold=self._config.confidence_threshold,
             limit=self._config.scan_limit,
         )
+        stats = {
+            "scanned": len(discoveries),
+            "queued": 0,
+            "skipped_already_project": 0,
+            "skipped_snoozed": 0,
+            "skipped_max_asks": 0,
+            "skipped_cooldown": 0,
+            "skipped_other": 0,
+        }
 
         for discovery in discoveries:
             if self._projects.exists_by_discovery_id(discovery.discovery_id):
+                stats["skipped_already_project"] += 1
                 continue
-            if not self._should_propose(discovery):
+            should_propose, reason = self._should_propose(discovery)
+            if not should_propose:
+                if reason == "snoozed":
+                    stats["skipped_snoozed"] += 1
+                elif reason == "max_asks":
+                    stats["skipped_max_asks"] += 1
+                elif reason == "cooldown":
+                    stats["skipped_cooldown"] += 1
+                else:
+                    stats["skipped_other"] += 1
                 continue
             self._queue.upsert(discovery)
             self._state.record_ask(discovery.discovery_id)
+            stats["queued"] += 1
+        return stats
 
-    def _should_propose(self, discovery: DiscoveryRecord) -> bool:
+    def _should_propose(self, discovery: DiscoveryRecord) -> tuple[bool, str | None]:
         state = self._state.get_state(discovery.discovery_id)
         if state is None:
-            return True
+            return True, None
 
         if state.get("archived_at"):
-            return False
+            return False, "archived"
 
         ask_count = state.get("ask_count") or 0
         if ask_count >= self._config.max_asks:
             self._state.archive(discovery.discovery_id)
-            return False
+            return False, "max_asks"
 
         snoozed_until = _parse_datetime(state.get("snoozed_until"))
         if snoozed_until and snoozed_until > datetime.now(UTC):
-            return False
+            return False, "snoozed"
 
         rejected_at = _parse_datetime(state.get("rejected_at"))
         rejected_confidence = state.get("rejected_confidence")
         if rejected_at and rejected_confidence is not None:
             cooldown = timedelta(days=self._config.cooldown_days)
             if datetime.now(UTC) - rejected_at < cooldown:
-                return False
+                return False, "cooldown"
             if discovery.confidence_score < rejected_confidence + self._config.confidence_delta:
-                return False
+                return False, "confidence_delta"
 
-        return True
+        return True, None
 
-    def _escalate_rejections(self) -> None:
+    def _escalate_rejections(self) -> int:
         rejected = self._queue.list_by_status("rejected")
         for proposal in rejected:
             discovery_id = proposal["discovery_id"]
@@ -466,12 +502,14 @@ class MonitorAgent:
             }
             self._outbox.enqueue("proposal_escalation", payload, message_id)
             self._queue.update_status(discovery_id, "escalated")
+            state = self._state.get_state(discovery_id) or {}
             self._state.record_rejection(
                 discovery_id=discovery_id,
                 rejected_at=datetime.now(UTC),
                 rejected_confidence=float(proposal["confidence_score"]),
-                ask_count=int(proposal.get("ask_count") or 1),
+                ask_count=state.get("ask_count"),
             )
+        return len(rejected)
 
 
 def _record_from_properties(properties: dict[str, Any]) -> DiscoveryRecord | None:
