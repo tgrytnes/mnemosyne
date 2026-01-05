@@ -33,6 +33,13 @@
 - Ensure the PR CI executes the full test suite before merge.
 - Before merging to main, the full test suite must pass.
 
+## Dev/Staging/Prod Workflow
+- Implement code and validate in `.venv` first (unit + integration tests as applicable).
+- Validate in the dev compose environment with real services (`make env-dev-up`).
+- Push to GitHub and rely on CI for the full test suite.
+- Deploy the CI-built image tag to staging and run E2E tests there.
+- Promote the same image tag to prod after staging passes.
+
 ## Self-Review Gate
 - Provide a short self-review checklist before merge.
 - Include: edge cases handled, error handling verified, real services/data used for integration/E2E, is the test coverage excellent?

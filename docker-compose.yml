@@ -1,7 +1,6 @@
 services:
   weaviate:
     image: cr.weaviate.io/semitechnologies/weaviate:1.27.0
-    container_name: mnemosyne_weaviate
     restart: unless-stopped
     ports:
       - "8081:8080"
@@ -14,13 +13,12 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       CLUSTER_HOSTNAME: "node1"
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - ${DATA_ROOT}/weaviate:/var/lib/weaviate
     networks:
       - mnemosyne_net
 
   postgres:
     image: postgres:15
-    container_name: mnemosyne_postgres
     restart: unless-stopped
     ports:
       - "55432:5432"
@@ -29,13 +27,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-mnemosyne_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DATA_ROOT}/postgres:/var/lib/postgresql/data
     networks:
       - mnemosyne_net
 
   neo4j:
     image: neo4j:5
-    container_name: mnemosyne_neo4j
     restart: unless-stopped
     ports:
       - "17474:7474"
@@ -43,25 +40,22 @@ services:
     environment:
       NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4jpassword}"
     volumes:
-      - neo4j_data:/data
+      - ${DATA_ROOT}/neo4j:/data
     networks:
       - mnemosyne_net
 
   mnemosyne_ingestor:
-    image: ghcr.io/tgrytnes/mnemosyne:latest
-    container_name: mnemosyne_ingestor
+    image: ghcr.io/tgrytnes/mnemosyne:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       - weaviate
       - postgres
       - neo4j
-    env_file:
-      - .env.production
     environment:
-      OBSIDIAN_VAULT_PATH: /data/fake_vault
-      EMAIL_ARCHIVE_PATH: /data/fake_emails
-      PDF_SCAN_PATH: /data/fake_pdfs
-      EMAIL_TSV: /data/fake_emails/cleaned_emails_full.tsv
+      OBSIDIAN_VAULT_PATH: /data/vault
+      EMAIL_ARCHIVE_PATH: /data/emails
+      PDF_SCAN_PATH: /data/pdfs
+      EMAIL_TSV: /data/emails/cleaned_emails_full.tsv
       WEAVIATE_HTTP_HOST: weaviate
       WEAVIATE_HTTP_PORT: 8080
       WEAVIATE_GRPC_PORT: 50051
@@ -74,35 +68,32 @@ services:
       INGESTION_STATE_DB: /state/ingestion_state.db
       PYTHONPATH: /app/src
     volumes:
-      - ./test_data/fake_vault:/data/fake_vault:ro
-      - ./test_data/fake_emails:/data/fake_emails:ro
-      - ./test_data/fake_pdfs:/data/fake_pdfs:ro
-      - ingestion_state:/state
+      - ${DATA_ROOT}/vault:/data/vault:ro
+      - ${DATA_ROOT}/emails:/data/emails:ro
+      - ${DATA_ROOT}/pdfs:/data/pdfs:ro
+      - ${DATA_ROOT}/ingestion_state:/state
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - mnemosyne_net
 
   mnemosyne_scheduler:
-    image: ghcr.io/tgrytnes/mnemosyne:latest
-    container_name: mnemosyne_scheduler
+    image: ghcr.io/tgrytnes/mnemosyne:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       - weaviate
       - postgres
       - neo4j
       - mnemosyne_ingestor
-    env_file:
-      - .env.production
     environment:
       WEAVIATE_HTTP_HOST: weaviate
       WEAVIATE_HTTP_PORT: 8080
       WEAVIATE_GRPC_PORT: 50051
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-mnemosyne_dev}
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-mnemosyne}
+      POSTGRES_USER: ${POSTGRES_USER:-mnemosyne_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jpassword}
@@ -119,9 +110,3 @@ services:
 networks:
   mnemosyne_net:
     driver: bridge
-
-volumes:
-  weaviate_data:
-  postgres_data:
-  neo4j_data:
-  ingestion_state:
