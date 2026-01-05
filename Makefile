@@ -3,7 +3,7 @@
 .PHONY: help install test test-unit test-integration test-e2e test-all coverage clean services services-up services-down lint format check env-dev env-test env-prod env-dev-up env-staging-up env-prod-up env-down env-status stories-index stories-index-local stories-sync-linear stories-sync-status stories-sync
 
 ENV ?= dev
-COMPOSE_ENV = docker compose -p mnemosyne-$(ENV) --env-file .env.$(ENV) -f docker-compose.yml -f docker-compose.$(ENV).yml
+COMPOSE_ENV = docker compose -p mnemosyne-$(ENV) --env-file .env.$(ENV) --env-file .env.$(ENV).local -f docker-compose.yml -f docker-compose.$(ENV).yml
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make env-prod-up      Start prod stack (docker compose)"
 	@echo "  make env-down         Stop stack (ENV=dev|staging|prod)"
 	@echo "  make env-status       Show stack status (ENV=dev|staging|prod)"
+	@echo "  Local overrides: .env.<env>.local (ignored by git)"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install          Install dependencies with Poetry"
@@ -186,22 +187,27 @@ env-prod:
 # Environment stacks (single-host dev/staging/prod)
 env-dev-up:
 	@echo "Starting dev environment..."
-	docker compose -p mnemosyne-dev --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up -d
+	@touch .env.dev.local
+	docker compose -p mnemosyne-dev --env-file .env.dev --env-file .env.dev.local -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 env-staging-up:
 	@echo "Starting staging environment..."
-	docker compose -p mnemosyne-staging --env-file .env.staging -f docker-compose.yml -f docker-compose.staging.yml up -d
+	@touch .env.staging.local
+	docker compose -p mnemosyne-staging --env-file .env.staging --env-file .env.staging.local -f docker-compose.yml -f docker-compose.staging.yml up -d
 
 env-prod-up:
 	@echo "Starting prod environment..."
-	docker compose -p mnemosyne-prod --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
+	@touch .env.prod.local
+	docker compose -p mnemosyne-prod --env-file .env.prod --env-file .env.prod.local -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 env-down:
 	@echo "Stopping environment: $(ENV)..."
+	@touch .env.$(ENV).local
 	$(COMPOSE_ENV) down
 
 env-status:
 	@echo "Status for environment: $(ENV)..."
+	@touch .env.$(ENV).local
 	$(COMPOSE_ENV) ps
 
 # Story sync helpers

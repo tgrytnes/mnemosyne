@@ -2,6 +2,8 @@ services:
   mnemosyne_ingestor:
     env_file:
       - .env.dev
+      - .env.dev.local
   mnemosyne_scheduler:
     env_file:
       - .env.dev
+      - .env.dev.local
