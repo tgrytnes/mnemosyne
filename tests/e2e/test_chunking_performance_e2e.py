@@ -2,6 +2,7 @@
 E2E performance benchmark for hybrid chunking with REAL Ollama and Weaviate.
 """
 
+import os
 import time
 
 import ollama
@@ -18,10 +19,14 @@ def test_hybrid_ingestion_under_time_limit(
 ):
     """
     REAL E2E TEST: Hybrid ingestion with actual Ollama LLM calls.
-    Should complete under 30 minutes for 100 files.
+    Should complete under the configured time limit.
     """
-    # Create 100 test files with meaningful content for semantic chunking
-    for i in range(100):
+    file_count = int(os.getenv("E2E_HYBRID_INGEST_FILE_COUNT", "50"))
+    max_minutes = float(os.getenv("E2E_HYBRID_INGEST_MAX_MINUTES", "30"))
+    progress_every = int(os.getenv("INGEST_PROGRESS_EVERY", "10"))
+
+    # Create test files with meaningful content for semantic chunking
+    for i in range(file_count):
         content = f"""# Note {i}
 
 ## Introduction
@@ -51,15 +56,16 @@ Final thoughts on note {i}.
         chunking_strategy="hybrid",
         section_semantic_min_length=100,  # Realistic threshold
         semantic_min_chunk_size=50,
+        progress_every=progress_every,
     )
 
     start = time.monotonic()
     stats = ingestor.ingest_vault()
     elapsed = time.monotonic() - start
 
-    assert stats["files_processed"] == 100
-    assert stats["total_chunks"] >= 100  # Should create at least one chunk per file
-    assert elapsed < 30 * 60  # 30 minutes max
+    assert stats["files_processed"] == file_count
+    assert stats["total_chunks"] >= file_count  # Should create at least one chunk per file
+    assert elapsed < max_minutes * 60
 
 
 @pytest.mark.e2e

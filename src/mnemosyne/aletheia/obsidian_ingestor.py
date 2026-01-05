@@ -13,6 +13,7 @@ Coordinates the complete ingestion pipeline:
 import hashlib
 import logging
 import os
+import time
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -51,6 +52,7 @@ class ObsidianIngestor:
         semantic_request_timeout: float = 5.0,
         semantic_total_timeout: float = 30.0,
         section_semantic_min_length: int = 1000,
+        progress_every: int | None = None,
     ):
         """
         Initialize Obsidian ingestor.
@@ -67,6 +69,7 @@ class ObsidianIngestor:
         self.weaviate_client = weaviate_client
         self.ollama_client = ollama_client
         self.collection_name = "TheMuses"
+        self.progress_every = self._resolve_progress_every(progress_every)
 
         # Initialize components
         self.cleaner = ObsidianMarkdownCleaner()
@@ -194,6 +197,7 @@ class ObsidianIngestor:
         files_processed = 0
         files_skipped = 0
         total_chunks = 0
+        start_time = time.monotonic()
 
         logger.info(f"Found {len(files)} markdown files in vault")
 
@@ -217,7 +221,8 @@ class ObsidianIngestor:
             files_processed += 1
             total_chunks += len(chunks)
 
-        for file_path, mod_time, chunks in prepared_files:
+        total_to_process = len(prepared_files)
+        for index, (file_path, mod_time, chunks) in enumerate(prepared_files, start=1):
             self._delete_existing_chunks(file_path)
             for chunk in chunks:
                 embedding = self._generate_embedding(chunk.text)
@@ -236,6 +241,7 @@ class ObsidianIngestor:
                 )
 
             self.state_tracker.mark_ingested(file_path, mod_time, len(chunks))
+            self._log_progress(index, total_to_process, start_time)
 
         stats = {
             "files_processed": files_processed,
@@ -246,6 +252,33 @@ class ObsidianIngestor:
 
         logger.info(f"Ingestion complete: {stats}")
         return stats
+
+    def _resolve_progress_every(self, progress_every: int | None) -> int:
+        if progress_every is not None:
+            return max(0, int(progress_every))
+        try:
+            return max(0, int(os.getenv("INGEST_PROGRESS_EVERY", "0")))
+        except ValueError:
+            return 0
+
+    def _log_progress(self, processed: int, total: int, start_time: float) -> None:
+        if self.progress_every <= 0 or total <= 0:
+            return
+        if processed % self.progress_every != 0 and processed != total:
+            return
+
+        elapsed = time.monotonic() - start_time
+        rate = processed / elapsed if elapsed > 0 else 0.0
+        remaining = (total - processed) / rate if rate > 0 else 0.0
+        percent = (processed / total) * 100 if total else 0.0
+        logger.info(
+            "Ingestion progress: %s/%s files (%.1f%%). Elapsed %.1fs, ETA %.1fs",
+            processed,
+            total,
+            percent,
+            elapsed,
+            remaining,
+        )
 
     def _prepare_chunks_for_file(self, file_path: str) -> tuple[list[TextChunk], datetime] | None:
         try:

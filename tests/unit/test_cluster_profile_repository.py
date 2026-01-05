@@ -33,7 +33,10 @@ class TestClusterProfileRepository:
             metadata={"source": "test"},
         )
 
-        repo.save(profile)
+        repo.save(profile, source="lethe")
 
         connection.cursor.assert_called_once()
         connection.commit.assert_called_once()
+        cursor = connection.cursor.return_value
+        args, _ = cursor.execute.call_args
+        assert args[1][1] == "lethe"

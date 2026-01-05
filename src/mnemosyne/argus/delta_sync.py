@@ -16,7 +16,7 @@ from mnemosyne.alexandria.cluster_sync_state_repository import (
     ClusterSyncState,
     ClusterSyncStateRepository,
 )
-from mnemosyne.alexandria.weaviate_schema import ClusterCentroidCollection
+from mnemosyne.alexandria.weaviate_schema import ClusterCentroidCollection, TheMuses
 from mnemosyne.argus.cluster_metadata_synthesis import ClusterData, ClusterMetadataSynthesizer
 from mnemosyne.argus.nodes.cluster_representatives import GetClusterRepresentatives
 
@@ -93,6 +93,13 @@ class DeltaSyncNode:
         ollama_client,
         graph_pipeline=None,
         cache_store=None,
+        centroid_collection_name: str = ClusterCentroidCollection.collection_name,
+        chunk_collection_name: str = TheMuses.collection_name,
+        text_property: str = "text",
+        source_property: str = "sourceFile",
+        heading_property: str | None = "headingPath",
+        chunk_index_property: str = "chunkIndex",
+        profile_source: str = "muses",
         config: DeltaSyncConfig | None = None,
     ) -> None:
         self.weaviate_client = weaviate_client
@@ -100,6 +107,13 @@ class DeltaSyncNode:
         self.ollama_client = ollama_client
         self.graph_pipeline = graph_pipeline
         self.cache_store = cache_store
+        self.centroid_collection_name = centroid_collection_name
+        self.chunk_collection_name = chunk_collection_name
+        self.text_property = text_property
+        self.source_property = source_property
+        self.heading_property = heading_property
+        self.chunk_index_property = chunk_index_property
+        self.profile_source = profile_source
         self.config = config or DeltaSyncConfig()
 
         self.profile_repo = ClusterProfileRepository(postgres_connection)
@@ -159,9 +173,7 @@ class DeltaSyncNode:
         return stats
 
     def _fetch_cluster_snapshots(self) -> list[ClusterSnapshot]:
-        centroid_collection = self.weaviate_client.collections.get(
-            ClusterCentroidCollection.collection_name
-        )
+        centroid_collection = self.weaviate_client.collections.get(self.centroid_collection_name)
         response = centroid_collection.query.fetch_objects(limit=10000)
         snapshots: list[ClusterSnapshot] = []
         for obj in response.objects:
@@ -231,7 +243,15 @@ class DeltaSyncNode:
         existing_state: ClusterSyncState | None,
     ) -> tuple[int, int, int]:
         cluster_int = int(cluster_id)
-        reps_node = GetClusterRepresentatives(self.weaviate_client)
+        reps_node = GetClusterRepresentatives(
+            self.weaviate_client,
+            chunk_collection_name=self.chunk_collection_name,
+            centroid_collection_name=self.centroid_collection_name,
+            text_property=self.text_property,
+            source_property=self.source_property,
+            heading_property=self.heading_property,
+            chunk_index_property=self.chunk_index_property,
+        )
         state = {"cluster_id": cluster_int, "representative_chunks": [], "error": None}
         reps_state = reps_node(state)
         reps = reps_state.get("representative_chunks", [])
@@ -261,7 +281,7 @@ class DeltaSyncNode:
         cache_invalidations = 0
 
         if existing_state is None or existing_state.profile_hash != profile_hash:
-            self.profile_repo.save(profile)
+            self.profile_repo.save(profile, source=self.profile_source)
             profile_updated = 1
 
             if self.graph_pipeline:

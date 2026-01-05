@@ -1,26 +1,76 @@
-"""Email ingestion into Weaviate (The Lethe) for Story 024."""
+"""Raw email ingestion into Weaviate (TheLethe) for Story 031."""
 
 from __future__ import annotations
 
-import csv
-import hashlib
+import logging
+import os
+import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 from weaviate.classes.config import DataType, Property
 
-from mnemosyne.aletheia.email_cleaner import clean_email_body, contains_mojibake, truncate_body
-from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.aletheia.chunking_strategy_factory import (
+    ChunkingStrategyConfig,
+    ChunkingStrategyFactory,
+)
+from mnemosyne.aletheia.email_cleaner import contains_mojibake, truncate_body
+from mnemosyne.aletheia.email_ingestion_state import EmailIngestionState
+from mnemosyne.aletheia.email_parser import parse_eml_file, parse_mbox_file
+from mnemosyne.aletheia.models import Email, EmailChunk
+from mnemosyne.aletheia.text_chunker import TextChunker
+from mnemosyne.alexandria.weaviate_schema import TheLethe, WeaviateSchemaManager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class EmailIngestConfig:
-    tsv_path: Path
+    source_dir: Path
+    state_path: Path = Path("/state/email_ingestion_state.json")
     max_chars: int = 8000
     min_body_chars: int = 20
-    collection_name: str = "TheLethe"
-    dedup: bool = True
+    collection_name: str = TheLethe.collection_name
+    chunking_strategy: str = "semantic"
+    chunk_size: int = 400
+    chunk_overlap: int = 100
+    semantic_min_chunk_size: int = 100
+    semantic_max_chunk_size: int = 1000
+    semantic_model: str = "gemma3:1b"
+    semantic_temperature: float = 0.2
+    semantic_request_timeout: float = 5.0
+    semantic_total_timeout: float = 30.0
+    section_semantic_min_length: int = 1000
+
+    @classmethod
+    def from_env(cls) -> EmailIngestConfig:
+        if os.getenv("EMAIL_TSV"):
+            raise ValueError("EMAIL_TSV is no longer supported; use SOURCE_DIR instead")
+
+        source_dir = os.getenv("SOURCE_DIR")
+        if not source_dir:
+            raise ValueError("SOURCE_DIR environment variable not set")
+
+        return cls(
+            source_dir=Path(source_dir),
+            state_path=Path(
+                os.getenv("EMAIL_INGESTION_STATE_PATH", "/state/email_ingestion_state.json")
+            ),
+            max_chars=int(os.getenv("EMAIL_MAX_CHARS", "8000")),
+            min_body_chars=int(os.getenv("EMAIL_MIN_BODY_CHARS", "20")),
+            collection_name=os.getenv("EMAIL_COLLECTION_NAME", TheLethe.collection_name),
+            chunking_strategy=os.getenv("CHUNKING_STRATEGY", "semantic"),
+            chunk_size=int(os.getenv("CHUNK_SIZE", "400")),
+            chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "100")),
+            semantic_min_chunk_size=int(os.getenv("SEMANTIC_MIN_CHUNK_SIZE", "100")),
+            semantic_max_chunk_size=int(os.getenv("SEMANTIC_MAX_CHUNK_SIZE", "1000")),
+            semantic_model=os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b"),
+            semantic_temperature=float(os.getenv("SEMANTIC_TEMPERATURE", "0.2")),
+            semantic_request_timeout=float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0")),
+            semantic_total_timeout=float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0")),
+            section_semantic_min_length=int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000")),
+        )
 
 
 @dataclass
@@ -37,12 +87,45 @@ class EmailIngestor:
         config: EmailIngestConfig,
         weaviate_client,
         embedder: Callable[[str], list[float]],
+        ollama_client=None,
     ) -> None:
         self.config = config
         self.client = weaviate_client
         self.embedder = embedder
+        self.ollama_client = ollama_client
+        self.state = EmailIngestionState(config.state_path)
+
         WeaviateSchemaManager(self.client).ensure_collection_exists(config.collection_name)
         self._ensure_schema()
+        self.chunker = self._build_chunker()
+
+    def _build_chunker(self):
+        strategy = (self.config.chunking_strategy or "semantic").lower()
+        recursive = TextChunker(
+            chunk_size=self.config.chunk_size,
+            chunk_overlap=self.config.chunk_overlap,
+        )
+
+        if strategy == "recursive":
+            return recursive
+
+        if self.ollama_client is None:
+            raise ValueError("ollama_client is required for semantic or hybrid chunking")
+
+        factory = ChunkingStrategyFactory(self.ollama_client, state_tracker=None)
+        cfg = ChunkingStrategyConfig(
+            strategy=strategy,
+            chunk_size=self.config.chunk_size,
+            chunk_overlap=self.config.chunk_overlap,
+            semantic_min_chunk_size=self.config.semantic_min_chunk_size,
+            semantic_max_chunk_size=self.config.semantic_max_chunk_size,
+            semantic_model=self.config.semantic_model,
+            semantic_temperature=self.config.semantic_temperature,
+            semantic_request_timeout=self.config.semantic_request_timeout,
+            semantic_total_timeout=self.config.semantic_total_timeout,
+            section_semantic_min_length=self.config.section_semantic_min_length,
+        )
+        return factory.create(cfg, recursive_chunker=recursive)
 
     def _ensure_schema(self) -> None:
         collection = self.client.collections.get(self.config.collection_name)
@@ -50,66 +133,79 @@ class EmailIngestor:
             existing = {p.name for p in collection.config.get().properties}
         except Exception:
             existing = set()
-        needed = {
-            "subject": "text",
-            "body": "text",
-            "sender": "text",
-            "date": "text",
-            "clusterId": "int",
-            "keywords": "text[]",
-            "type": "text",
-            "messageId": "text",
-            "sourcePath": "text",
-        }
-        for name, dtype in needed.items():
+
+        for prop in TheLethe.properties:
+            name = prop["name"]
             if name in existing:
                 continue
-            dt = DataType.TEXT
+            dtype = prop["dataType"][0]
             if dtype == "int":
-                dt = DataType.INT
-            if dtype == "text[]":
-                dt = getattr(DataType, "TEXT_ARRAY", DataType.TEXT)
-            collection.config.add_property(Property(name=name, data_type=dt))
+                data_type = DataType.INT
+            elif dtype == "text[]":
+                data_type = getattr(DataType, "TEXT_ARRAY", DataType.TEXT)
+            elif dtype == "date":
+                data_type = DataType.DATE
+            else:
+                data_type = DataType.TEXT
+            collection.config.add_property(Property(name=name, data_type=data_type))
 
     def run(self) -> IngestSummary:
         collection = self.client.collections.get(self.config.collection_name)
-        seen_ids: set[str] = set()
+
         total_loaded = 0
         total_stored = 0
         duplicates = 0
         rejected = 0
 
-        for email in self._load_tsv(self.config.tsv_path):
+        for email in self._iter_emails(self.config.source_dir):
             total_loaded += 1
-            if contains_mojibake(email["body"]):
-                rejected += 1
-                continue
-            body = truncate_body(email["body"], max_chars=self.config.max_chars)
-            if len(body.strip()) < self.config.min_body_chars:
+
+            body = truncate_body(email.body, max_chars=self.config.max_chars)
+            if contains_mojibake(body) or len(body.strip()) < self.config.min_body_chars:
                 rejected += 1
                 continue
 
-            msg_id = email.get("message_id") or ""
-            stable = msg_id or hashlib.sha256(f"{email['subject']}{body}".encode()).hexdigest()
-            if self.config.dedup and stable in seen_ids:
+            if self.state.is_ingested(email.unique_id):
                 duplicates += 1
                 continue
-            seen_ids.add(stable)
 
-            vec = self.embedder(body)
-            props = {
-                "subject": email["subject"],
-                "body": body,
-                "sender": email.get("sender"),
-                "date": email.get("date"),
-                "clusterId": -1,
-                "keywords": [],
-                "type": "unknown",
-                "messageId": msg_id or stable,
-                "sourcePath": email.get("source") or "",
-            }
-            collection.data.insert(properties=props, vector=vec)
-            total_stored += 1
+            chunks = self.chunker.chunk(body, source_file=email.source_path)
+            if not chunks:
+                rejected += 1
+                continue
+
+            for chunk in chunks:
+                if not chunk.text.strip():
+                    continue
+                chunk_item = EmailChunk(
+                    parent_email_unique_id=email.unique_id,
+                    chunk_text=chunk.text,
+                    chunk_index=chunk.index,
+                    parent_subject=email.subject,
+                    parent_sender=email.sender,
+                    parent_date=email.date,
+                    parent_source_path=email.source_path,
+                )
+
+                vec = self.embedder(chunk_item.chunk_text)
+                props = {
+                    "subject": chunk_item.parent_subject,
+                    "body": chunk_item.chunk_text,
+                    "sender": chunk_item.parent_sender,
+                    "date": chunk_item.parent_date,
+                    "clusterId": -1,
+                    "keywords": [],
+                    "type": "email",
+                    "messageId": email.message_id or email.unique_id,
+                    "sourcePath": chunk_item.parent_source_path,
+                    "documentType": chunk_item.document_type,
+                    "chunkIndex": chunk_item.chunk_index,
+                }
+                collection.data.insert(properties=props, vector=vec)
+                total_stored += 1
+
+            self.state.mark_ingested(email.unique_id)
+            self.state.save()
 
         return IngestSummary(
             total_loaded=total_loaded,
@@ -119,50 +215,33 @@ class EmailIngestor:
         )
 
     def cluster_and_label(self) -> list[dict]:
-        collection = self.client.collections.get(self.config.collection_name)
-        objs = collection.query.fetch_objects(limit=100)
-        if not objs.objects:
-            return []
-        return [{"id": obj.uuid, "keywords": []} for obj in objs.objects]
+        return []
 
-    def _load_tsv(self, path: Path) -> Iterable[dict]:
-        with path.open("r", encoding="utf-8") as f:
-            reader = csv.DictReader(f, delimiter="\t")
-            for row in reader:
-                subject = row.get("subject", "") or ""
-                body_raw = row.get("body", "") or ""
-                source = row.get("source", "") or ""
-                message_id = row.get("message_id", "") or ""
-                date = row.get("date", "") or ""
-                cleaned_body = clean_email_body(body_raw)
-                yield {
-                    "subject": subject,
-                    "body": cleaned_body,
-                    "source": source,
-                    "message_id": message_id,
-                    "date": date,
-                }
+    def _iter_emails(self, source_dir: Path) -> Iterable[Email]:
+        for path in sorted(source_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() == ".eml":
+                email = parse_eml_file(path)
+                if email:
+                    yield email
+            elif path.suffix.lower() == ".mbox":
+                yield from parse_mbox_file(path)
 
 
-def main():
+def main() -> None:
     """CLI entry point for email ingestion."""
-    import logging
-    import os
-    import sys
-
     import ollama
     import weaviate
 
-    # Configure logging
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    logger = logging.getLogger(__name__)
 
-    # Get configuration from environment
-    email_tsv = os.getenv("EMAIL_TSV")
-    if not email_tsv:
-        logger.error("EMAIL_TSV environment variable not set")
+    try:
+        config = EmailIngestConfig.from_env()
+    except ValueError as exc:
+        logger.error("%s", exc)
         sys.exit(1)
 
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
@@ -174,47 +253,43 @@ def main():
     logger.info("=" * 60)
     logger.info("Email Ingestion Pipeline")
     logger.info("=" * 60)
-    logger.info(f"Email TSV: {email_tsv}")
-    logger.info(f"Weaviate: {weaviate_host}:{weaviate_port}")
-    logger.info(f"Ollama: {ollama_url}")
-    logger.info(f"Embedding Model: {embedding_model}")
+    logger.info("Source dir: %s", config.source_dir)
+    logger.info("State path: %s", config.state_path)
+    logger.info("Weaviate: %s:%s", weaviate_host, weaviate_port)
+    logger.info("Ollama: %s", ollama_url)
+    logger.info("Embedding model: %s", embedding_model)
+    logger.info("Chunking strategy: %s", config.chunking_strategy)
     logger.info("=" * 60)
 
-    # Connect to services
-    logger.info("Connecting to Weaviate...")
     weaviate_client = weaviate.connect_to_local(
         host=weaviate_host,
         port=weaviate_port,
         grpc_port=weaviate_grpc_port,
     )
-
-    logger.info("Connecting to Ollama...")
     ollama_client = ollama.Client(host=ollama_url)
 
-    # Create embedder function
     def embedder(text: str) -> list[float]:
-        """Generate embedding using Ollama."""
         response = ollama_client.embeddings(model=embedding_model, prompt=text)
         return response["embedding"]
 
-    # Create config and ingestor
-    config = EmailIngestConfig(tsv_path=Path(email_tsv))
-
-    logger.info("Starting email ingestion...")
-    ingestor = EmailIngestor(config=config, weaviate_client=weaviate_client, embedder=embedder)
+    ingestor = EmailIngestor(
+        config=config,
+        weaviate_client=weaviate_client,
+        embedder=embedder,
+        ollama_client=ollama_client,
+    )
 
     try:
         summary = ingestor.run()
         logger.info("=" * 60)
-        logger.info("Email Ingestion Complete!")
+        logger.info("Email ingestion complete")
+        logger.info("Loaded: %s", summary.total_loaded)
+        logger.info("Stored: %s", summary.total_stored)
+        logger.info("Duplicates: %s", summary.duplicates)
+        logger.info("Rejected: %s", summary.rejected)
         logger.info("=" * 60)
-        logger.info(f"Total loaded: {summary.total_loaded}")
-        logger.info(f"Total stored: {summary.total_stored}")
-        logger.info(f"Duplicates: {summary.duplicates}")
-        logger.info(f"Rejected: {summary.rejected}")
-        logger.info("=" * 60)
-    except Exception as e:
-        logger.error(f"Error during email ingestion: {e}")
+    except Exception as exc:
+        logger.error("Error during email ingestion: %s", exc)
         import traceback
 
         traceback.print_exc()
