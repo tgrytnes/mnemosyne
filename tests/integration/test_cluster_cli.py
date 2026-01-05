@@ -9,6 +9,8 @@ import pytest
 
 from mnemosyne.alexandria.weaviate_schema import (
     ClusterCentroidCollection,
+    ClusterCentroidLethe,
+    TheLethe,
     TheMuses,
     WeaviateSchemaManager,
 )
@@ -16,6 +18,12 @@ from mnemosyne.cli.cluster import ClusterManager, run_clustering
 
 # Mark all tests in this file as integration tests
 pytestmark = [pytest.mark.integration, pytest.mark.weaviate]
+
+
+def _set_weaviate_env(monkeypatch, test_config) -> None:
+    monkeypatch.setenv("WEAVIATE_HTTP_HOST", test_config["weaviate_http_host"])
+    monkeypatch.setenv("WEAVIATE_HTTP_PORT", str(test_config["weaviate_http_port"]))
+    monkeypatch.setenv("WEAVIATE_GRPC_PORT", str(test_config["weaviate_grpc_port"]))
 
 
 @pytest.fixture(scope="module")
@@ -26,6 +34,8 @@ def weaviate_collections(weaviate_client):
     # Ensure collections exist
     schema_manager.ensure_collection_exists(TheMuses.collection_name)
     schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+    schema_manager.ensure_collection_exists(TheLethe.collection_name)
+    schema_manager.ensure_collection_exists(ClusterCentroidLethe.collection_name)
 
     yield
 
@@ -34,6 +44,10 @@ def weaviate_collections(weaviate_client):
         weaviate_client.collections.delete(TheMuses.collection_name)
     if weaviate_client.collections.exists(ClusterCentroidCollection.collection_name):
         weaviate_client.collections.delete(ClusterCentroidCollection.collection_name)
+    if weaviate_client.collections.exists(TheLethe.collection_name):
+        weaviate_client.collections.delete(TheLethe.collection_name)
+    if weaviate_client.collections.exists(ClusterCentroidLethe.collection_name):
+        weaviate_client.collections.delete(ClusterCentroidLethe.collection_name)
 
 
 @pytest.fixture(autouse=True)
@@ -44,11 +58,17 @@ def clean_collections_before_test(weaviate_client, weaviate_collections):
         weaviate_client.collections.delete(TheMuses.collection_name)
     if weaviate_client.collections.exists(ClusterCentroidCollection.collection_name):
         weaviate_client.collections.delete(ClusterCentroidCollection.collection_name)
+    if weaviate_client.collections.exists(TheLethe.collection_name):
+        weaviate_client.collections.delete(TheLethe.collection_name)
+    if weaviate_client.collections.exists(ClusterCentroidLethe.collection_name):
+        weaviate_client.collections.delete(ClusterCentroidLethe.collection_name)
 
     # Recreate collections
     schema_manager = WeaviateSchemaManager(weaviate_client)
     schema_manager.ensure_collection_exists(TheMuses.collection_name)
     schema_manager.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+    schema_manager.ensure_collection_exists(TheLethe.collection_name)
+    schema_manager.ensure_collection_exists(ClusterCentroidLethe.collection_name)
 
 
 def test_fetch_all_vectors(weaviate_client):
@@ -162,7 +182,7 @@ def test_update_centroids(weaviate_client):
     assert np.allclose(cluster1.vector["default"], [0.8, 0.9])
 
 
-def test_run_clustering_orchestration(weaviate_client):
+def test_run_clustering_orchestration(weaviate_client, monkeypatch, test_config):
     """Test that run_clustering correctly orchestrates the clustering process."""
     # Setup: Add test data (10 vectors, 2 clusters)
     muses = weaviate_client.collections.get(TheMuses.collection_name)
@@ -177,6 +197,7 @@ def test_run_clustering_orchestration(weaviate_client):
             )
 
     # Test
+    _set_weaviate_env(monkeypatch, test_config)
     run_clustering(n_clusters=2)
 
     # Verify: All chunks have cluster IDs
@@ -190,6 +211,46 @@ def test_run_clustering_orchestration(weaviate_client):
         ClusterCentroidCollection.collection_name
     ).query.fetch_objects(limit=10)
     assert centroids.objects  # Should have centroids
+    assert len(centroids.objects) == 2
+
+
+def test_run_clustering_targets_lethe_only(weaviate_client, monkeypatch, test_config):
+    """Run clustering against TheLethe without mutating TheMuses data."""
+    muses = weaviate_client.collections.get(TheMuses.collection_name)
+    lethe = weaviate_client.collections.get(TheLethe.collection_name)
+
+    with muses.batch.dynamic() as batch:
+        batch.add_object(
+            properties={"text": "muses chunk", "chunkIndex": 0},
+            vector=[0.05, 0.05],
+            uuid=uuid.uuid4(),
+        )
+
+    lethe_vectors = [[0.1, 0.1], [0.9, 0.9]]
+    with lethe.batch.dynamic() as batch:
+        for i, vec in enumerate(lethe_vectors):
+            batch.add_object(
+                properties={"subject": f"email {i}", "body": "test body"},
+                vector=vec,
+                uuid=uuid.uuid4(),
+            )
+
+    _set_weaviate_env(monkeypatch, test_config)
+    run_clustering(
+        n_clusters=2,
+        collection_name=TheLethe.collection_name,
+        centroid_collection_name=ClusterCentroidLethe.collection_name,
+    )
+
+    lethe_objects = lethe.query.fetch_objects(limit=10).objects
+    assert all("clusterId" in obj.properties for obj in lethe_objects)
+
+    muses_objects = muses.query.fetch_objects(limit=10).objects
+    assert all(obj.properties.get("clusterId") is None for obj in muses_objects)
+
+    centroids = weaviate_client.collections.get(
+        ClusterCentroidLethe.collection_name
+    ).query.fetch_objects(limit=10)
     assert len(centroids.objects) == 2
 
 

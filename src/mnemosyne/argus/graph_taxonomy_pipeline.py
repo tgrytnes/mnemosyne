@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.alexandria.neo4j_graph_repository import Neo4jGraphRepository
 from mnemosyne.alexandria.weaviate_schema import (
-    ClusterCentroidCollection,
+    ClusterCentroidLethe,
     WeaviateSchemaManager,
 )
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyBuilder, GraphTaxonomyConfig
@@ -20,14 +20,14 @@ class GraphTaxonomyPipeline:
     postgres_connection: object
     neo4j_driver: object
     config: GraphTaxonomyConfig
+    centroid_collection_name: str = ClusterCentroidLethe.collection_name
+    profile_source: str = "lethe"
 
     def build_graph(self, cluster_ids: list[str] | None = None) -> dict[str, list[dict]]:
         schema = WeaviateSchemaManager(self.weaviate_client)
-        schema.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+        schema.ensure_collection_exists(self.centroid_collection_name)
 
-        centroid_collection = self.weaviate_client.collections.get(
-            ClusterCentroidCollection.collection_name
-        )
+        centroid_collection = self.weaviate_client.collections.get(self.centroid_collection_name)
         response = centroid_collection.query.fetch_objects(include_vector=True, limit=10000)
 
         centroid_vectors: dict[str, list[float]] = {}
@@ -58,7 +58,7 @@ class GraphTaxonomyPipeline:
         profile_repo = ClusterProfileRepository(self.postgres_connection)
         profiles = []
         for cluster_id in selected_ids:
-            profile = profile_repo.get(cluster_id)
+            profile = profile_repo.get(cluster_id, source=self.profile_source)
             if profile:
                 profiles.append(profile)
 

@@ -8,11 +8,12 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.alexandria.the_gates import ClusterProfile
 from mnemosyne.alexandria.weaviate_schema import (
-    ClusterCentroidCollection,
+    ClusterCentroidLethe,
     WeaviateSchemaManager,
 )
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
@@ -26,10 +27,10 @@ def test_story_003_builds_taxonomy_graph(
     weaviate_client, postgres_connection, neo4j_driver, fake_vault_path
 ):
     schema = WeaviateSchemaManager(weaviate_client)
-    schema.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+    schema.ensure_collection_exists(ClusterCentroidLethe.collection_name)
 
-    collection = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
-    collection.data.delete_all()
+    collection = weaviate_client.collections.get(ClusterCentroidLethe.collection_name)
+    collection.data.delete_many(where=Filter.by_property("clusterId").greater_or_equal(0))
 
     now = datetime.utcnow()
     collection.data.insert(
@@ -91,41 +92,58 @@ def test_story_003_builds_taxonomy_graph(
     profile_repo.save(
         ClusterProfile(
             cluster_id="1",
-            theme_summary="Project planning",
+            theme_summary="Lethe: Project planning",
             dominant_topics=project_terms[:3],
             tags=["project"],
             key_entities=project_terms[:2],
             confidence_score=0.7,
             representative_note_ids=_note_ids(project_notes),
             created_at=now,
-            metadata={"source": "fake_vault", "section": "projects"},
-        )
+            metadata={"source": "lethe", "section": "projects"},
+        ),
+        source="lethe",
     )
     profile_repo.save(
         ClusterProfile(
             cluster_id="2",
-            theme_summary="Project execution",
+            theme_summary="Lethe: Project execution",
             dominant_topics=project_terms[:6],
             tags=["project"],
             key_entities=project_terms[:3],
             confidence_score=0.6,
             representative_note_ids=_note_ids(project_notes),
             created_at=now,
-            metadata={"source": "fake_vault", "section": "projects"},
-        )
+            metadata={"source": "lethe", "section": "projects"},
+        ),
+        source="lethe",
     )
     profile_repo.save(
         ClusterProfile(
             cluster_id="3",
-            theme_summary="Knowledge and journal mix",
+            theme_summary="Lethe: Knowledge and journal mix",
             dominant_topics=knowledge_terms[:3] + journal_terms[:2],
             tags=["knowledge"],
             key_entities=journal_terms[:2],
             confidence_score=0.5,
             representative_note_ids=_note_ids(journal_notes + knowledge_notes),
             created_at=now,
-            metadata={"source": "fake_vault", "section": "mixed"},
-        )
+            metadata={"source": "lethe", "section": "mixed"},
+        ),
+        source="lethe",
+    )
+    profile_repo.save(
+        ClusterProfile(
+            cluster_id="1",
+            theme_summary="Muses: Should be ignored",
+            dominant_topics=project_terms[:2],
+            tags=["muses"],
+            key_entities=project_terms[:1],
+            confidence_score=0.9,
+            representative_note_ids=_note_ids(project_notes),
+            created_at=now,
+            metadata={"source": "muses", "section": "projects"},
+        ),
+        source="muses",
     )
 
     config = GraphTaxonomyConfig(
@@ -147,6 +165,7 @@ def test_story_003_builds_taxonomy_graph(
     graph = pipeline.build_graph(cluster_ids=["1", "2", "3"])
 
     assert len(graph["nodes"]) == 3
+    assert all("Lethe" in node["label"] for node in graph["nodes"])
     assert any(edge["type"] == "PARENT_OF" for edge in graph["edges"])
     assert any(
         edge["source"] == "1" and edge["target"] == "2" and edge["type"] == "PARENT_OF"

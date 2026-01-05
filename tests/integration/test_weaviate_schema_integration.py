@@ -5,6 +5,7 @@ Integration tests for WeaviateSchemaManager using real Weaviate.
 import pytest
 
 from src.mnemosyne.alexandria.weaviate_schema import (
+    ClusterCentroidLethe,
     Discoveries,
     TheMuses,
     WeaviateSchemaManager,
@@ -64,3 +65,14 @@ def test_discoveries_schema_properties_present(weaviate_client):
 
     expected = {prop["name"] for prop in Discoveries.properties}
     assert expected.issubset(properties)
+
+
+@pytest.mark.integration
+def test_ensure_collection_exists_creates_lethe_centroids(weaviate_client):
+    if weaviate_client.collections.exists(ClusterCentroidLethe.collection_name):
+        weaviate_client.collections.delete(ClusterCentroidLethe.collection_name)
+
+    schema_manager = WeaviateSchemaManager(weaviate_client)
+    schema_manager.ensure_collection_exists(ClusterCentroidLethe.collection_name)
+
+    assert weaviate_client.collections.exists(ClusterCentroidLethe.collection_name)
