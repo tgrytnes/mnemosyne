@@ -1,0 +1,7 @@
+services:
+  mnemosyne_ingestor:
+    env_file:
+      - .env.dev
+  mnemosyne_scheduler:
+    env_file:
+      - .env.dev

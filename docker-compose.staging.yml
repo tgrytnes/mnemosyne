@@ -1,0 +1,7 @@
+services:
+  mnemosyne_ingestor:
+    env_file:
+      - .env.staging
+  mnemosyne_scheduler:
+    env_file:
+      - .env.staging

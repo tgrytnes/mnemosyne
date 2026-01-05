@@ -1,6 +1,9 @@
 # Mnemosyne Test Automation Makefile
 
-.PHONY: help install test test-unit test-integration test-e2e test-all coverage clean services services-up services-down lint format check env-dev env-test env-prod stories-index stories-index-local stories-sync-linear stories-sync-status stories-sync
+.PHONY: help install test test-unit test-integration test-e2e test-all coverage clean services services-up services-down lint format check env-dev env-test env-prod env-dev-up env-staging-up env-prod-up env-down env-status stories-index stories-index-local stories-sync-linear stories-sync-status stories-sync
+
+ENV ?= dev
+COMPOSE_ENV = docker compose -p mnemosyne-$(ENV) --env-file .env.$(ENV) -f docker-compose.yml -f docker-compose.$(ENV).yml
 
 # Default target
 help:
@@ -11,6 +14,11 @@ help:
 	@echo "  make env-dev          Switch to development environment"
 	@echo "  make env-test         Switch to testing environment (CI/CD)"
 	@echo "  make env-prod         Switch to production environment"
+	@echo "  make env-dev-up       Start dev stack (docker compose)"
+	@echo "  make env-staging-up   Start staging stack (docker compose)"
+	@echo "  make env-prod-up      Start prod stack (docker compose)"
+	@echo "  make env-down         Stop stack (ENV=dev|staging|prod)"
+	@echo "  make env-status       Show stack status (ENV=dev|staging|prod)"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install          Install dependencies with Poetry"
@@ -174,6 +182,27 @@ env-prod:
 	@echo "  Services: Docker network"
 	@echo ""
 	@echo "⚠️  WARNING: Make sure to update secrets in .env.production!"
+
+# Environment stacks (single-host dev/staging/prod)
+env-dev-up:
+	@echo "Starting dev environment..."
+	docker compose -p mnemosyne-dev --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+env-staging-up:
+	@echo "Starting staging environment..."
+	docker compose -p mnemosyne-staging --env-file .env.staging -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+env-prod-up:
+	@echo "Starting prod environment..."
+	docker compose -p mnemosyne-prod --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+env-down:
+	@echo "Stopping environment: $(ENV)..."
+	$(COMPOSE_ENV) down
+
+env-status:
+	@echo "Status for environment: $(ENV)..."
+	$(COMPOSE_ENV) ps
 
 # Story sync helpers
 stories-index:

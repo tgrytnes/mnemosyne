@@ -14,6 +14,12 @@ Quick reference for all user stories with status tracking.
 
 **Phase Total**: 42 story points (8 completed)
 
+## Change Requests
+
+| ID | Title | Priority | Estimate | Status | Assignee |
+|----|-------|----------|----------|--------|----------|
+| CR-000-003 | Single-Host Dev/Staging/Prod Compose Environments | High | 8-13 pts | 📝 Draft | - |
+
 ## Phase 1: Semantic Extraction (The Graph Schema)
 
 | ID | Title | Priority | Estimate | Status | Assignee |
