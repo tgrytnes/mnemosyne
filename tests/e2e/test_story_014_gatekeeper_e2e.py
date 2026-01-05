@@ -37,9 +37,7 @@ def _reset_gatekeeper_tables(postgres_connection) -> None:
 
 @pytest.mark.e2e
 @pytest.mark.postgres
-def test_story_014_gatekeeper_auto_approve_and_rollback(
-    postgres_connection, ananke_test_db
-):
+def test_story_014_gatekeeper_auto_approve_and_rollback(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
     outbox = MessageOutbox(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)

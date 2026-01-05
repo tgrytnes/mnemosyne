@@ -266,9 +266,7 @@ class MessageOutbox:
                 )
                 """
             )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_outbox_status ON message_outbox(status)"
-            )
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_outbox_status ON message_outbox(status)")
         self._conn.commit()
 
     def enqueue(self, message_type: str, payload: dict[str, Any], message_id: str) -> None:
