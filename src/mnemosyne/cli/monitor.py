@@ -82,9 +82,9 @@ def run_monitor() -> None:
             password=config.postgres_password,
         )
 
-        proposal_queue = ProposalQueue(config.queue_db_path)
-        state_store = MonitorStateStore(config.state_db_path)
-        outbox = MessageOutbox(config.outbox_db_path)
+        proposal_queue = ProposalQueue(postgres_connection)
+        state_store = MonitorStateStore(postgres_connection)
+        outbox = MessageOutbox(postgres_connection)
 
         reader = WeaviateDiscoveryReader(weaviate_client)
         projects = PostgresProjectRepository(postgres_connection)

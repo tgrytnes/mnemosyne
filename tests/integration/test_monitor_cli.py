@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -36,7 +35,6 @@ def test_monitor_cli_help_displays_correctly():
 
 
 def test_monitor_cli_run_creates_proposal(
-    tmp_path,
     test_config,
     weaviate_client,
     postgres_connection,
@@ -62,10 +60,6 @@ def test_monitor_cli_run_creates_proposal(
         vector=[0.1, 0.2],
     )
 
-    queue_db = tmp_path / "monitor_queue.db"
-    state_db = tmp_path / "monitor_state.db"
-    outbox_db = tmp_path / "monitor_outbox.db"
-
     env = {
         "WEAVIATE_HTTP_HOST": test_config["weaviate_http_host"],
         "WEAVIATE_HTTP_PORT": str(test_config["weaviate_http_port"]),
@@ -77,19 +71,17 @@ def test_monitor_cli_run_creates_proposal(
         "POSTGRES_PASSWORD": test_config["postgres_password"],
         "MONITOR_CONFIDENCE_THRESHOLD": "0.7",
         "MONITOR_SCAN_LIMIT": "10",
-        "MONITOR_QUEUE_DB_PATH": str(queue_db),
-        "MONITOR_STATE_DB_PATH": str(state_db),
-        "MONITOR_OUTBOX_DB_PATH": str(outbox_db),
     }
 
     result = _run_monitor_cli(["run"], env)
     assert result.returncode == 0, result.stderr
 
-    with sqlite3.connect(queue_db) as conn:
-        row = conn.execute(
-            "SELECT discovery_id, status FROM proposal_queue WHERE discovery_id = ?",
+    with postgres_connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT discovery_id, status FROM proposal_queue WHERE discovery_id = %s",
             (discovery_id,),
-        ).fetchone()
+        )
+        row = cursor.fetchone()
 
     assert row is not None
     assert row[0] == discovery_id
