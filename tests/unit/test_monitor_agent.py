@@ -11,8 +11,6 @@ from mnemosyne.argus.scout.monitor_agent import (
     DiscoveryRecord,
     MonitorAgent,
     MonitorConfig,
-    MonitorStateStore,
-    ProposalQueue,
 )
 
 
@@ -45,6 +43,63 @@ class _InMemoryOutbox:
         )
 
 
+class _InMemoryProposalQueue:
+    def __init__(self):
+        self._proposals: dict[str, dict] = {}
+
+    def upsert(self, discovery: DiscoveryRecord) -> None:
+        self._proposals[discovery.discovery_id] = {
+            "proposal_id": discovery.discovery_id,
+            "discovery_id": discovery.discovery_id,
+            "discovery_job_key": discovery.discovery_job_key,
+            "candidate_key": discovery.candidate_key,
+            "cluster_ids": discovery.cluster_ids,
+            "confidence_score": discovery.confidence_score,
+            "detected_at": discovery.detected_at,
+            "status": "pending",
+        }
+
+    def get_by_discovery_id(self, discovery_id: str) -> dict | None:
+        return self._proposals.get(discovery_id)
+
+    def update_status(self, discovery_id: str, status: str) -> None:
+        proposal = self._proposals.get(discovery_id)
+        if proposal:
+            proposal["status"] = status
+
+    def list_by_status(self, status: str) -> list[dict]:
+        return [proposal for proposal in self._proposals.values() if proposal["status"] == status]
+
+
+class _InMemoryStateStore:
+    def __init__(self):
+        self._state: dict[str, dict] = {}
+
+    def get_state(self, discovery_id: str) -> dict | None:
+        return self._state.get(discovery_id)
+
+    def record_ask(self, discovery_id: str) -> None:
+        entry = self._state.setdefault(discovery_id, {"ask_count": 0})
+        entry["ask_count"] = int(entry.get("ask_count") or 0) + 1
+
+    def record_rejection(
+        self,
+        discovery_id: str,
+        rejected_at: datetime,
+        rejected_confidence: float,
+        ask_count: int | None = None,
+    ) -> None:
+        entry = self._state.setdefault(discovery_id, {})
+        entry["rejected_at"] = rejected_at
+        entry["rejected_confidence"] = rejected_confidence
+        if ask_count is not None:
+            entry["ask_count"] = ask_count
+
+    def archive(self, discovery_id: str) -> None:
+        entry = self._state.setdefault(discovery_id, {})
+        entry["archived_at"] = datetime.now(UTC)
+
+
 def _sample_discovery(confidence: float = 0.8) -> DiscoveryRecord:
     return DiscoveryRecord(
         discovery_id="private_projects:house_painting",
@@ -57,13 +112,13 @@ def _sample_discovery(confidence: float = 0.8) -> DiscoveryRecord:
     )
 
 
-def test_monitor_creates_proposal_for_new_discovery(tmp_path):
+def test_monitor_creates_proposal_for_new_discovery():
     discovery = _sample_discovery()
     reader = _FakeDiscoveryReader([discovery])
     projects = _FakeProjectRepository(existing_ids=set())
 
-    proposal_queue = ProposalQueue(tmp_path / "proposals.db")
-    state_store = MonitorStateStore(tmp_path / "monitor_state.db")
+    proposal_queue = _InMemoryProposalQueue()
+    state_store = _InMemoryStateStore()
     outbox = _InMemoryOutbox()
 
     agent = MonitorAgent(
@@ -88,13 +143,13 @@ def test_monitor_creates_proposal_for_new_discovery(tmp_path):
     assert state["ask_count"] == 1
 
 
-def test_monitor_skips_discovery_already_in_sql(tmp_path):
+def test_monitor_skips_discovery_already_in_sql():
     discovery = _sample_discovery()
     reader = _FakeDiscoveryReader([discovery])
     projects = _FakeProjectRepository(existing_ids={discovery.discovery_id})
 
-    proposal_queue = ProposalQueue(tmp_path / "proposals.db")
-    state_store = MonitorStateStore(tmp_path / "monitor_state.db")
+    proposal_queue = _InMemoryProposalQueue()
+    state_store = _InMemoryStateStore()
     outbox = _InMemoryOutbox()
 
     agent = MonitorAgent(
@@ -111,13 +166,13 @@ def test_monitor_skips_discovery_already_in_sql(tmp_path):
     assert proposal_queue.get_by_discovery_id(discovery.discovery_id) is None
 
 
-def test_monitor_respects_reask_policy(tmp_path):
+def test_monitor_respects_reask_policy():
     discovery = _sample_discovery(confidence=0.82)
     reader = _FakeDiscoveryReader([discovery])
     projects = _FakeProjectRepository(existing_ids=set())
 
-    proposal_queue = ProposalQueue(tmp_path / "proposals.db")
-    state_store = MonitorStateStore(tmp_path / "monitor_state.db")
+    proposal_queue = _InMemoryProposalQueue()
+    state_store = _InMemoryStateStore()
     outbox = _InMemoryOutbox()
 
     rejected_at = datetime.now(UTC) - timedelta(days=1)

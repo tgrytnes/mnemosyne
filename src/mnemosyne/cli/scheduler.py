@@ -14,6 +14,15 @@ from neo4j import GraphDatabase
 
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
 from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
+from mnemosyne.argus.scout.monitor_agent import (
+    MessageOutbox,
+    MonitorAgent,
+    MonitorConfig,
+    MonitorStateStore,
+    PostgresProjectRepository,
+    ProposalQueue,
+    WeaviateDiscoveryReader,
+)
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import run_clustering
@@ -172,11 +181,7 @@ def run_graph_taxonomy_task():
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
         # Configure graph taxonomy
-        config = GraphTaxonomyConfig(
-            similarity_threshold=0.5,
-            overlap_threshold=0.3,
-            min_cluster_size=2,
-        )
+        config = GraphTaxonomyConfig()
 
         # Build graph
         pipeline = GraphTaxonomyPipeline(
@@ -205,6 +210,87 @@ def run_graph_taxonomy_task():
         traceback.print_exc()
 
 
+def run_monitor_agent_task() -> dict[str, object]:
+    """Run monitor agent proposal generation task."""
+    logger.info("=" * 60)
+    logger.info("Running periodic Monitor Agent")
+    logger.info("=" * 60)
+
+    defaults = MonitorConfig()
+    confidence_threshold = float(
+        os.getenv("MONITOR_CONFIDENCE_THRESHOLD", str(defaults.confidence_threshold))
+    )
+    scan_limit = int(os.getenv("MONITOR_SCAN_LIMIT", str(defaults.scan_limit)))
+    config = MonitorConfig(
+        confidence_threshold=confidence_threshold,
+        scan_limit=scan_limit,
+        cooldown_days=defaults.cooldown_days,
+        max_asks=defaults.max_asks,
+        confidence_delta=defaults.confidence_delta,
+    )
+
+    weaviate_client = None
+    postgres_conn = None
+    try:
+        # Get configuration from environment
+        weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
+        weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
+        weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+
+        postgres_host = os.getenv("POSTGRES_HOST", "localhost")
+        postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
+        postgres_db = os.getenv("POSTGRES_DB", "mnemosyne_dev")
+        postgres_user = os.getenv("POSTGRES_USER", "postgres")
+        postgres_password = os.getenv("POSTGRES_PASSWORD", "")
+
+        # Connect to services
+        weaviate_client = weaviate.connect_to_local(
+            host=weaviate_host,
+            port=weaviate_port,
+            grpc_port=weaviate_grpc_port,
+        )
+
+        postgres_conn = psycopg2.connect(
+            host=postgres_host,
+            port=postgres_port,
+            dbname=postgres_db,
+            user=postgres_user,
+            password=postgres_password,
+        )
+
+        reader = WeaviateDiscoveryReader(weaviate_client)
+        projects = PostgresProjectRepository(postgres_conn)
+        proposal_queue = ProposalQueue(postgres_conn)
+        state_store = MonitorStateStore(postgres_conn)
+        outbox = MessageOutbox(postgres_conn)
+
+        agent = MonitorAgent(
+            discovery_reader=reader,
+            project_repository=projects,
+            proposal_queue=proposal_queue,
+            state_store=state_store,
+            outbox=outbox,
+            config=config,
+        )
+        agent.run()
+
+        pending_count = len(proposal_queue.list_by_status("pending"))
+        logger.info(f"Monitor agent completed: {pending_count} proposals pending")
+
+        return {"pending_proposals": pending_count, "config": config}
+    except Exception as e:
+        logger.error(f"Monitor agent task failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return {"pending_proposals": 0, "config": config}
+    finally:
+        if weaviate_client:
+            weaviate_client.close()
+        if postgres_conn:
+            postgres_conn.close()
+
+
 def main():
     """Main scheduler loop."""
     global shutdown_flag
@@ -221,7 +307,7 @@ def main():
     logger.info("Mnemosyne Periodic Scheduler")
     logger.info("=" * 60)
     logger.info(f"Interval: {interval_hours} hours ({interval_seconds} seconds)")
-    logger.info("Tasks: Clustering + Scout pattern detection + Graph taxonomy")
+    logger.info("Tasks: Clustering + Scout pattern detection + Graph taxonomy + Monitor agent")
     logger.info("=" * 60)
 
     iteration = 0
@@ -246,6 +332,12 @@ def main():
 
         # Run graph taxonomy
         run_graph_taxonomy_task()
+
+        if shutdown_flag:
+            break
+
+        # Run monitor agent
+        run_monitor_agent_task()
 
         if shutdown_flag:
             break

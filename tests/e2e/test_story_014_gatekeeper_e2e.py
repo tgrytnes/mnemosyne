@@ -28,13 +28,19 @@ def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -
     )
 
 
+def _reset_gatekeeper_tables(postgres_connection) -> None:
+    cursor = postgres_connection.cursor()
+    cursor.execute("DELETE FROM proposal_queue")
+    cursor.execute("DELETE FROM message_outbox")
+    postgres_connection.commit()
+
+
 @pytest.mark.e2e
 @pytest.mark.postgres
-def test_story_014_gatekeeper_auto_approve_and_rollback(
-    tmp_path, postgres_connection, ananke_test_db
-):
-    queue = ProposalQueue(tmp_path / "proposals.db")
-    outbox = MessageOutbox(tmp_path / "outbox.db")
+def test_story_014_gatekeeper_auto_approve_and_rollback(postgres_connection, ananke_test_db):
+    queue = ProposalQueue(postgres_connection)
+    outbox = MessageOutbox(postgres_connection)
+    _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,

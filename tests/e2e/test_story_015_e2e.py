@@ -4,7 +4,6 @@ E2E tests for Story 015 Monitor Agent (Discovery -> Proposal -> Escalation).
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -42,6 +41,7 @@ class _InMemoryOutbox:
 
 @pytest.mark.e2e
 @pytest.mark.weaviate
+@pytest.mark.postgres
 def test_story_015_escalates_rejected_discovery(
     tmp_path,
     fake_vault_path,
@@ -110,8 +110,12 @@ def test_story_015_escalates_rejected_discovery(
     summary = runner.run(run_id="story-015-run", dry_run=False)
     assert summary.detections_by_type.get("project_candidate", 0) >= 1
 
-    proposal_queue = ProposalQueue(tmp_path / "proposals.db")
-    state_store = MonitorStateStore(tmp_path / "monitor_state.db")
+    proposal_queue = ProposalQueue(postgres_connection)
+    state_store = MonitorStateStore(postgres_connection)
+    cursor = postgres_connection.cursor()
+    cursor.execute("DELETE FROM proposal_queue")
+    cursor.execute("DELETE FROM monitor_state")
+    postgres_connection.commit()
     outbox = _InMemoryOutbox()
 
     reader = WeaviateDiscoveryReader(weaviate_client)
@@ -132,7 +136,9 @@ def test_story_015_escalates_rejected_discovery(
     muses = weaviate_client.collections.get(TheMuses.collection_name)
     found_projects = {key: False for key in expected_projects}
     for proposal in proposals:
-        cluster_ids = json.loads(proposal["cluster_ids"])
+        cluster_ids = proposal["cluster_ids"]
+        if isinstance(cluster_ids, str):
+            cluster_ids = [cluster_ids]
         for cluster_id in cluster_ids:
             cluster_text = _cluster_text(muses, cluster_id)
             for key, phrases in expected_projects.items():
