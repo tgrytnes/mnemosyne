@@ -4,10 +4,18 @@ import logging
 import os
 import sys
 
+import ollama
 import psycopg2
 import weaviate
 from neo4j import GraphDatabase
 
+from mnemosyne.alexandria.weaviate_schema import (
+    ClusterCentroidCollection,
+    ClusterCentroidLethe,
+    TheLethe,
+    TheMuses,
+)
+from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
 from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
 
@@ -25,9 +33,11 @@ def main():
     logger.info("=" * 60)
 
     # Get configuration from environment
+    graph_taxonomy_source = os.getenv("GRAPH_TAXONOMY_SOURCE", "lethe").lower()
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
     weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
     weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     postgres_host = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
@@ -64,9 +74,38 @@ def main():
 
         logger.info("Connecting to Neo4j...")
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        ollama_client = ollama.Client(host=ollama_url)
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig()
+
+        if graph_taxonomy_source == "lethe":
+            centroid_collection_name = ClusterCentroidLethe.collection_name
+            chunk_collection_name = TheLethe.collection_name
+            text_property = "body"
+            source_property = "sourcePath"
+            heading_property = "subject"
+            chunk_index_property = "chunkIndex"
+        else:
+            centroid_collection_name = ClusterCentroidCollection.collection_name
+            chunk_collection_name = TheMuses.collection_name
+            text_property = "text"
+            source_property = "sourceFile"
+            heading_property = "headingPath"
+            chunk_index_property = "chunkIndex"
+
+        bootstrapper = ClusterProfileBootstrapper(
+            weaviate_client=weaviate_client,
+            postgres_connection=postgres_conn,
+            ollama_client=ollama_client,
+            profile_source=graph_taxonomy_source,
+            centroid_collection_name=centroid_collection_name,
+            chunk_collection_name=chunk_collection_name,
+            text_property=text_property,
+            source_property=source_property,
+            heading_property=heading_property,
+            chunk_index_property=chunk_index_property,
+        )
 
         # Build graph
         logger.info("Building graph taxonomy...")
@@ -75,6 +114,9 @@ def main():
             postgres_connection=postgres_conn,
             neo4j_driver=neo4j_driver,
             config=config,
+            centroid_collection_name=centroid_collection_name,
+            profile_source=graph_taxonomy_source,
+            profile_bootstrapper=bootstrapper,
         )
 
         result = pipeline.build_graph()

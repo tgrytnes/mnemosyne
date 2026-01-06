@@ -22,6 +22,7 @@ class GraphTaxonomyPipeline:
     config: GraphTaxonomyConfig
     centroid_collection_name: str = ClusterCentroidLethe.collection_name
     profile_source: str = "lethe"
+    profile_bootstrapper: object | None = None
 
     def build_graph(self, cluster_ids: list[str] | None = None) -> dict[str, list[dict]]:
         schema = WeaviateSchemaManager(self.weaviate_client)
@@ -56,6 +57,10 @@ class GraphTaxonomyPipeline:
                 similarity[(left_id, right_id)] = score
 
         profile_repo = ClusterProfileRepository(self.postgres_connection)
+        profile_repo.ensure_table()
+        if self.profile_bootstrapper and selected_ids:
+            self.profile_bootstrapper.ensure_profiles(selected_ids)
+
         profiles = []
         for cluster_id in selected_ids:
             profile = profile_repo.get(cluster_id, source=self.profile_source)

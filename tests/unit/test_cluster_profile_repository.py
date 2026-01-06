@@ -40,3 +40,12 @@ class TestClusterProfileRepository:
         cursor = connection.cursor.return_value
         args, _ = cursor.execute.call_args
         assert args[1][1] == "lethe"
+
+    def test_has_profiles_returns_true_when_row_exists(self, mocker):
+        connection = mocker.MagicMock()
+        cursor = connection.cursor.return_value
+        cursor.fetchone.return_value = (1,)
+        repo = ClusterProfileRepository(connection)
+
+        assert repo.has_profiles(source="lethe") is True
+        cursor.execute.assert_called_once()
