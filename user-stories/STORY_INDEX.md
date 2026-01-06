@@ -12,6 +12,7 @@ Quick reference for all user stories with status tracking.
 | 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 | 031 | Raw Email Ingestion | High | 13 pts | 📝 Draft | - |
 | HF-001 | Email Source Directory Hotfix | High | 2 pts | ✅ Hotfix | - |
+| HF-002 | Refresh Stack Port Conflict Resolution | High | 1-2 pts | 🔄 In Progress | - |
 
 **Phase Total**: 42 story points (8 completed)
 
