@@ -27,7 +27,7 @@ staging)
   ;;
 esac
 
-echo "Stopping Mnemosyne watchers (scheduler + ingest watch)..."
+echo "Stopping host watcher processes (if any)..."
 if scheduler_pids="$(pgrep -f "mnemosyne.cli.scheduler" || true)"; then
   if [[ -n "$scheduler_pids" ]]; then
     echo "Stopping scheduler watchers (pids: $scheduler_pids)"
@@ -46,6 +46,13 @@ if ingest_pids="$(pgrep -f "mnemosyne.cli.ingest watch" || true)"; then
 fi
 pkill -f "mnemosyne.cli.ingest watch" || true
 
+compose() {
+  docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" "$@"
+}
+
+RUNTIME_IMAGE_TAG_OVERRIDE="${IMAGE_TAG_OVERRIDE:-}"
+RUNTIME_IMAGE_TAG="${IMAGE_TAG:-}"
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Environment file not found: $ENV_FILE" >&2
   exit 1
@@ -62,17 +69,16 @@ if [[ ! -f "$LOCAL_ENV" ]]; then
   touch "$LOCAL_ENV"
 fi
 
-IMAGE_TAG_OVERRIDE="${IMAGE_TAG_OVERRIDE:-}"
-if [[ -n "$IMAGE_TAG_OVERRIDE" ]]; then
-  export IMAGE_TAG="$IMAGE_TAG_OVERRIDE"
-elif [[ -n "${IMAGE_TAG:-}" ]]; then
-  export IMAGE_TAG="$IMAGE_TAG"
+if [[ -n "$RUNTIME_IMAGE_TAG_OVERRIDE" ]]; then
+  export IMAGE_TAG="$RUNTIME_IMAGE_TAG_OVERRIDE"
+elif [[ -n "$RUNTIME_IMAGE_TAG" ]]; then
+  export IMAGE_TAG="$RUNTIME_IMAGE_TAG"
 else
   export IMAGE_TAG="latest"
 fi
 
 echo "Refreshing the $STACK stack with IMAGE_TAG=$IMAGE_TAG..."
-docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" down --remove-orphans
+compose down --remove-orphans
 
 check_port_conflicts() {
   local ports=()
@@ -151,24 +157,66 @@ resolve_port_conflicts() {
 
 resolve_port_conflicts
 
-docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" pull
-docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" up -d
+compose pull
+compose up -d
 
-cat <<EOF
-$STACK stack refreshed successfully.
-Watcher processes restarted. If you prefer to run manually:
-  cd $ROOT_DIR
-  python -m mnemosyne.cli.scheduler &
-  python -m mnemosyne.cli.ingest watch --vault-path "${OBSIDIAN_VAULT_PATH:-/data/vault}" &
-EOF
+report_container_status() {
+  echo "Container status:"
+  compose ps
+}
 
-echo "Restarting Mnemosyne watcher processes..."
-(
-  cd "$ROOT_DIR"
-  python -m mnemosyne.cli.scheduler &
-  scheduler_pid=$!
-  echo "Started scheduler watcher (pid $scheduler_pid)"
-  python -m mnemosyne.cli.ingest watch --vault-path "${OBSIDIAN_VAULT_PATH:-/data/vault}" &
-  ingest_pid=$!
-  echo "Started ingest watcher (pid $ingest_pid)"
-)
+check_watcher_process() {
+  local container_id="$1"
+  local pattern="$2"
+  local label="$3"
+
+  if docker exec "$container_id" pgrep -f "$pattern" >/dev/null 2>&1; then
+    echo "$label watcher process detected."
+    return 0
+  fi
+
+  if docker exec "$container_id" sh -c "ps aux | grep -F \"$pattern\" | grep -v grep" >/dev/null 2>&1; then
+    echo "$label watcher process detected via ps."
+    return 0
+  fi
+
+  echo "$label watcher process not detected."
+  return 1
+}
+
+verify_watchers() {
+  local scheduler_id ingestor_id
+  scheduler_id="$(compose ps -q mnemosyne_scheduler)"
+  ingestor_id="$(compose ps -q mnemosyne_ingestor)"
+
+  if [[ -z "$scheduler_id" || -z "$ingestor_id" ]]; then
+    echo "Watcher containers are not running; cannot verify processes." >&2
+    return 1
+  fi
+
+  if check_watcher_process "$scheduler_id" "mnemosyne.cli.scheduler" "Scheduler" \
+    && check_watcher_process "$ingestor_id" "mnemosyne.cli.ingest watch" "Ingest"; then
+    return 0
+  fi
+
+  echo "Watcher processes missing; restarting scheduler/ingestor containers once..."
+  compose restart mnemosyne_scheduler mnemosyne_ingestor
+  sleep 2
+
+  if check_watcher_process "$scheduler_id" "mnemosyne.cli.scheduler" "Scheduler" \
+    && check_watcher_process "$ingestor_id" "mnemosyne.cli.ingest watch" "Ingest"; then
+    return 0
+  fi
+
+  echo "Watcher processes are still missing after restart." >&2
+  return 1
+}
+
+report_container_status
+echo "Verifying watcher processes inside containers..."
+if verify_watchers; then
+  echo "$STACK stack refreshed successfully. Watchers are running in containers."
+else
+  echo "$STACK stack refreshed, but watcher validation failed." >&2
+  exit 1
+fi

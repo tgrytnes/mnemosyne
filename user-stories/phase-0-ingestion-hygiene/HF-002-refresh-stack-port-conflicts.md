@@ -36,9 +36,21 @@
   - **When** the refresh script runs
   - **Then** it uses `latest`, ignoring any `IMAGE_TAG` value in `.env.*`.
 
+- [ ] **Scenario: Watchers running after refresh**
+  - **Given** the stack refresh completes
+  - **When** the script finishes
+  - **Then** the scheduler and ingestor containers are running and the script reports their status.
+
+- [ ] **Scenario: Watchers verified inside containers**
+  - **Given** the refreshed stack is up
+  - **When** the script performs post-refresh validation
+  - **Then** it confirms watcher processes are running inside the scheduler and ingestor containers, retries once if missing, and fails clearly if still absent.
+
 ## Testing Plan
 
 - Unit: validate conflict detection/prompt strings in `scripts/refresh-stack.sh`.
 - Unit: validate default image tag selection and runtime override precedence.
 - Integration: run the script with a conflicting Mnemosyne container; verify auto-stop and a successful refresh.
 - E2E: run `IMAGE_TAG_OVERRIDE=latest ./scripts/refresh-stack.sh staging` and confirm services are healthy and watchers restarted.
+- Verification: run `docker compose ps` and `docker logs` to confirm scheduler/ingestor containers are running after refresh.
+- Unit: validate watcher process checks via `docker exec` and the retry path.

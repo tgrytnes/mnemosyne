@@ -35,3 +35,20 @@ def test_refresh_stack_defaults_to_latest_without_runtime_tag():
     assert "IMAGE_TAG_OVERRIDE" in content
     assert "IMAGE_TAG=" in content
     assert "latest" in content
+
+
+def test_refresh_stack_uses_runtime_tag_snapshot():
+    content = _script_text()
+    assert "RUNTIME_IMAGE_TAG" in content
+
+
+def test_refresh_stack_reports_container_status():
+    content = _script_text()
+    assert "docker compose" in content
+    assert "ps" in content
+
+
+def test_refresh_stack_checks_watcher_processes_in_containers():
+    content = _script_text()
+    assert "docker exec" in content
+    assert "pgrep" in content
