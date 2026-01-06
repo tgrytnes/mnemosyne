@@ -222,6 +222,11 @@ class TheLethe:
             "description": "Page number for PDF chunks",
         },
         {
+            "name": "chunkIndex",
+            "dataType": ["int"],
+            "description": "Chunk index within the parent email",
+        },
+        {
             "name": "creationDate",
             "dataType": ["text"],
             "description": "Creation date from metadata",

@@ -21,7 +21,8 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
 - [ ] **Scenario: Mixed Source Ingestion and Chunking**
     - **Given** a `SOURCE_DIR` containing a mix of `5` `.eml` files and `1` `mbox` file with `10` unique emails (total 15 distinct emails)
     - **When** the ingestion script is run to completion with `CHUNKING_STRATEGY=semantic`
-    - **Then** the Weaviate collection "TheLetheChunks" (or similar) must contain more than `15` items (representing multiple chunks per email).
+    - **Then** the Weaviate collection "TheLethe" must contain more than `15` items with `documentType=email`
+      (representing multiple chunks per email).
     - **And** each ingested item in Weaviate must be an `EmailChunk` linked to its original parent email.
 
 - [ ] **Scenario: Checkpointing and Resumability**
@@ -29,7 +30,7 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
     - **When** the ingestion script is run with semantic chunking and then manually stopped after ingesting `~50` emails
     - **And** the script is restarted
     - **Then** the script's output should show it is skipping the first `~50` emails (i.e., not re-chunking them)
-    - **And** the total number of *unique parent emails* processed in "The LetheChunks" at the end should be exactly `100`.
+    - **And** the total number of *unique parent emails* processed in "TheLethe" at the end should be exactly `100`.
 
 - [ ] **Scenario: Delta Ingestion**
     - **Given** a `SOURCE_DIR` has been successfully ingested with semantic chunking
@@ -52,7 +53,7 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
 
 - [ ] **Scenario: Correct Unique ID Generation**
     - **Given** a mix of emails, some with and some without a `Message-ID` header
-    - **When** the `.email_ingestion_state.json` file is inspected after ingestion
+    - **When** the `/state/email_ingestion_state.json` file is inspected after ingestion
     - **Then** it must contain entries starting with `<` (for `Message-ID`) and entries starting with `hash-` for the emails that were missing a `Message-ID`.
 
 - [ ] **Scenario: Performance Baseline**
@@ -61,18 +62,25 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
     - **Then** the average ingestion rate (including chunking and embedding) must be no less than 50 emails per minute on the target hardware (e.g., Raspberry Pi 5).
 
 - [ ] **Scenario: Downstream Compatibility**
-    - **Given** emails are ingested via semantic chunking into "TheLetheChunks"
+    - **Given** emails are ingested via semantic chunking into "TheLethe"
     - **When** clustering and labeling processes from Story 024's design are applied to this collection
     - **Then** these processes must function correctly and yield meaningful results, indicating that the chunk-level data is usable.
+
+- [ ] **Scenario: Chunking Strategy Defaults and Fallback**
+    - **Given** `CHUNKING_STRATEGY` is not set
+    - **When** email ingestion starts
+    - **Then** the system must default to `semantic` chunking and fall back to recursive chunking if semantic fails.
+    - **And** `CHUNKING_STRATEGY=recursive` or `hybrid` must be accepted and used when explicitly set.
 
 ## Technical Plan
 
 ### 1. Deprecate TSV and Refine Configuration
 - The `EmailIngestor` and its configuration will be updated to remove all references to TSV.
 - The entry point (`main` function) will be changed to accept a `SOURCE_DIR` environment variable pointing to the directory with email archives.
+- `CHUNKING_STRATEGY` will default to `semantic`, with `recursive` and `hybrid` allowed as explicit overrides.
 
 ### 2. Checkpointing and Delta Ingestion
-- A state file (e.g., `.email_ingestion_state.json`) will be used to track the unique IDs of all successfully ingested emails.
+- A state file (e.g., `/state/email_ingestion_state.json`) will be used to track the unique IDs of all successfully ingested emails.
 - The **Unique ID Strategy** will be as follows:
     1.  Prioritize the `Message-ID` header from the email, which is a globally unique identifier.
     2.  If `Message-ID` is absent, generate a stable unique ID by hashing key fields of the email (e.g., `subject`, `sender`, `date`, first 256 chars of `body`).
@@ -89,7 +97,9 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
 ### 4. Data Models (`models.py`)
 - A new `src/mnemosyne/aletheia/models.py` file will define:
     - The `Email` dataclass (representing a parsed raw email with a `unique_id` property).
-    - The `EmailChunk` dataclass (representing an individual semantic chunk, including `parent_email_unique_id`, `chunk_text`, `chunk_index`, `parent_subject`, `parent_sender`, `parent_date`, `parent_source_path`).
+    - The `EmailChunk` dataclass (representing an individual semantic chunk, including `parent_email_unique_id`,
+      `chunk_text`, `chunk_index`, `parent_subject`, `parent_sender`, `parent_date`, `parent_source_path`,
+      `documentType=email`).
 
 ### 5. Semantic Chunking Integration
 - The `EmailIngestor` will utilize `src/mnemosyne/aletheia/chunking_strategy_factory.py` to create an `IChunker` instance (e.g., `SemanticChunker`).
@@ -101,7 +111,8 @@ This story **replaces and deprecates** the TSV-based ingestion from **Story 024*
 
 ## Affected Components
 - **Aletheia**: `email_ingest.py` will be significantly refactored. `models.py` and `email_parser.py` will be added. Integration with `chunking_strategy_factory.py` and `semantic_chunker.py`.
-- **Alexandria**: Weaviate schema for "TheLethe" collection will be adapted to store `EmailChunk` objects, potentially creating a new collection like "TheLetheChunks".
+- **Alexandria**: Weaviate schema for "TheLethe" collection will be adapted to store `EmailChunk` objects
+  (no separate chunk collection).
 
 ## Priority
 **High** - This is a foundational improvement for robust data ingestion and quality.

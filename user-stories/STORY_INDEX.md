@@ -10,7 +10,7 @@ Quick reference for all user stories with status tracking.
 | 024 | Email Archive Ingestion | Medium | 13 pts | 📝 Draft | - |
 | 025 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
 | 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
-| 031 | Raw Email Ingestion | Medium | 8 pts | 📝 Draft | - |
+| 031 | Raw Email Ingestion | High | 13 pts | 📝 Draft | - |
 
 **Phase Total**: 42 story points (8 completed)
 
@@ -20,6 +20,7 @@ Quick reference for all user stories with status tracking.
 |----|-------|----------|----------|--------|----------|
 | CR-000-003 | Single-Host Dev/Staging/Prod Compose Environments | High | 8-13 pts | 📝 Draft | - |
 | CR-000-004 | Unique Host Ports per Environment | High | 3-5 pts | 📝 Draft | - |
+| CR-000-005 | E2E Ingestion Progress Logging & Reduced Test Load | High | 1-2 pts | 📝 Draft | - |
 
 Note: CR-000-003 updated to include per-environment data directories and optional .env.<env>.local overrides (2026-01-05).
 
@@ -38,6 +39,8 @@ Note: CR-000-003 updated to include per-environment data directories and optiona
 | 023 | Configurable Clustering Strategy | Medium | 8 pts | 📝 Draft | - |
 
 **Phase Total**: 68 story points (39 completed)
+
+Note: 003-CR-001 clarified to require `cluster_profiles.source` and Lethe-only taxonomy inputs (2026-01-05).
 
 ## Phase 2: The Efficiency Engine (Memory & Persistence)
 

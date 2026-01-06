@@ -20,12 +20,24 @@ class ClusterRepresentativesState(TypedDict):
 
 
 class GetClusterRepresentatives:
-    def __init__(self, client: weaviate.WeaviateClient):
+    def __init__(
+        self,
+        client: weaviate.WeaviateClient,
+        *,
+        chunk_collection_name: str = TheMuses.collection_name,
+        centroid_collection_name: str = ClusterCentroidCollection.collection_name,
+        text_property: str = "text",
+        source_property: str = "sourceFile",
+        heading_property: str | None = "headingPath",
+        chunk_index_property: str = "chunkIndex",
+    ):
         self.client = client
-        self.muses_collection = self.client.collections.get(TheMuses.collection_name)
-        self.centroid_collection = self.client.collections.get(
-            ClusterCentroidCollection.collection_name
-        )
+        self.chunk_collection = self.client.collections.get(chunk_collection_name)
+        self.centroid_collection = self.client.collections.get(centroid_collection_name)
+        self.text_property = text_property
+        self.source_property = source_property
+        self.heading_property = heading_property
+        self.chunk_index_property = chunk_index_property
 
     def _get_cluster_centroid_vector(self, cluster_id: int) -> np.ndarray | None:
         """
@@ -53,7 +65,7 @@ class GetClusterRepresentatives:
         )
 
         # Use fetch_objects with filter instead of iterator (which doesn't support filters)
-        response = self.muses_collection.query.fetch_objects(
+        response = self.chunk_collection.query.fetch_objects(
             filters=Filter.by_property("clusterId").equal(cluster_id),
             include_vector=True,
             limit=10000,  # Large limit to get all vectors in cluster
@@ -80,7 +92,7 @@ class GetClusterRepresentatives:
 
         # Query for 5 nearest neighbors to the centroid
         try:
-            response = self.muses_collection.query.near_vector(
+            response = self.chunk_collection.query.near_vector(
                 near_vector=centroid_vector.tolist(),
                 limit=5,
                 return_metadata=["distance"],
@@ -91,11 +103,13 @@ class GetClusterRepresentatives:
                 props = item.properties
                 chunk = ChunkRepresentation(
                     chunk_id=str(item.uuid),
-                    source_file=props.get("sourceFile", ""),
-                    text=props.get("text", "")[:200],
-                    heading_path=props.get("headingPath", ""),
+                    source_file=props.get(self.source_property, ""),
+                    text=(props.get(self.text_property, "") or "")[:200],
+                    heading_path=(
+                        props.get(self.heading_property, "") if self.heading_property else ""
+                    ),
                     distance_from_centroid=item.metadata.distance,
-                    chunk_index=props.get("chunkIndex", -1),
+                    chunk_index=props.get(self.chunk_index_property, -1),
                 )
                 representative_chunks.append(chunk)
 
