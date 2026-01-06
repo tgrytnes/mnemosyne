@@ -25,6 +25,7 @@ Quick reference for all user stories with status tracking.
 | CR-000-005 | E2E Ingestion Progress Logging & Reduced Test Load | High | 1-2 pts | 📝 Draft | - |
 | CR-000-006 | Scheduler/Ingestor Operational Controls | High | 3-5 pts | 🔄 In Progress | - |
 | CR-000-007 | Compose Project + Data Isolation for Dev/Staging/Prod | High | 3-5 pts | 📝 Draft | - |
+| CR-000-009 | Graph Taxonomy Profile Bootstrap | High | 3-5 pts | 📝 Draft | - |
 
 Note: CR-000-003 updated to include per-environment data directories and optional .env.<env>.local overrides (2026-01-05).
 

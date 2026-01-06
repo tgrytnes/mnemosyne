@@ -1,0 +1,79 @@
+"""E2E tests for graph taxonomy profile bootstrap."""
+
+from datetime import datetime
+
+import pytest
+
+from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
+from mnemosyne.alexandria.weaviate_schema import (
+    ClusterCentroidCollection,
+    TheMuses,
+    WeaviateSchemaManager,
+)
+from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
+
+
+@pytest.mark.e2e
+@pytest.mark.weaviate
+@pytest.mark.postgres
+@pytest.mark.ollama
+def test_bootstrap_creates_profiles_for_empty_source(
+    weaviate_client,
+    clean_weaviate_collection,
+    postgres_connection,
+    ollama_client,
+):
+    schema = WeaviateSchemaManager(weaviate_client)
+    schema.ensure_collection_exists(TheMuses.collection_name)
+    schema.ensure_collection_exists(ClusterCentroidCollection.collection_name)
+
+    muses = weaviate_client.collections.get(TheMuses.collection_name)
+    centroids = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
+
+    vectors = [
+        [0.1, 0.2, 0.3, 0.4],
+        [0.11, 0.19, 0.31, 0.39],
+    ]
+    for idx, vector in enumerate(vectors):
+        muses.data.insert(
+            properties={
+                "text": f"Bootstrap test note {idx}",
+                "sourceFile": f"note{idx}.md",
+                "chunkIndex": idx,
+                "headingPath": "Bootstrap",
+                "clusterId": 0,
+            },
+            vector=vector,
+        )
+
+    centroids.data.insert(
+        properties={
+            "clusterId": 0,
+            "clusterSize": 2,
+            "lastUpdated": datetime.utcnow().isoformat() + "Z",
+        },
+        vector=vectors[0],
+    )
+
+    repo = ClusterProfileRepository(postgres_connection)
+    repo.ensure_table()
+    cursor = postgres_connection.cursor()
+    cursor.execute("DELETE FROM cluster_profiles WHERE source = 'muses'")
+    postgres_connection.commit()
+
+    bootstrapper = ClusterProfileBootstrapper(
+        weaviate_client=weaviate_client,
+        postgres_connection=postgres_connection,
+        ollama_client=ollama_client,
+        profile_source="muses",
+        centroid_collection_name=ClusterCentroidCollection.collection_name,
+        chunk_collection_name=TheMuses.collection_name,
+        text_property="text",
+        source_property="sourceFile",
+        heading_property="headingPath",
+        chunk_index_property="chunkIndex",
+    )
+
+    bootstrapper.ensure_profiles(["0"])
+
+    assert repo.get("0", source="muses") is not None

@@ -94,6 +94,20 @@ class ClusterProfileRepository:
         )
         self.connection.commit()
 
+    def has_profiles(self, source: str | None = None) -> bool:
+        profile_source = source or "muses"
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            SELECT 1
+            FROM cluster_profiles
+            WHERE source = %s
+            LIMIT 1
+        """,
+            (profile_source,),
+        )
+        return cursor.fetchone() is not None
+
     def get(self, cluster_id: str, source: str | None = None) -> ClusterProfile | None:
         profile_source = source or "muses"
         cursor = self.connection.cursor()
