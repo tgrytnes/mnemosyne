@@ -6,7 +6,9 @@ Provides commands for manual and automatic ingestion of Obsidian vault content.
 
 import logging
 import os
+import signal
 import sys
+import time
 from pathlib import Path
 
 import ollama
@@ -21,6 +23,20 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+shutdown_flag = False
+
+
+def ingest_signal_handler(signum, frame):
+    """Handle shutdown signals for watcher mode."""
+    global shutdown_flag
+    logger.info("Received signal %s, shutting down watcher...", signum)
+    shutdown_flag = True
+
+
+def is_watch_enabled() -> bool:
+    """Return True when the watch loop should run."""
+    return os.getenv("INGESTOR_WATCH_ENABLED", "true").lower() not in {"false", "0", "no"}
 
 
 class IngestionConfig:
@@ -246,6 +262,10 @@ def watch_vault(vault_path: str | None = None):
         vault_path: Optional path to vault (overrides env var)
     """
     try:
+        if not is_watch_enabled():
+            logger.info("Ingestor watch disabled; exiting.")
+            return
+
         config = IngestionConfig()
 
         if vault_path:
@@ -278,6 +298,10 @@ def watch_vault(vault_path: str | None = None):
             except Exception as e:
                 logger.error(f"✗ Error: {e}")
 
+        # Register signal handlers for graceful shutdown
+        signal.signal(signal.SIGTERM, ingest_signal_handler)
+        signal.signal(signal.SIGINT, ingest_signal_handler)
+
         # Create and start watcher
         watcher = VaultWatcher(
             vault_path=config.vault_path,
@@ -288,8 +312,9 @@ def watch_vault(vault_path: str | None = None):
         logger.info("\nWatcher started. Monitoring for changes...")
         logger.info("Press Ctrl+C to stop.\n")
 
-        # Run forever
-        watcher.run_forever()
+        watcher.start()
+        while not shutdown_flag:
+            time.sleep(1)
 
         # Cleanup on exit
         logger.info("\nCleaning up...")

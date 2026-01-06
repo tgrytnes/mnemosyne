@@ -21,5 +21,12 @@ python -m mnemosyne.cli.scout
 echo "6/6: Building graph taxonomy in Neo4j..."
 python -m mnemosyne.cli.graph_taxonomy
 
-echo "Launching vault watcher (keeps running)..."
-exec python -m mnemosyne.cli.ingest watch --vault-path "${OBSIDIAN_VAULT_PATH:-/data/fake_vault}"
+WATCH_ENABLED="${INGESTOR_WATCH_ENABLED:-true}"
+if [[ "$WATCH_ENABLED" =~ ^(false|0|no)$ ]]; then
+  echo "Vault watcher disabled (INGESTOR_WATCH_ENABLED=$WATCH_ENABLED)."
+  echo "Container will remain idle."
+  tail -f /dev/null
+else
+  echo "Launching vault watcher (keeps running)..."
+  exec python -m mnemosyne.cli.ingest watch --vault-path "${OBSIDIAN_VAULT_PATH:-/data/fake_vault}"
+fi
