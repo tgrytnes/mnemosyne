@@ -50,6 +50,18 @@ def signal_handler(signum, frame):
     shutdown_flag = True
 
 
+def is_scheduler_enabled() -> bool:
+    """Return True when the scheduler loop should run."""
+    return os.getenv("SCHEDULER_ENABLED", "true").lower() not in {"false", "0", "no"}
+
+
+def idle_until_shutdown():
+    """Keep the scheduler container alive when disabled."""
+    logger.info("Scheduler is disabled; entering idle mode.")
+    while not shutdown_flag:
+        time.sleep(60)
+
+
 def run_clustering_task():
     """Run clustering task."""
     logger.info("=" * 60)
@@ -346,6 +358,10 @@ def main():
     logger.info(f"Interval: {interval_hours} hours ({interval_seconds} seconds)")
     logger.info("Tasks: Clustering + Scout pattern detection + Graph taxonomy + Monitor agent")
     logger.info("=" * 60)
+
+    if not is_scheduler_enabled():
+        idle_until_shutdown()
+        sys.exit(0)
 
     iteration = 0
 

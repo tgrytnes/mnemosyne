@@ -12,6 +12,7 @@ Quick reference for all user stories with status tracking.
 | 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 | 031 | Raw Email Ingestion | High | 13 pts | 📝 Draft | - |
 | HF-001 | Email Source Directory Hotfix | High | 2 pts | ✅ Hotfix | - |
+| HF-002 | Refresh Stack Port Conflict Resolution | High | 1-2 pts | 🔄 In Progress | - |
 
 **Phase Total**: 42 story points (8 completed)
 
@@ -22,6 +23,7 @@ Quick reference for all user stories with status tracking.
 | CR-000-003 | Single-Host Dev/Staging/Prod Compose Environments | High | 8-13 pts | 📝 Draft | - |
 | CR-000-004 | Unique Host Ports per Environment | High | 3-5 pts | 📝 Draft | - |
 | CR-000-005 | E2E Ingestion Progress Logging & Reduced Test Load | High | 1-2 pts | 📝 Draft | - |
+| CR-000-006 | Scheduler/Ingestor Operational Controls | High | 3-5 pts | 🔄 In Progress | - |
 
 Note: CR-000-003 updated to include per-environment data directories and optional .env.<env>.local overrides (2026-01-05).
 

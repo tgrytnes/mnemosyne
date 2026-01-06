@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    procps \
     tesseract-ocr \
     tesseract-ocr-eng \
     tesseract-ocr-deu \
