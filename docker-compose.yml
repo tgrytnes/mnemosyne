@@ -54,8 +54,8 @@ services:
     environment:
       OBSIDIAN_VAULT_PATH: /data/vault
       EMAIL_ARCHIVE_PATH: /data/emails
+      SOURCE_DIR: ${SOURCE_DIR:-/data/emails}
       PDF_SCAN_PATH: /data/pdfs
-      EMAIL_TSV: /data/emails/cleaned_emails_full.tsv
       WEAVIATE_HTTP_HOST: weaviate
       WEAVIATE_HTTP_PORT: 8080
       WEAVIATE_GRPC_PORT: 50051
