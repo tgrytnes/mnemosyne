@@ -11,6 +11,7 @@ Quick reference for all user stories with status tracking.
 | 025 | Shadow Copy & Hygiene Layer | High | 13 pts | 📝 Draft | - |
 | 026 | PDF & OCR Document Ingestion | Medium | 8 pts | 📝 Draft | - |
 | 031 | Raw Email Ingestion | High | 13 pts | 📝 Draft | - |
+| HF-001 | Email Source Directory Hotfix | High | 2 pts | ✅ Hotfix | - |
 
 **Phase Total**: 42 story points (8 completed)
 
