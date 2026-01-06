@@ -42,6 +42,11 @@ def test_refresh_stack_uses_runtime_tag_snapshot():
     assert "RUNTIME_IMAGE_TAG" in content
 
 
+def test_refresh_stack_supports_prod_stack():
+    content = _script_text()
+    assert "prod" in content
+
+
 def test_refresh_stack_reports_container_status():
     content = _script_text()
     assert "docker compose" in content
@@ -52,3 +57,8 @@ def test_refresh_stack_checks_watcher_processes_in_containers():
     content = _script_text()
     assert "docker exec" in content
     assert "pgrep" in content
+
+
+def test_refresh_stack_uses_compose_project_name():
+    content = _script_text()
+    assert "COMPOSE_PROJECT_NAME" in content
