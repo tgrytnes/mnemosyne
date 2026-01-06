@@ -31,8 +31,14 @@
   - **When** the refresh script runs
   - **Then** the override is used unchanged.
 
+- [ ] **Scenario: Default image tag behavior**
+  - **Given** no runtime `IMAGE_TAG` or `IMAGE_TAG_OVERRIDE` is provided
+  - **When** the refresh script runs
+  - **Then** it uses `latest`, ignoring any `IMAGE_TAG` value in `.env.*`.
+
 ## Testing Plan
 
 - Unit: validate conflict detection/prompt strings in `scripts/refresh-stack.sh`.
+- Unit: validate default image tag selection and runtime override precedence.
 - Integration: run the script with a conflicting Mnemosyne container; verify auto-stop and a successful refresh.
 - E2E: run `IMAGE_TAG_OVERRIDE=latest ./scripts/refresh-stack.sh staging` and confirm services are healthy and watchers restarted.

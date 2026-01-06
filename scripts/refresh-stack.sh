@@ -65,8 +65,10 @@ fi
 IMAGE_TAG_OVERRIDE="${IMAGE_TAG_OVERRIDE:-}"
 if [[ -n "$IMAGE_TAG_OVERRIDE" ]]; then
   export IMAGE_TAG="$IMAGE_TAG_OVERRIDE"
+elif [[ -n "${IMAGE_TAG:-}" ]]; then
+  export IMAGE_TAG="$IMAGE_TAG"
 else
-  export IMAGE_TAG="${IMAGE_TAG:-latest}"
+  export IMAGE_TAG="latest"
 fi
 
 echo "Refreshing the $STACK stack with IMAGE_TAG=$IMAGE_TAG..."

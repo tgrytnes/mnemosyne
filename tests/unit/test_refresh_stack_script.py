@@ -28,3 +28,10 @@ def test_refresh_stack_prompts_on_non_mnemosyne_conflict():
 def test_refresh_stack_logs_mnemosyne_conflicts():
     content = _script_text()
     assert "Stopping conflicting Mnemosyne container" in content
+
+
+def test_refresh_stack_defaults_to_latest_without_runtime_tag():
+    content = _script_text()
+    assert "IMAGE_TAG_OVERRIDE" in content
+    assert "IMAGE_TAG=" in content
+    assert "latest" in content
