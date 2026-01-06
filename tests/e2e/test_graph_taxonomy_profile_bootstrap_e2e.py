@@ -30,9 +30,12 @@ def test_bootstrap_creates_profiles_for_empty_source(
     muses = weaviate_client.collections.get(TheMuses.collection_name)
     centroids = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
 
+    base_vector = [0.0] * 1024
+    base_vector[0] = 0.1
+    base_vector[1] = 0.2
     vectors = [
-        [0.1, 0.2, 0.3, 0.4],
-        [0.11, 0.19, 0.31, 0.39],
+        base_vector,
+        [0.11, 0.19, 0.31, 0.39] + [0.0] * 1020,
     ]
     for idx, vector in enumerate(vectors):
         muses.data.insert(
