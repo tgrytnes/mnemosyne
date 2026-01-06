@@ -6,7 +6,7 @@ STACK="${1:-dev}"
 
 usage() {
   cat <<EOF
-Usage: $0 [dev|staging]
+Usage: $0 [dev|staging|prod]
 Pulls the latest image for the chosen stack (defaults to dev), refreshes the compose stack,
 and stops the Mnemosyne daemon processes so you can restart them cleanly afterward.
 EOF
@@ -21,6 +21,10 @@ dev)
 staging)
   ENV_FILE="$ROOT_DIR/.env.staging"
   COMPOSE_FILES=(-f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.staging.yml")
+  ;;
+prod)
+  ENV_FILE="$ROOT_DIR/.env.prod"
+  COMPOSE_FILES=(-f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.prod.yml")
   ;;
 *)
   usage
@@ -76,6 +80,13 @@ elif [[ -n "$RUNTIME_IMAGE_TAG" ]]; then
 else
   export IMAGE_TAG="latest"
 fi
+
+if [[ -z "${COMPOSE_PROJECT_NAME:-}" ]]; then
+  COMPOSE_PROJECT_NAME="mnemosyne-${STACK}"
+  echo "COMPOSE_PROJECT_NAME not set; defaulting to $COMPOSE_PROJECT_NAME"
+fi
+export COMPOSE_PROJECT_NAME
+echo "Using COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
 
 echo "Refreshing the $STACK stack with IMAGE_TAG=$IMAGE_TAG..."
 compose down --remove-orphans
