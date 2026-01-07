@@ -97,8 +97,10 @@ class ClusterMetadataSynthesizer:
 
     def _validate_profile(self, cluster: ClusterData, data: dict[str, Any]) -> ClusterProfile:
         keywords = self._extract_keywords(cluster.representative_notes)
-        if "cluster_id" not in data:
-            data["cluster_id"] = cluster.cluster_id
+        cluster_id = data.get("cluster_id", cluster.cluster_id)
+        if not isinstance(cluster_id, str):
+            cluster_id = str(cluster_id)
+        data["cluster_id"] = cluster_id
         if "representative_note_ids" not in data:
             data["representative_note_ids"] = cluster.representative_note_ids
         if not isinstance(data.get("tags"), list):
