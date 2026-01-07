@@ -146,3 +146,13 @@ class ClusterProfileRepository:
             created_at=row[8],
             metadata=metadata,
         )
+
+    def has_profiles(self, source: str | None = None) -> bool:
+        profile_source = source or "muses"
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM cluster_profiles WHERE source = %s",
+            (profile_source,),
+        )
+        count = cursor.fetchone()[0]
+        return count > 0

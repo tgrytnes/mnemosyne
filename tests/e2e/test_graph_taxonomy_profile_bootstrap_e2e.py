@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pytest
+from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.alexandria.weaviate_schema import (
@@ -19,7 +20,6 @@ from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
 @pytest.mark.ollama
 def test_bootstrap_creates_profiles_for_empty_source(
     weaviate_client,
-    clean_weaviate_collection,
     postgres_connection,
     ollama_client,
 ):
@@ -29,6 +29,7 @@ def test_bootstrap_creates_profiles_for_empty_source(
 
     muses = weaviate_client.collections.get(TheMuses.collection_name)
     centroids = weaviate_client.collections.get(ClusterCentroidCollection.collection_name)
+    cluster_id = 91001
 
     base_vector = [0.0] * 1024
     base_vector[0] = 0.1
@@ -44,14 +45,14 @@ def test_bootstrap_creates_profiles_for_empty_source(
                 "sourceFile": f"note{idx}.md",
                 "chunkIndex": idx,
                 "headingPath": "Bootstrap",
-                "clusterId": 0,
+                "clusterId": cluster_id,
             },
             vector=vector,
         )
 
     centroids.data.insert(
         properties={
-            "clusterId": 0,
+            "clusterId": cluster_id,
             "clusterSize": 2,
             "lastUpdated": datetime.utcnow().isoformat() + "Z",
         },
@@ -61,7 +62,10 @@ def test_bootstrap_creates_profiles_for_empty_source(
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
     cursor = postgres_connection.cursor()
-    cursor.execute("DELETE FROM cluster_profiles WHERE source = 'muses'")
+    cursor.execute(
+        "DELETE FROM cluster_profiles WHERE cluster_id = %s AND source = 'muses'",
+        (str(cluster_id),),
+    )
     postgres_connection.commit()
 
     bootstrapper = ClusterProfileBootstrapper(
@@ -77,6 +81,15 @@ def test_bootstrap_creates_profiles_for_empty_source(
         chunk_index_property="chunkIndex",
     )
 
-    bootstrapper.ensure_profiles(["0"])
+    try:
+        bootstrapper.ensure_profiles([str(cluster_id)])
 
-    assert repo.get("0", source="muses") is not None
+        assert repo.get(str(cluster_id), source="muses") is not None
+    finally:
+        muses.data.delete_many(where=Filter.by_property("clusterId").equal(cluster_id))
+        centroids.data.delete_many(where=Filter.by_property("clusterId").equal(cluster_id))
+        cursor.execute(
+            "DELETE FROM cluster_profiles WHERE cluster_id = %s AND source = 'muses'",
+            (str(cluster_id),),
+        )
+        postgres_connection.commit()

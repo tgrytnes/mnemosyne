@@ -94,6 +94,7 @@ class GetClusterRepresentatives:
         try:
             response = self.chunk_collection.query.near_vector(
                 near_vector=centroid_vector.tolist(),
+                filters=Filter.by_property("clusterId").equal(cluster_id),
                 limit=5,
                 return_metadata=["distance"],
             )

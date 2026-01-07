@@ -60,7 +60,6 @@ class GraphTaxonomyPipeline:
         profile_repo.ensure_table()
         if self.profile_bootstrapper and selected_ids:
             self.profile_bootstrapper.ensure_profiles(selected_ids)
-
         profiles = []
         for cluster_id in selected_ids:
             profile = profile_repo.get(cluster_id, source=self.profile_source)

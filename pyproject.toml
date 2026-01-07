@@ -31,6 +31,7 @@ fastapi = "^0.115.0"
 uvicorn = "^0.30.0"
 neo4j = "^5.20.0"
 PyPDF2 = "^3.0.0"
+apscheduler = "^3.10.0"
 # ocrmypdf installed via system package (apt) to ensure proper Leptonica library linking
 
 [tool.poetry.group.dev.dependencies]
@@ -45,7 +46,6 @@ black = "^24.0.0"
 ruff = "^0.14.0"
 mypy = "^1.10.0"
 pre-commit = "^3.7.0"
-apscheduler = "^3.10.0"
 
 [build-system]
 requires = ["poetry-core"]

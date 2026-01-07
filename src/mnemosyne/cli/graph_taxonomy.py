@@ -76,6 +76,8 @@ def main():
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
         ollama_client = ollama.Client(host=ollama_url)
 
+        ollama_client = ollama.Client(host=ollama_url)
+
         # Configure graph taxonomy
         config = GraphTaxonomyConfig()
 

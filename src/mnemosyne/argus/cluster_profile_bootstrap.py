@@ -65,7 +65,7 @@ class ClusterProfileBootstrapper:
             profile_source=self.profile_source,
         )
 
-        stats = node.run_once()
+        stats = node.run_once(cluster_ids)
         logger.info(
             "Cluster profile bootstrap completed for source '%s': %s profiles updated.",
             self.profile_source,

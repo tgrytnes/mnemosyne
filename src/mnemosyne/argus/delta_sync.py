@@ -122,9 +122,12 @@ class DeltaSyncNode:
         self.sync_repo.ensure_table()
         self.detector = DeltaSyncDetector()
 
-    def run_once(self) -> DeltaSyncStats:
+    def run_once(self, cluster_ids: list[str] | None = None) -> DeltaSyncStats:
         start = time.monotonic()
         snapshots = self._fetch_cluster_snapshots()
+        if cluster_ids:
+            allowed = set(cluster_ids)
+            snapshots = [snapshot for snapshot in snapshots if snapshot.cluster_id in allowed]
         states = {state.cluster_id: state for state in self.sync_repo.list_all()}
         changed_ids = self.detector.identify_changed(snapshots, states)
         snapshot_map = {snapshot.cluster_id: snapshot for snapshot in snapshots}

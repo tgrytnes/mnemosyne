@@ -10,6 +10,7 @@ from pathlib import Path
 import ollama
 import pytest
 import weaviate
+from dotenv import dotenv_values
 
 # ============================================================================
 # Configuration Fixtures
@@ -19,18 +20,38 @@ import weaviate
 @pytest.fixture(scope="session")
 def test_config():
     """Test environment configuration"""
+    repo_root = Path(__file__).resolve().parents[1]
+    dev_env: dict[str, str] = {}
+    if not os.getenv("CI"):
+        for name in (".env.dev", ".env.dev.local"):
+            env_path = repo_root / name
+            if env_path.exists():
+                dev_env.update(
+                    {key: value for key, value in dotenv_values(env_path).items() if value}
+                )
+
+    weaviate_port = dev_env.get("WEAVIATE_HOST_PORT", "8080")
+    weaviate_grpc_port = dev_env.get("WEAVIATE_GRPC_HOST_PORT", "50051")
+    postgres_port = dev_env.get("POSTGRES_HOST_PORT", "5432")
+    neo4j_bolt_port = dev_env.get("NEO4J_BOLT_HOST_PORT", "7687")
+    default_neo4j_uri = f"bolt://localhost:{neo4j_bolt_port}"
+
     return {
         "weaviate_http_host": os.getenv("TEST_WEAVIATE_HOST", "localhost"),
-        "weaviate_http_port": int(os.getenv("TEST_WEAVIATE_PORT", "8080")),
-        "weaviate_grpc_port": int(os.getenv("TEST_WEAVIATE_GRPC_PORT", "50051")),
+        "weaviate_http_port": int(os.getenv("TEST_WEAVIATE_PORT", weaviate_port)),
+        "weaviate_grpc_port": int(os.getenv("TEST_WEAVIATE_GRPC_PORT", weaviate_grpc_port)),
         "postgres_host": os.getenv("TEST_POSTGRES_HOST", "localhost"),
-        "postgres_port": int(os.getenv("TEST_POSTGRES_PORT", "5432")),
-        "postgres_db": os.getenv("TEST_POSTGRES_DB", "ananke_test"),
-        "postgres_user": os.getenv("TEST_POSTGRES_USER", "postgres"),
-        "postgres_password": os.getenv("TEST_POSTGRES_PASSWORD", "test"),
-        "neo4j_uri": os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-        "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
-        "neo4j_password": os.getenv("NEO4J_PASSWORD", "test"),
+        "postgres_port": int(os.getenv("TEST_POSTGRES_PORT", postgres_port)),
+        "postgres_db": os.getenv("TEST_POSTGRES_DB", dev_env.get("POSTGRES_DB", "ananke_test")),
+        "postgres_user": os.getenv(
+            "TEST_POSTGRES_USER", dev_env.get("POSTGRES_USER", "postgres")
+        ),
+        "postgres_password": os.getenv(
+            "TEST_POSTGRES_PASSWORD", dev_env.get("POSTGRES_PASSWORD", "test")
+        ),
+        "neo4j_uri": os.getenv("NEO4J_URI", default_neo4j_uri),
+        "neo4j_user": os.getenv("NEO4J_USER", dev_env.get("NEO4J_USER", "neo4j")),
+        "neo4j_password": os.getenv("NEO4J_PASSWORD", dev_env.get("NEO4J_PASSWORD", "test")),
         "ollama_url": os.getenv(
             "OLLAMA_BASE_URL", os.getenv("TEST_OLLAMA_URL", "http://localhost:11434")
         ),
@@ -169,7 +190,15 @@ def weaviate_client(test_config):
 @pytest.fixture
 def clean_weaviate_collection(weaviate_client):
     """Clean up test collections before and after tests"""
-    test_collections = ["TestCollection", "TheMuses", "TheMuses_Test", "TheLethe", "TheLethe_Test"]
+    test_collections = [
+        "TestCollection",
+        "TheMuses",
+        "TheMuses_Test",
+        "TheLethe",
+        "TheLethe_Test",
+        "ClusterCentroid",
+        "ClusterCentroidLethe",
+    ]
 
     # Clean before
     for collection_name in test_collections:
