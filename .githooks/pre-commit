@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "${branch}" == "main" ]]; then
+  echo "Blocked: commits on main are not allowed. Create a feature branch/worktree."
+  exit 1
+fi
