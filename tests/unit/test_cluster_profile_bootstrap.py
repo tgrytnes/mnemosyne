@@ -55,4 +55,4 @@ def test_bootstrapper_runs_delta_sync_when_empty(mocker):
     )
 
     assert bootstrapper.ensure_profiles(["1"]) == 2
-    node.run_once.assert_called_once()
+    node.run_once.assert_called_once_with(["1"])

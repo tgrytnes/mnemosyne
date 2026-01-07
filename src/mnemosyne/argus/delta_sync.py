@@ -33,6 +33,14 @@ class ClusterSnapshot:
 class DeltaSyncDetector:
     """Identify clusters requiring delta sync."""
 
+    @staticmethod
+    def _normalize_timestamp(value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+
     def identify_changed(
         self,
         snapshots: list[ClusterSnapshot],
@@ -45,13 +53,14 @@ class DeltaSyncDetector:
                 changed.append(snapshot.cluster_id)
                 continue
 
-            last_sync = state.last_sync_timestamp
-            if snapshot.last_modified and last_sync:
-                if snapshot.last_modified > last_sync:
+            last_sync = self._normalize_timestamp(state.last_sync_timestamp)
+            last_modified = self._normalize_timestamp(snapshot.last_modified)
+            if last_modified and last_sync:
+                if last_modified > last_sync:
                     changed.append(snapshot.cluster_id)
                     continue
 
-            if snapshot.last_modified is None:
+            if last_modified is None:
                 if snapshot.vector_count != state.vector_count_at_sync:
                     changed.append(snapshot.cluster_id)
         return changed
@@ -122,9 +131,12 @@ class DeltaSyncNode:
         self.sync_repo.ensure_table()
         self.detector = DeltaSyncDetector()
 
-    def run_once(self) -> DeltaSyncStats:
+    def run_once(self, cluster_ids: list[str] | None = None) -> DeltaSyncStats:
         start = time.monotonic()
         snapshots = self._fetch_cluster_snapshots()
+        if cluster_ids:
+            allowed = set(cluster_ids)
+            snapshots = [snapshot for snapshot in snapshots if snapshot.cluster_id in allowed]
         states = {state.cluster_id: state for state in self.sync_repo.list_all()}
         changed_ids = self.detector.identify_changed(snapshots, states)
         snapshot_map = {snapshot.cluster_id: snapshot for snapshot in snapshots}

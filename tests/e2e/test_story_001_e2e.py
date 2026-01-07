@@ -1,6 +1,7 @@
 # tests/e2e/test_story_001_e2e.py
 
 import os
+from pathlib import Path
 
 import pytest
 from langgraph.graph import END, StateGraph
@@ -121,13 +122,18 @@ def test_story_001_cluster_quality_with_fake_vault(weaviate_client, fake_vault_p
     app = workflow.compile()
 
     def classify_rep(rep) -> str:
-        source = rep.source_file.lower()
-        if "projects" in source:
-            return "projects"
-        if "journal" in source:
-            return "journal"
-        if "knowledge" in source:
-            return "knowledge"
+        source = rep.source_file or ""
+        if source:
+            try:
+                relative = Path(source).resolve().relative_to(Path(fake_vault_path).resolve())
+                if relative.parts:
+                    top_level = relative.parts[0].lower()
+                    if top_level == "monitor_projects":
+                        return "projects"
+                    if top_level in {"projects", "journal", "knowledge"}:
+                        return top_level
+            except Exception:
+                pass
 
         text = rep.text.lower()
         keyword_sets = {

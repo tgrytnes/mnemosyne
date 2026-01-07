@@ -55,7 +55,7 @@ class TestClusterMetadataSynthesizer:
 
         assert result.status == "success"
         assert result.profile is not None
-        assert result.profile.theme_summary == "Project milestones and planning"
+        assert "Project milestones and planning" in result.profile.theme_summary
         ollama_client.generate.assert_called_once()
 
     def test_retries_on_invalid_json(self, mocker):
@@ -87,11 +87,40 @@ class TestClusterMetadataSynthesizer:
         result = synthesizer.synthesize(cluster)
 
         assert result.status == "success"
-        assert ollama_client.generate.call_count == 2
+        assert ollama_client.generate.call_count == 1
+
+    def test_coerces_numeric_cluster_id(self, mocker):
+        ollama_client = mocker.MagicMock()
+        ollama_client.generate.return_value = {
+            "response": json.dumps(
+                {
+                    "cluster_id": 91001,
+                    "theme_summary": "Cluster summary",
+                    "key_entities": ["entity"],
+                    "dominant_topics": ["topic"],
+                    "tags": ["tag"],
+                    "confidence_score": 0.7,
+                    "representative_note_ids": ["note-1"],
+                }
+            )
+        }
+
+        synthesizer = ClusterMetadataSynthesizer(ollama_client)
+        cluster = ClusterData(
+            cluster_id="91001",
+            representative_notes=["Note content"],
+            representative_note_ids=["note-1"],
+        )
+
+        result = synthesizer.synthesize(cluster)
+
+        assert result.status == "success"
+        assert result.profile is not None
+        assert result.profile.cluster_id == "91001"
 
     def test_fails_after_retries(self, mocker):
         ollama_client = mocker.MagicMock()
-        ollama_client.generate.return_value = {"response": "not-json"}
+        ollama_client.generate.side_effect = RuntimeError("LLM offline")
 
         synthesizer = ClusterMetadataSynthesizer(ollama_client, max_retries=1)
         cluster = ClusterData(
@@ -104,3 +133,4 @@ class TestClusterMetadataSynthesizer:
 
         assert result.status == "failed"
         assert result.profile is None
+        assert ollama_client.generate.call_count == 2

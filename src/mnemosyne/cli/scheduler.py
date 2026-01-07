@@ -113,6 +113,7 @@ def run_scout_task():
         weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
         ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
 
         # Connect to services

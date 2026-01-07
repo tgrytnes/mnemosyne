@@ -28,7 +28,7 @@
 - Quality Gate #2.5: run `black` and `ruff` locally and fix issues before pushing code to CI.
 - Quality Gate #3: never push directly to main. Always use a new worktree and feature branch, commit locally, push the branch, and open a PR so CI runs on GitHub.
 - For each new story, create a new git worktree and a dedicated feature branch before starting work.
-- Pull the latest `main` before starting work on a feature branch.
+- Pull the latest `main` before starting work on a feature branch, and re-sync `main` before opening a PR.
 - Ensure CI is configured to run automatically on push/PR for the feature branch.
 - After implementation and local unit tests pass, push the branch and open a PR so CI runs on GitHub.
 - Ensure the PR CI executes the full test suite before merge.
@@ -37,6 +37,9 @@
 ## Dev/Staging/Prod Workflow
 - Implement code and validate in `.venv` first (unit + integration tests as applicable).
 - Validate in the dev compose environment with real services (`make env-dev-up`).
+- During implementation/testing, run only the new or changed E2E tests locally against dev Docker; run the full E2E suite in GitHub Actions/CI.
+- Before running validations, confirm preconditions: services are healthy, env vars are correct, and the running image matches the branch/commit under test.
+- When changes affect runtime deps or container startup, run a container-level smoke check (import or `--help` for key CLIs).
 - Push to GitHub and rely on CI for the full test suite.
 - Deploy the CI-built image tag to staging and run E2E tests there.
 - Promote the same image tag to prod after staging passes.
