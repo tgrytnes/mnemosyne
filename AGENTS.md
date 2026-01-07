@@ -10,8 +10,8 @@
 - When fixing errors: always do a root cause analysis first and fix the root cause, if you are not able to fix the root cause, you need approval by user before proceeding.
 
 ## Story Quality Gate
-- Every change must be documented as a user story, change request, or hotfix. If no existing doc covers the work, create a new one first.
-- Always update `user-stories/STORY_INDEX.md` when creating or updating a story/CR/hotfix.
+- Every change must be documented as a user story, change request, or hotfix. If no existing doc covers the work, create a new one first in github issues.
+- Github issues is the source of truth for all stories, change requests, and hotfixes
 - Before development, ensure the user story is absolutely clear.
 - Ensure acceptance criteria are excellent and complete.
 - Ensure test coverage plan is excellent (unit + integration + e2e).
