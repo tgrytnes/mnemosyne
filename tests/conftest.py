@@ -43,9 +43,7 @@ def test_config():
         "postgres_host": os.getenv("TEST_POSTGRES_HOST", "localhost"),
         "postgres_port": int(os.getenv("TEST_POSTGRES_PORT", postgres_port)),
         "postgres_db": os.getenv("TEST_POSTGRES_DB", dev_env.get("POSTGRES_DB", "ananke_test")),
-        "postgres_user": os.getenv(
-            "TEST_POSTGRES_USER", dev_env.get("POSTGRES_USER", "postgres")
-        ),
+        "postgres_user": os.getenv("TEST_POSTGRES_USER", dev_env.get("POSTGRES_USER", "postgres")),
         "postgres_password": os.getenv(
             "TEST_POSTGRES_PASSWORD", dev_env.get("POSTGRES_PASSWORD", "test")
         ),

@@ -52,9 +52,7 @@ def test_get_cached_centroid(node, mock_weaviate_client):
     mock_weaviate_client.collections.get.return_value.query.fetch_objects.assert_called_once()
 
     # Verify it used the cached vector in the near_vector query
-    near_call = (
-        mock_weaviate_client.collections.get.return_value.query.near_vector.call_args.kwargs
-    )
+    near_call = mock_weaviate_client.collections.get.return_value.query.near_vector.call_args.kwargs
     assert near_call["near_vector"] == [0.1, 0.2, 0.3]
     assert near_call["limit"] == 5
     assert near_call["return_metadata"] == ["distance"]
@@ -89,9 +87,7 @@ def test_compute_centroid_on_the_fly(node, mock_weaviate_client):
 
     # Verify it used the computed centroid in the near_vector query (mean of vectors)
     computed_centroid = np.mean([[0.1, 0.2], [0.3, 0.4]], axis=0).tolist()
-    near_call = (
-        mock_weaviate_client.collections.get.return_value.query.near_vector.call_args.kwargs
-    )
+    near_call = mock_weaviate_client.collections.get.return_value.query.near_vector.call_args.kwargs
     assert near_call["near_vector"] == computed_centroid
     assert near_call["limit"] == 5
     assert near_call["return_metadata"] == ["distance"]
