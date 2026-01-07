@@ -128,6 +128,8 @@ def test_story_001_cluster_quality_with_fake_vault(weaviate_client, fake_vault_p
                 relative = Path(source).resolve().relative_to(Path(fake_vault_path).resolve())
                 if relative.parts:
                     top_level = relative.parts[0].lower()
+                    if top_level == "monitor_projects":
+                        return "projects"
                     if top_level in {"projects", "journal", "knowledge"}:
                         return top_level
             except Exception:
