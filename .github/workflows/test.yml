@@ -104,8 +104,10 @@ jobs:
             -v ~/.ollama:/root/.ollama \
             ollama/ollama:latest
 
-          # Wait for Ollama to be ready
-          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          # Wait for Ollama to be ready (use /api/tags endpoint for health check)
+          timeout 120 bash -c 'until curl -sf http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
+
+          echo "Ollama is ready"
 
       - name: Pull Ollama models with retry
         run: |
@@ -265,8 +267,10 @@ jobs:
             -v ~/.ollama:/root/.ollama \
             ollama/ollama:latest
 
-          # Wait for Ollama to be ready
-          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          # Wait for Ollama to be ready (use /api/tags endpoint for health check)
+          timeout 120 bash -c 'until curl -sf http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
+
+          echo "Ollama is ready"
 
       - name: Pull Ollama models with retry
         run: |
