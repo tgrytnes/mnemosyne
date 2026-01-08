@@ -87,23 +87,51 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache Ollama models
+        id: cache-ollama
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama
+          key: ollama-models-${{ runner.os }}-qwen3-embedding-0.6b-gemma3-1b-qwen3-0.6b-v1
+
       - name: Start Ollama container
         run: |
+          # Create directory for Ollama models if it doesn't exist
+          mkdir -p ~/.ollama
+
+          # Fix: Use client2 experiment with MAXSTREAMS=1 to prevent concurrent write corruption
+          # See: https://github.com/ollama/ollama/issues/8445
           docker run -d --name ollama \
             -p 11434:11434 \
+            -v ~/.ollama:/root/.ollama \
+            -e OLLAMA_EXPERIMENT=client2 \
+            -e OLLAMA_REGISTRY_MAXSTREAMS=1 \
             ollama/ollama:latest
 
-          # Wait for Ollama to be ready
-          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          # Wait for Ollama to be ready (use /api/tags endpoint for health check)
+          timeout 120 bash -c 'until curl -sf http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
 
-          # Pull required models
-          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+          echo "Ollama is ready"
 
-          # Pull generation model for cluster metadata synthesis
-          docker exec ollama ollama pull qwen3:0.6b
+      - name: Pull Ollama models
+        run: |
+          # Check if model exists (from cache)
+          model_exists() {
+            docker exec ollama ollama list | grep -q "$1"
+          }
+
+          # Pull models (client2 prevents corruption, no retry needed)
+          for model in "qwen3-embedding:0.6b" "gemma3:1b" "qwen3:0.6b"; do
+            if model_exists "$model"; then
+              echo "Model $model already exists (from cache), skipping download"
+            else
+              echo "Pulling $model..."
+              docker exec ollama ollama pull "$model"
+            fi
+          done
+
+          # Verify all models are available
+          docker exec ollama ollama list
 
       - name: Install system dependencies
         run: |
@@ -195,20 +223,51 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache Ollama models
+        id: cache-ollama
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama
+          key: ollama-models-${{ runner.os }}-qwen3-embedding-0.6b-gemma3-1b-qwen3-0.6b-v1
+
       - name: Start Ollama container
         run: |
+          # Create directory for Ollama models if it doesn't exist
+          mkdir -p ~/.ollama
+
+          # Fix: Use client2 experiment with MAXSTREAMS=1 to prevent concurrent write corruption
+          # See: https://github.com/ollama/ollama/issues/8445
           docker run -d --name ollama \
             -p 11434:11434 \
+            -v ~/.ollama:/root/.ollama \
+            -e OLLAMA_EXPERIMENT=client2 \
+            -e OLLAMA_REGISTRY_MAXSTREAMS=1 \
             ollama/ollama:latest
 
-          # Wait for Ollama to be ready
-          timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
+          # Wait for Ollama to be ready (use /api/tags endpoint for health check)
+          timeout 120 bash -c 'until curl -sf http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
 
-          # Pull required models
-          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+          echo "Ollama is ready"
+
+      - name: Pull Ollama models
+        run: |
+          # Check if model exists (from cache)
+          model_exists() {
+            docker exec ollama ollama list | grep -q "$1"
+          }
+
+          # Pull models (client2 prevents corruption, no retry needed)
+          for model in "qwen3-embedding:0.6b" "gemma3:1b" "qwen3:0.6b"; do
+            if model_exists "$model"; then
+              echo "Model $model already exists (from cache), skipping download"
+            else
+              echo "Pulling $model..."
+              docker exec ollama ollama pull "$model"
+            fi
+          done
+
+          # Verify all models are available
+          docker exec ollama ollama list
 
       - name: Install Poetry
         run: |
@@ -228,13 +287,17 @@ jobs:
         env:
           OLLAMA_BASE_URL: http://localhost:11434
           SEMANTIC_LLM_MODEL: gemma3:1b
+          E2E_HYBRID_INGEST_FILE_COUNT: "10"
+          E2E_HYBRID_INGEST_MAX_MINUTES: "10"
+          INGEST_PROGRESS_EVERY: "1"
           TEST_POSTGRES_HOST: localhost
           TEST_POSTGRES_PORT: 5432
           TEST_POSTGRES_DB: mnemosyne_test
           TEST_POSTGRES_USER: mnemosyne
           TEST_POSTGRES_PASSWORD: mnemosyne_test_password
         run: |
-          poetry run pytest tests/e2e -v --tb=short -m e2e
+          # Add live output to see which test is running
+          poetry run pytest tests/e2e -v --tb=short -m e2e -s --capture=no --log-cli-level=INFO
 
 
   code-quality:

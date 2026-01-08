@@ -7,7 +7,7 @@ import os
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -91,7 +91,7 @@ def test_story_004_cleanup_removes_old_checkpoints(tmp_path: Path):
     with sqlite3.connect(db_path) as conn:
         conn.execute(
             "UPDATE mnemosyne_checkpoints SET updated_at = ? WHERE query_id = ?",
-            ((datetime.utcnow() - timedelta(days=31)).isoformat(), "e2e-004-old"),
+            ((datetime.now(UTC) - timedelta(days=31)).isoformat(), "e2e-004-old"),
         )
         conn.commit()
 

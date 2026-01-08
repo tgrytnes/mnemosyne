@@ -36,8 +36,8 @@ def test_handle_discoveries_returns_from_outbox_history():
     outbox.list_recent_by_chat.return_value = [
         MagicMock(
             message_id="a",
-            message_type="discovery_project_candidate",
-            payload_json={"title": "Test"},
+            message_type="notification",
+            payload={"title": "Test", "discovery_id": "disc-1"},
         )
     ]
     handler = NotificationCommandHandler(MagicMock(), outbox)

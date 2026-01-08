@@ -97,6 +97,7 @@ class GetClusterRepresentatives:
                 filters=Filter.by_property("clusterId").equal(cluster_id),
                 limit=5,
                 return_metadata=["distance"],
+                target_vector="default",
             )
 
             representative_chunks = []

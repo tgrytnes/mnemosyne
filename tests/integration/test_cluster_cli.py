@@ -80,7 +80,9 @@ def test_fetch_all_vectors(weaviate_client):
     with muses.batch.dynamic() as batch:
         for i, vec in enumerate(test_vectors):
             batch.add_object(
-                properties={"text": f"chunk {i}", "chunkIndex": i}, vector=vec, uuid=uuid.uuid4()
+                properties={"text": f"chunk {i}", "chunkIndex": i},
+                vector={"default": vec},
+                uuid=uuid.uuid4(),
             )
 
     # Test
@@ -106,7 +108,9 @@ def test_run_kmeans_clustering(weaviate_client):
     with muses.batch.dynamic() as batch:
         for i, vec in enumerate(all_vectors):
             batch.add_object(
-                properties={"text": f"chunk {i}", "chunkIndex": i}, vector=vec, uuid=uuid.uuid4()
+                properties={"text": f"chunk {i}", "chunkIndex": i},
+                vector={"default": vec},
+                uuid=uuid.uuid4(),
             )
 
     # Test
@@ -138,7 +142,7 @@ def test_update_chunk_cluster_ids(weaviate_client):
         for i, uid in enumerate(test_uuids):
             batch.add_object(
                 properties={"text": f"chunk {i}", "chunkIndex": i},
-                vector=[0.1 * i, 0.2 * i],
+                vector={"default": [0.1 * i, 0.2 * i]},
                 uuid=uid,
             )
 
@@ -193,7 +197,9 @@ def test_run_clustering_orchestration(weaviate_client, monkeypatch, test_config)
     with muses.batch.dynamic() as batch:
         for i, vec in enumerate(all_vecs):
             batch.add_object(
-                properties={"text": f"chunk {i}", "chunkIndex": i}, vector=vec, uuid=uuid.uuid4()
+                properties={"text": f"chunk {i}", "chunkIndex": i},
+                vector={"default": vec},
+                uuid=uuid.uuid4(),
             )
 
     # Test
@@ -222,7 +228,7 @@ def test_run_clustering_targets_lethe_only(weaviate_client, monkeypatch, test_co
     with muses.batch.dynamic() as batch:
         batch.add_object(
             properties={"text": "muses chunk", "chunkIndex": 0},
-            vector=[0.05, 0.05],
+            vector={"default": [0.05, 0.05]},
             uuid=uuid.uuid4(),
         )
 
@@ -231,7 +237,7 @@ def test_run_clustering_targets_lethe_only(weaviate_client, monkeypatch, test_co
         for i, vec in enumerate(lethe_vectors):
             batch.add_object(
                 properties={"subject": f"email {i}", "body": "test body"},
-                vector=vec,
+                vector={"default": vec},
                 uuid=uuid.uuid4(),
             )
 

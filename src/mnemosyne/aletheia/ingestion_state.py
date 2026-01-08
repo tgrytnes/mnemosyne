@@ -7,7 +7,7 @@ to enable incremental updates (only re-ingest changed files).
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -57,6 +57,12 @@ class IngestionStateTracker:
         )
         self.conn.commit()
 
+    @staticmethod
+    def _coerce_utc(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+
     def mark_ingested(self, file_path: str, modified_time: datetime, chunk_count: int) -> None:
         """
         Mark file as ingested.
@@ -68,6 +74,7 @@ class IngestionStateTracker:
             modified_time: Last modification time of file
             chunk_count: Number of chunks created from file
         """
+        normalized_modified = self._coerce_utc(modified_time)
         self.conn.execute(
             """
             INSERT OR REPLACE INTO ingested_files
@@ -76,8 +83,8 @@ class IngestionStateTracker:
         """,
             (
                 file_path,
-                modified_time.isoformat(),
-                datetime.now().isoformat(),
+                normalized_modified.isoformat(),
+                datetime.now(UTC).isoformat(),
                 chunk_count,
             ),
         )
@@ -106,10 +113,11 @@ class IngestionStateTracker:
             return False
 
         # Parse stored modification time
-        stored_time = datetime.fromisoformat(result["last_modified"])
+        stored_time = self._coerce_utc(datetime.fromisoformat(result["last_modified"]))
+        normalized_modified = self._coerce_utc(modified_time)
 
         # File needs re-ingestion if it's been modified
-        return stored_time >= modified_time
+        return stored_time >= normalized_modified
 
     def get_file_info(self, file_path: str) -> dict[str, Any] | None:
         """
@@ -186,7 +194,7 @@ class IngestionStateTracker:
                 model,
                 min_chunk_size,
                 max_chunk_size,
-                datetime.now().isoformat(),
+                datetime.now(UTC).isoformat(),
             ),
         )
         self.conn.commit()

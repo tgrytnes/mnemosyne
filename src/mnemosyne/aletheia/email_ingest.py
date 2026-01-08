@@ -150,6 +150,15 @@ class EmailIngestor:
             collection.config.add_property(Property(name=name, data_type=data_type))
 
     def run(self) -> IngestSummary:
+        return self._ingest_emails(self._iter_emails(self.config.source_dir))
+
+    def ingest_file(self, file_path: str | Path) -> IngestSummary:
+        path = Path(file_path)
+        if not path.exists() or not path.is_file():
+            return IngestSummary(0, 0, 0, 0)
+        return self._ingest_emails(self._iter_emails_from_path(path))
+
+    def _ingest_emails(self, emails: Iterable[Email]) -> IngestSummary:
         collection = self.client.collections.get(self.config.collection_name)
 
         total_loaded = 0
@@ -157,7 +166,7 @@ class EmailIngestor:
         duplicates = 0
         rejected = 0
 
-        for email in self._iter_emails(self.config.source_dir):
+        for email in emails:
             total_loaded += 1
 
             body = truncate_body(email.body, max_chars=self.config.max_chars)
@@ -201,7 +210,7 @@ class EmailIngestor:
                     "documentType": chunk_item.document_type,
                     "chunkIndex": chunk_item.chunk_index,
                 }
-                collection.data.insert(properties=props, vector=vec)
+                collection.data.insert(properties=props, vector={"default": vec})
                 total_stored += 1
 
             self.state.mark_ingested(email.unique_id)
@@ -221,12 +230,15 @@ class EmailIngestor:
         for path in sorted(source_dir.rglob("*")):
             if not path.is_file():
                 continue
-            if path.suffix.lower() == ".eml":
-                email = parse_eml_file(path)
-                if email:
-                    yield email
-            elif path.suffix.lower() == ".mbox":
-                yield from parse_mbox_file(path)
+            yield from self._iter_emails_from_path(path)
+
+    def _iter_emails_from_path(self, path: Path) -> Iterable[Email]:
+        if path.suffix.lower() == ".eml":
+            email = parse_eml_file(path)
+            if email:
+                yield email
+        elif path.suffix.lower() == ".mbox":
+            yield from parse_mbox_file(path)
 
 
 def main() -> None:

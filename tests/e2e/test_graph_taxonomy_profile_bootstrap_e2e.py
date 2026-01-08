@@ -1,6 +1,6 @@
 """E2E tests for graph taxonomy profile bootstrap."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from weaviate.classes.query import Filter
@@ -47,16 +47,16 @@ def test_bootstrap_creates_profiles_for_empty_source(
                 "headingPath": "Bootstrap",
                 "clusterId": cluster_id,
             },
-            vector=vector,
+            vector={"default": vector},
         )
 
     centroids.data.insert(
         properties={
             "clusterId": cluster_id,
             "clusterSize": 2,
-            "lastUpdated": datetime.utcnow().isoformat() + "Z",
+            "lastUpdated": datetime.now(UTC).isoformat(),
         },
-        vector=vectors[0],
+        vector={"default": vectors[0]},
     )
 
     repo = ClusterProfileRepository(postgres_connection)

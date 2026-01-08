@@ -82,11 +82,11 @@ class TestResponseHandlers:
         )
 
         # Should ask next question (urgency)
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
-        assert "urgency" in call_args["content"].lower()
-        assert call_args["metadata"]["project_id"] == 1
-        assert call_args["metadata"]["question_type"] == "urgency"
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
+        payload = call_args["payload"]
+        assert "urgency" in payload["text"].lower()
+        assert payload["question_type"] == "urgency"
 
     def test_handle_urgency_response_updates_and_continues(
         self, project_manager, mock_db, mock_outbox, mock_gatekeeper
@@ -123,9 +123,10 @@ class TestResponseHandlers:
         )
 
         # Should ask deadline (high priority: 5+4=9)
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
-        assert "deadline" in call_args["content"].lower()
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
+        payload = call_args["payload"]
+        assert "deadline" in payload["text"].lower()
 
     def test_handle_deadline_response_parses_and_updates(
         self, project_manager, mock_db, mock_outbox, mock_gatekeeper
@@ -163,7 +164,7 @@ class TestResponseHandlers:
         assert "deadline" in call_args[1]  # updates dict
 
         # Should NOT ask another question (fully enriched)
-        mock_outbox.enqueue_message.assert_not_called()
+        mock_outbox.enqueue.assert_not_called()
 
     def test_handle_description_response_updates_text(
         self, project_manager, mock_db, mock_outbox, mock_gatekeeper
@@ -380,9 +381,10 @@ class TestEventDrivenFlow:
         project_manager.handle_importance_response(project_id=1, value=5)
 
         # Should ask urgency
-        assert mock_outbox.enqueue_message.called
-        call_args = mock_outbox.enqueue_message.call_args[1]
-        assert call_args["metadata"]["question_type"] == "urgency"
+        assert mock_outbox.enqueue.called
+        call_args = mock_outbox.enqueue.call_args[1]
+        payload = call_args["payload"]
+        assert payload["question_type"] == "urgency"
 
     def test_low_priority_stops_asking(
         self, project_manager, mock_db, mock_outbox, mock_gatekeeper
@@ -407,7 +409,7 @@ class TestEventDrivenFlow:
         project_manager.handle_urgency_response(project_id=1, value=2)
 
         # Should NOT ask deadline (low priority)
-        mock_outbox.enqueue_message.assert_not_called()
+        mock_outbox.enqueue.assert_not_called()
 
     def test_high_priority_asks_deadline(
         self, project_manager, mock_db, mock_outbox, mock_gatekeeper
@@ -432,6 +434,7 @@ class TestEventDrivenFlow:
         project_manager.handle_urgency_response(project_id=1, value=4)
 
         # Should ask deadline (high priority)
-        assert mock_outbox.enqueue_message.called
-        call_args = mock_outbox.enqueue_message.call_args[1]
-        assert call_args["metadata"]["question_type"] == "deadline"
+        assert mock_outbox.enqueue.called
+        call_args = mock_outbox.enqueue.call_args[1]
+        payload = call_args["payload"]
+        assert payload["question_type"] == "deadline"

@@ -26,15 +26,27 @@ from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import run_clustering
 
 
-class _InMemoryOutbox:
+class _InMemoryIntentQueue:
     def __init__(self):
-        self.messages: list[dict[str, str]] = []
+        self.intents: list[dict[str, str]] = []
 
-    def enqueue(self, message_type: str, payload: dict, message_id: str) -> None:
-        self.messages.append(
+    def enqueue_intent(
+        self,
+        intent_type: str,
+        payload: dict,
+        message_id: str,
+        originating_agent: str | None = None,
+        context_id: str | None = None,
+        expects_response: bool = False,
+    ) -> None:
+        self.intents.append(
             {
-                "message_type": message_type,
+                "intent_type": intent_type,
                 "message_id": message_id,
+                "originating_agent": originating_agent,
+                "context_id": context_id,
+                "expects_response": expects_response,
+                "payload": payload,
             }
         )
 
@@ -116,7 +128,7 @@ def test_story_015_escalates_rejected_discovery(
     cursor.execute("DELETE FROM proposal_queue")
     cursor.execute("DELETE FROM monitor_state")
     postgres_connection.commit()
-    outbox = _InMemoryOutbox()
+    intent_queue = _InMemoryIntentQueue()
 
     reader = WeaviateDiscoveryReader(weaviate_client)
     projects = PostgresProjectRepository(postgres_connection)
@@ -125,7 +137,7 @@ def test_story_015_escalates_rejected_discovery(
         project_repository=projects,
         proposal_queue=proposal_queue,
         state_store=state_store,
-        outbox=outbox,
+        intent_queue=intent_queue,
         config=MonitorConfig(confidence_threshold=0.0),
     )
 
@@ -152,10 +164,10 @@ def test_story_015_escalates_rejected_discovery(
     proposal_queue.update_status(discovery_id, "rejected")
     agent.run()
 
-    assert outbox.messages
-    message = outbox.messages[0]
-    assert message["message_type"] == "proposal_escalation"
-    assert message["message_id"] == f"proposal_escalation:{discovery_id}"
+    assert intent_queue.intents
+    intent = intent_queue.intents[0]
+    assert intent["intent_type"] == "proposal_escalation"
+    assert intent["message_id"] == f"proposal_escalation:{discovery_id}"
 
 
 def _embed(ollama_client, text: str) -> list[float]:

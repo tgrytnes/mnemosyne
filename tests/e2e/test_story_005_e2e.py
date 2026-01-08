@@ -69,7 +69,9 @@ def test_story_005_system_routing_with_real_services(
     query_embedding = ollama_embedder(ollama_client, query)
 
     collection = weaviate_client.collections.get("TheMuses")
-    response = collection.query.near_vector(near_vector=query_embedding, limit=3)
+    response = collection.query.near_vector(
+        near_vector=query_embedding, limit=3, target_vector="default"
+    )
     assert response.objects
 
     result_payload = {"matches": [obj.properties for obj in response.objects]}

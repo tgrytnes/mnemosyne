@@ -16,9 +16,10 @@ Key Features:
 """
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -45,6 +46,9 @@ class OutboxMessage:
         created_at: When message was enqueued
         last_attempted_at: Most recent delivery attempt timestamp
         delivered_at: When successfully delivered to user
+        chat_id: Telegram chat identifier (when delivered)
+        telegram_message_id: Telegram message ID (when delivered)
+        next_attempt_at: Next retry timestamp (for backoff)
     """
 
     id: int
@@ -62,6 +66,9 @@ class OutboxMessage:
     created_at: datetime
     last_attempted_at: datetime | None
     delivered_at: datetime | None
+    chat_id: str | None
+    telegram_message_id: int | None
+    next_attempt_at: datetime | None
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> "OutboxMessage":
@@ -90,6 +97,9 @@ class OutboxMessage:
             created_at=_parse_timestamp(row["created_at"]),
             last_attempted_at=_parse_timestamp(row["last_attempted_at"]),
             delivered_at=_parse_timestamp(row["delivered_at"]),
+            chat_id=row.get("chat_id"),
+            telegram_message_id=row.get("telegram_message_id"),
+            next_attempt_at=_parse_timestamp(row.get("next_attempt_at")),
         )
 
 
@@ -183,6 +193,9 @@ class MessageOutbox:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_attempted_at TIMESTAMP,
                 delivered_at TIMESTAMP,
+                chat_id TEXT,
+                telegram_message_id INTEGER,
+                next_attempt_at TIMESTAMP,
                 CHECK (message_type IN (
                     'notification', 'approval_request', 'escalation', 'question'
                 )),
@@ -214,7 +227,33 @@ class MessageOutbox:
             """CREATE INDEX IF NOT EXISTS idx_message_outbox_response_routing
             ON message_outbox(context_id, expects_response, status)"""
         )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_message_outbox_chat ON message_outbox(chat_id)"
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_message_outbox_next_attempt
+            ON message_outbox(next_attempt_at)
+            """
+        )
 
+        self._ensure_column("chat_id", "TEXT")
+        self._ensure_column("telegram_message_id", "INTEGER")
+        self._ensure_column("next_attempt_at", "TIMESTAMP")
+
+        self.db.commit()
+
+    def _ensure_column(self, name: str, column_type: str) -> None:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+            raise ValueError("invalid column name")
+        if not re.fullmatch(r"[A-Za-z0-9_()\\s]+", column_type):
+            raise ValueError("invalid column type")
+        cursor = self.db.cursor()
+        cursor.execute("PRAGMA table_info(message_outbox)")
+        existing = {row[1] for row in cursor.fetchall()}
+        if name in existing:
+            return
+        cursor.execute(f"ALTER TABLE message_outbox ADD COLUMN {name} {column_type}")
         self.db.commit()
 
     def enqueue(
@@ -249,6 +288,10 @@ class MessageOutbox:
                 f"Invalid message_type: {message_type}. "
                 f"Must be one of: {', '.join(self.VALID_MESSAGE_TYPES)}"
             )
+
+        # Enforce PM-centralized messaging
+        if originating_agent and originating_agent != "project_manager":
+            raise ValueError("originating_agent must be project_manager for user messages")
 
         # Validate payload
         if not payload:
@@ -318,20 +361,63 @@ class MessageOutbox:
         """
         cursor = self.db.cursor()
 
+        now = datetime.now(UTC).isoformat()
         cursor.execute(
             """
             SELECT * FROM message_outbox
             WHERE status = 'pending'
+            AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
             ORDER BY created_at ASC
             LIMIT ?
         """,
-            (limit,),
+            (now, limit),
         )
 
         rows = cursor.fetchall()
         return [OutboxMessage.from_row(dict(row)) for row in rows]
 
-    def mark_delivered(self, message_id: str) -> None:
+    def get_by_message_id(self, message_id: str) -> OutboxMessage | None:
+        cursor = self.db.cursor()
+        cursor.execute(
+            "SELECT * FROM message_outbox WHERE message_id = ?",
+            (message_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return OutboxMessage.from_row(dict(row))
+
+    def list_recent_by_chat(
+        self, chat_id: str, limit: int = 5, message_type_prefix: str | None = None
+    ) -> list[OutboxMessage]:
+        cursor = self.db.cursor()
+        params: list[object] = [chat_id]
+        query = "SELECT * FROM message_outbox " "WHERE chat_id = ? AND delivered_at IS NOT NULL"
+        if message_type_prefix:
+            query += " AND message_type LIKE ?"
+            params.append(f"{message_type_prefix}%")
+        query += " ORDER BY delivered_at DESC LIMIT ?"
+        params.append(limit)
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        return [OutboxMessage.from_row(dict(row)) for row in rows]
+
+    def count_delivered_since(self, chat_id: str, since_iso: str) -> int:
+        cursor = self.db.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM message_outbox
+            WHERE chat_id = ? AND delivered_at >= ?
+        """,
+            (chat_id, since_iso),
+        )
+        row = cursor.fetchone()
+        return int(row[0]) if row else 0
+
+    def mark_delivered(
+        self, message_id: str, chat_id: str | None = None, telegram_message_id: int | None = None
+    ) -> None:
         """
         Mark message as successfully delivered
 
@@ -351,13 +437,57 @@ class MessageOutbox:
                     WHEN expects_response = 1 THEN 'awaiting_response'
                     ELSE 'delivered'
                 END,
-                delivered_at = ?
+                delivered_at = ?,
+                last_attempted_at = ?,
+                chat_id = COALESCE(?, chat_id),
+                telegram_message_id = COALESCE(?, telegram_message_id)
             WHERE message_id = ?
         """,
-            (datetime.now().isoformat(), message_id),
+            (
+                datetime.now(UTC).isoformat(),
+                datetime.now(UTC).isoformat(),
+                chat_id,
+                telegram_message_id,
+                message_id,
+            ),
         )
 
         self.db.commit()
+
+    def record_response_from_reply(
+        self,
+        chat_id: str,
+        reply_to_message_id: int,
+        response_json: dict[str, Any],
+    ) -> str | None:
+        cursor = self.db.cursor()
+        cursor.execute(
+            """
+            SELECT id, originating_agent FROM message_outbox
+            WHERE chat_id = ?
+            AND telegram_message_id = ?
+            AND expects_response = 1
+            AND status = 'awaiting_response'
+            LIMIT 1
+        """,
+            (chat_id, reply_to_message_id),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        cursor.execute(
+            """
+            UPDATE message_outbox
+            SET status = 'delivered',
+                response_received_at = ?,
+                response_json = ?
+            WHERE id = ?
+        """,
+            (datetime.now(UTC).isoformat(), json.dumps(response_json), row["id"]),
+        )
+        self.db.commit()
+        return row["originating_agent"]
 
     def mark_failed(self, message_id: str, error: str) -> None:
         """
@@ -372,19 +502,43 @@ class MessageOutbox:
         """
         cursor = self.db.cursor()
 
+        now = datetime.now(UTC)
+
+        cursor.execute(
+            "SELECT attempts FROM message_outbox WHERE message_id = ?",
+            (message_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return
+
+        attempts = int(row["attempts"] or 0) + 1
+        if attempts >= self.MAX_ATTEMPTS:
+            status = "failed"
+            next_attempt_at = None
+        else:
+            status = "pending"
+            delay_seconds = 60 * (2 ** (attempts - 1))
+            next_attempt_at = (now + timedelta(seconds=delay_seconds)).isoformat()
+
         cursor.execute(
             """
             UPDATE message_outbox
-            SET attempts = attempts + 1,
+            SET attempts = ?,
                 last_error = ?,
                 last_attempted_at = ?,
-                status = CASE
-                    WHEN attempts + 1 >= ? THEN 'failed'
-                    ELSE 'pending'
-                END
+                status = ?,
+                next_attempt_at = ?
             WHERE message_id = ?
         """,
-            (error, datetime.now().isoformat(), self.MAX_ATTEMPTS, message_id),
+            (
+                attempts,
+                error,
+                now.isoformat(),
+                status,
+                next_attempt_at,
+                message_id,
+            ),
         )
 
         self.db.commit()
@@ -433,7 +587,7 @@ class MessageOutbox:
                 response_json = ?
             WHERE id = ?
         """,
-            (datetime.now().isoformat(), json.dumps(response_data), row["id"]),
+            (datetime.now(UTC).isoformat(), json.dumps(response_data), row["id"]),
         )
 
         self.db.commit()
@@ -475,13 +629,18 @@ class MessageOutbox:
             UPDATE message_outbox
             SET status = 'pending',
                 attempts = 0,
-                last_error = NULL
+                last_error = NULL,
+                next_attempt_at = NULL
             WHERE message_id = ?
         """,
             (message_id,),
         )
 
         self.db.commit()
+
+    def close(self) -> None:
+        if self._owns_connection:
+            self.db.close()
 
 
 # ==============================================================================
@@ -503,6 +662,9 @@ def _parse_timestamp(timestamp_str: str | None) -> datetime | None:
         return None
 
     try:
-        return datetime.fromisoformat(timestamp_str)
+        parsed = datetime.fromisoformat(timestamp_str)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed
     except (ValueError, TypeError):
         return None

@@ -23,7 +23,7 @@ def test_deletion_removes_weaviate_chunks(tmp_path, weaviate_client):
     collection = weaviate_client.collections.get("TheMuses")
     collection.data.insert(
         properties={"text": "Hello world", "sourceFile": str(file_path), "sourceFileId": "abc"},
-        vector=[0.1, 0.2, 0.3],
+        vector={"default": [0.0] * 1024},
     )
 
     janitor = Janitor(str(source), str(shadow))

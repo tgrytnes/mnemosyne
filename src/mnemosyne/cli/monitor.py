@@ -21,7 +21,7 @@ class MonitorCLIConfig:
         self.confidence_delta = float(os.getenv("MONITOR_CONFIDENCE_DELTA", "0.15"))
         self.queue_db_path = os.getenv("MONITOR_QUEUE_DB_PATH", "monitor_queue.db")
         self.state_db_path = os.getenv("MONITOR_STATE_DB_PATH", "monitor_state.db")
-        self.outbox_db_path = os.getenv("MONITOR_OUTBOX_DB_PATH", "monitor_outbox.db")
+        self.message_outbox_path = os.getenv("MESSAGE_OUTBOX_PATH", "message_outbox.db")
         self.weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         self.weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         self.weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
@@ -56,9 +56,9 @@ def run_monitor() -> None:
         import psycopg2
         import weaviate
 
+        from mnemosyne.alexandria.communication_intents import PMIntentQueue
         from mnemosyne.alexandria.weaviate_schema import Discoveries, WeaviateSchemaManager
         from mnemosyne.argus.scout.monitor_agent import (
-            MessageOutbox,
             MonitorAgent,
             MonitorConfig,
             MonitorStateStore,
@@ -84,7 +84,7 @@ def run_monitor() -> None:
 
         proposal_queue = ProposalQueue(postgres_connection)
         state_store = MonitorStateStore(postgres_connection)
-        outbox = MessageOutbox(postgres_connection)
+        intent_queue = PMIntentQueue(postgres_connection)
 
         reader = WeaviateDiscoveryReader(weaviate_client)
         projects = PostgresProjectRepository(postgres_connection)
@@ -93,7 +93,7 @@ def run_monitor() -> None:
             project_repository=projects,
             proposal_queue=proposal_queue,
             state_store=state_store,
-            outbox=outbox,
+            intent_queue=intent_queue,
             config=MonitorConfig(
                 confidence_threshold=config.confidence_threshold,
                 scan_limit=config.scan_limit,
@@ -107,7 +107,6 @@ def run_monitor() -> None:
 
         proposal_queue.close()
         state_store.close()
-        outbox.close()
         postgres_connection.close()
         weaviate_client.close()
 

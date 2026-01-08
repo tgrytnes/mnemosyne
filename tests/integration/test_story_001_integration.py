@@ -69,7 +69,7 @@ def test_clustering_and_representation_pipeline(weaviate_client):
         for i, vector in enumerate(all_vectors):
             batch.add_object(
                 properties={"text": f"This is chunk {i}", "chunkIndex": i},
-                vector=vector.tolist(),
+                vector={"default": vector.tolist()},
                 uuid=uuid.uuid4(),
             )
 

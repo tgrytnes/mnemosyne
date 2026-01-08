@@ -54,7 +54,7 @@ class _FakeStateStore:
         pass
 
 
-class _FakeOutbox:
+class _FakeIntentQueue:
     def __init__(self, _conn):
         pass
 
@@ -85,7 +85,7 @@ def test_run_monitor_agent_task_reads_env(monkeypatch):
     monkeypatch.setattr(scheduler, "psycopg2", _FakePsycopg2())
     monkeypatch.setattr(scheduler, "ProposalQueue", _FakeProposalQueue)
     monkeypatch.setattr(scheduler, "MonitorStateStore", _FakeStateStore)
-    monkeypatch.setattr(scheduler, "MessageOutbox", _FakeOutbox)
+    monkeypatch.setattr(scheduler, "PMIntentQueue", _FakeIntentQueue)
     monkeypatch.setattr(scheduler, "WeaviateDiscoveryReader", _FakeReader)
     monkeypatch.setattr(scheduler, "PostgresProjectRepository", _FakeProjects)
     monkeypatch.setattr(scheduler, "MonitorAgent", _FakeAgent)

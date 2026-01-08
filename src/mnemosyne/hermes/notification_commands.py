@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from mnemosyne.alexandria.message_outbox import MessageOutbox
 from mnemosyne.hermes.notification_preferences import NotificationPreferences
-from mnemosyne.hermes.outbox_store import OutboxStore
 
 
 @dataclass
 class NotificationCommandHandler:
     preferences_repo: object
-    outbox: OutboxStore
+    outbox: MessageOutbox
 
     def _get_or_create(self, user_id: str) -> NotificationPreferences:
         existing = self.preferences_repo.get(user_id)
@@ -41,17 +41,18 @@ class NotificationCommandHandler:
         return f"Quiet hours updated: {start_hour}-{end_hour}"
 
     def handle_discoveries(self, *, chat_id: str, limit: int = 5) -> str:
-        rows = self.outbox.list_recent_by_chat(
-            chat_id=chat_id,
-            limit=limit,
-            message_type_prefix="discovery_",
-        )
-        if not rows:
+        rows = self.outbox.list_recent_by_chat(chat_id=chat_id, limit=limit)
+        discovery_rows = [
+            row
+            for row in rows
+            if row.payload.get("discovery_id") or row.message_type.startswith("discovery_")
+        ]
+        if not discovery_rows:
             return "No discovery notifications yet."
 
         lines = ["Recent discoveries:"]
-        for row in rows:
-            payload = row.payload_json
+        for row in discovery_rows:
+            payload = row.payload
             title = payload.get("title") or payload.get("summary") or row.message_type
             lines.append(f"- {title}")
         return "\n".join(lines)

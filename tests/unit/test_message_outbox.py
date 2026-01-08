@@ -10,6 +10,7 @@ TDD Approach: These tests are written BEFORE implementation.
 import json
 import sqlite3
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -56,7 +57,10 @@ def outbox_db(temp_db):
             last_error TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_attempted_at TIMESTAMP,
-            delivered_at TIMESTAMP
+            delivered_at TIMESTAMP,
+            chat_id TEXT,
+            telegram_message_id INTEGER,
+            next_attempt_at TIMESTAMP
         )
     """
     )
@@ -65,6 +69,7 @@ def outbox_db(temp_db):
     conn.execute("CREATE INDEX idx_outbox_type ON message_outbox(message_type)")
     conn.execute("CREATE INDEX idx_outbox_agent ON message_outbox(originating_agent)")
     conn.execute("CREATE INDEX idx_outbox_context ON message_outbox(context_id)")
+    conn.execute("CREATE INDEX idx_outbox_chat ON message_outbox(chat_id)")
 
     conn.commit()
 
@@ -94,7 +99,7 @@ class TestProducerAPI:
         message_id = message_outbox.enqueue(
             message_type="notification",
             payload={"text": "Hello user!"},
-            originating_agent="test_agent",
+            originating_agent="project_manager",
             context_id="test:123",
         )
 
@@ -109,7 +114,7 @@ class TestProducerAPI:
             message_type="approval_request",
             payload={"text": "Approve this?"},
             message_id=custom_id,
-            originating_agent="gatekeeper",
+            originating_agent="project_manager",
             context_id="discovery:disco_001",
         )
 
@@ -174,7 +179,7 @@ class TestProducerAPI:
             message_id = message_outbox.enqueue(
                 message_type=msg_type,
                 payload={"text": f"Test {msg_type}"},
-                originating_agent="test_agent",
+                originating_agent="project_manager",
             )
 
             assert message_id is not None
@@ -183,7 +188,7 @@ class TestProducerAPI:
     def test_send_message_helper(self, message_outbox):
         """Test simple send_message helper for text-only notifications"""
         message_outbox.send_message(
-            text="Simple notification", agent="test_agent", context_id="test:123"
+            text="Simple notification", agent="project_manager", context_id="test:123"
         )
 
         # Verify record created
@@ -194,7 +199,7 @@ class TestProducerAPI:
         assert row is not None
         payload = json.loads(row["payload_json"])
         assert payload["text"] == "Simple notification"
-        assert row["originating_agent"] == "test_agent"
+        assert row["originating_agent"] == "project_manager"
         assert row["context_id"] == "test:123"
 
 
@@ -213,7 +218,7 @@ class TestConsumerAPI:
             message_outbox.enqueue(
                 message_type="notification",
                 payload={"text": f"Message {i}"},
-                originating_agent="test_agent",
+                originating_agent="project_manager",
             )
 
         # Fetch pending
@@ -298,6 +303,47 @@ class TestConsumerAPI:
         assert row["status"] == "awaiting_response"
         assert row["delivered_at"] is not None
 
+    def test_mark_delivered_records_telegram_fields(self, message_outbox):
+        """Test that delivery metadata is stored for Hermes routing."""
+        message_id = message_outbox.enqueue(
+            message_type="question",
+            payload={"text": "How important? (1-5)"},
+            originating_agent="project_manager",
+            context_id="project:101",
+            expects_response=True,
+        )
+
+        message_outbox.mark_delivered(
+            message_id,
+            chat_id="chat-1",
+            telegram_message_id=4242,
+        )
+
+        row = message_outbox.get_by_message_id(message_id)
+        assert row.chat_id == "chat-1"
+        assert row.telegram_message_id == 4242
+        assert row.status == "awaiting_response"
+
+    def test_fetch_pending_skips_future_retry(self, message_outbox):
+        """Test that pending fetch ignores messages waiting for retry."""
+        message_id = message_outbox.enqueue(
+            message_type="notification",
+            payload={"text": "Retry later"},
+            message_id="msg_retry",
+        )
+
+        future = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        cursor = message_outbox.db.cursor()
+        cursor.execute(
+            "UPDATE message_outbox SET next_attempt_at = ? WHERE message_id = ?",
+            (future, message_id),
+        )
+        message_outbox.db.commit()
+
+        pending = message_outbox.fetch_pending(limit=10)
+
+        assert pending == []
+
     def test_mark_failed_increments_attempts(self, message_outbox):
         """Test that marking failed increments attempts counter"""
         message_id = message_outbox.enqueue(message_type="notification", payload={"text": "Test"})
@@ -316,6 +362,20 @@ class TestConsumerAPI:
         assert row["attempts"] == 1
         assert row["last_error"] == "Connection timeout"
         assert row["status"] == "pending"  # Still pending, can retry
+
+    def test_mark_failed_sets_next_attempt_at(self, message_outbox):
+        """Test that failures schedule a future retry time."""
+        message_id = message_outbox.enqueue(message_type="notification", payload={"text": "Test"})
+
+        message_outbox.mark_failed(message_id, error="Connection timeout")
+
+        cursor = message_outbox.db.cursor()
+        cursor.execute(
+            "SELECT next_attempt_at FROM message_outbox WHERE message_id = ?",
+            (message_id,),
+        )
+        row = cursor.fetchone()
+        assert row["next_attempt_at"] is not None
 
     def test_mark_failed_max_attempts(self, message_outbox):
         """Test that message marked as failed after max attempts (3)"""
@@ -426,6 +486,87 @@ class TestResponseRouting:
 
 
 # ==============================================================================
+# Hermes Routing Helpers
+# ==============================================================================
+
+
+class TestHermesRouting:
+    """Test Hermes-facing helpers for chat routing and history."""
+
+    def test_record_response_from_reply_returns_agent(self, message_outbox):
+        message_id = message_outbox.enqueue(
+            message_type="question",
+            payload={"text": "Urgency?"},
+            originating_agent="project_manager",
+            context_id="project:55",
+            expects_response=True,
+        )
+        message_outbox.mark_delivered(
+            message_id,
+            chat_id="chat-55",
+            telegram_message_id=9001,
+        )
+
+        agent = message_outbox.record_response_from_reply(
+            chat_id="chat-55",
+            reply_to_message_id=9001,
+            response_json={"urgency": 4},
+        )
+
+        row = message_outbox.get_by_message_id(message_id)
+        assert agent == "project_manager"
+        assert row.response == {"urgency": 4}
+        assert row.status == "delivered"
+
+    def test_list_recent_by_chat_filters_by_type(self, message_outbox):
+        first_id = message_outbox.enqueue(
+            message_type="notification",
+            payload={"title": "Discovery A", "discovery_id": "disc-1"},
+            message_id="msg-1",
+            context_id="discovery:disc-1",
+        )
+        second_id = message_outbox.enqueue(
+            message_type="question",
+            payload={"text": "Importance?"},
+            message_id="msg-2",
+            context_id="project:2",
+            expects_response=True,
+        )
+
+        message_outbox.mark_delivered(first_id, chat_id="chat-1", telegram_message_id=101)
+        message_outbox.mark_delivered(second_id, chat_id="chat-1", telegram_message_id=102)
+
+        rows = message_outbox.list_recent_by_chat(
+            chat_id="chat-1",
+            limit=5,
+            message_type_prefix="notification",
+        )
+
+        assert [row.message_id for row in rows] == ["msg-1"]
+
+    def test_count_delivered_since(self, message_outbox):
+        for idx in range(2):
+            message_id = message_outbox.enqueue(
+                message_type="notification",
+                payload={"text": f"Note {idx}"},
+                message_id=f"msg-{idx}",
+            )
+            message_outbox.mark_delivered(
+                message_id,
+                chat_id="chat-9",
+                telegram_message_id=200 + idx,
+            )
+
+        assert (
+            message_outbox.count_delivered_since(
+                chat_id="chat-9",
+                since_iso="2000-01-01T00:00:00",
+            )
+            == 2
+        )
+
+
+# ==============================================================================
 # State Transition Tests
 # ==============================================================================
 
@@ -456,7 +597,7 @@ class TestStateTransitions:
         message_id = message_outbox.enqueue(
             message_type="question",
             payload={"text": "Test"},
-            originating_agent="test_agent",
+            originating_agent="project_manager",
             context_id="test:1",
             expects_response=True,
         )
@@ -478,7 +619,7 @@ class TestStateTransitions:
         message_id = message_outbox.enqueue(
             message_type="question",
             payload={"text": "Test"},
-            originating_agent="test_agent",
+            originating_agent="project_manager",
             context_id="test:1",
             expects_response=True,
         )
@@ -522,12 +663,14 @@ class TestStateTransitions:
 
         cursor = message_outbox.db.cursor()
         cursor.execute(
-            "SELECT status, attempts FROM message_outbox WHERE message_id = ?", (message_id,)
+            "SELECT status, attempts, next_attempt_at FROM message_outbox WHERE message_id = ?",
+            (message_id,),
         )
         row = cursor.fetchone()
 
         assert row["status"] == "pending"
         assert row["attempts"] == 0
+        assert row["next_attempt_at"] is None
 
 
 # ==============================================================================
@@ -641,7 +784,7 @@ class TestOutboxMessage:
             "id": 1,
             "message_id": "test_msg_1",
             "message_type": "notification",
-            "originating_agent": "test_agent",
+            "originating_agent": "project_manager",
             "context_id": "test:123",
             "payload_json": '{"text": "Hello"}',
             "status": "pending",
@@ -653,15 +796,21 @@ class TestOutboxMessage:
             "created_at": "2026-01-01 10:00:00",
             "last_attempted_at": None,
             "delivered_at": None,
+            "chat_id": "chat-1",
+            "telegram_message_id": 1234,
+            "next_attempt_at": None,
         }
 
         msg = OutboxMessage.from_row(row_dict)
 
         assert msg.message_id == "test_msg_1"
         assert msg.message_type == "notification"
-        assert msg.originating_agent == "test_agent"
+        assert msg.originating_agent == "project_manager"
         assert msg.context_id == "test:123"
         assert msg.payload == {"text": "Hello"}
         assert msg.status == "pending"
         assert msg.expects_response is False
         assert msg.attempts == 0
+        assert msg.chat_id == "chat-1"
+        assert msg.telegram_message_id == 1234
+        assert msg.next_attempt_at is None

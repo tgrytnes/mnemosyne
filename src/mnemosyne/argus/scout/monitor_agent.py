@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -245,69 +244,6 @@ class MonitorStateStore:
         pass
 
 
-class MessageOutbox:
-    """Postgres-backed message outbox."""
-
-    def __init__(self, db_conn):
-        self._conn = db_conn
-        self._ensure_table()
-
-    def _ensure_table(self) -> None:
-        with self._conn.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS message_outbox (
-                    id SERIAL PRIMARY KEY,
-                    message_id TEXT NOT NULL UNIQUE,
-                    message_type TEXT NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'pending',
-                    attempts INTEGER NOT NULL DEFAULT 0,
-                    last_error TEXT,
-                    created_at TIMESTAMPTZ DEFAULT NOW(),
-                    last_attempted_at TIMESTAMPTZ
-                )
-                """
-            )
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_outbox_status ON message_outbox(status)")
-        self._conn.commit()
-
-    def enqueue(self, message_type: str, payload: dict[str, Any], message_id: str) -> None:
-        payload_json = json.dumps(payload, default=str)
-        with self._conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO message_outbox (
-                    message_id, message_type, payload_json
-                ) VALUES (%s, %s, %s)
-                ON CONFLICT (message_id) DO NOTHING
-                """,
-                (message_id, message_type, payload_json),
-            )
-        self._conn.commit()
-
-    def fetch_pending(self, limit: int = 50) -> list[dict[str, Any]]:
-        with self._conn.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT * FROM message_outbox
-                WHERE status = 'pending'
-                ORDER BY id ASC
-                LIMIT %s
-                """,
-                (limit,),
-            )
-            rows = cursor.fetchall()
-            return [_row_to_dict(cursor, row) for row in rows if row]
-
-    def dequeue(self, limit: int = 100) -> list[dict[str, Any]]:
-        """Alias for fetch_pending() to maintain API compatibility."""
-        return self.fetch_pending(limit=limit)
-
-    def close(self) -> None:
-        pass
-
-
 def _row_to_dict(cursor, row: tuple | None) -> dict[str, Any] | None:
     if row is None:
         return None
@@ -397,14 +333,14 @@ class MonitorAgent:
         project_repository,
         proposal_queue: ProposalQueue,
         state_store: MonitorStateStore,
-        outbox: MessageOutbox,
+        intent_queue,
         config: MonitorConfig | None = None,
     ):
         self._reader = discovery_reader
         self._projects = project_repository
         self._queue = proposal_queue
         self._state = state_store
-        self._outbox = outbox
+        self._intent_queue = intent_queue
         self._config = config or MonitorConfig()
 
     def run(self) -> None:
@@ -500,7 +436,14 @@ class MonitorAgent:
                 "confidence": proposal["confidence_score"],
                 "detected_at": proposal["detected_at"],
             }
-            self._outbox.enqueue("proposal_escalation", payload, message_id)
+            self._intent_queue.enqueue_intent(
+                intent_type="proposal_escalation",
+                payload=payload,
+                message_id=message_id,
+                originating_agent="monitor",
+                context_id=f"discovery:{discovery_id}",
+                expects_response=False,
+            )
             self._queue.update_status(discovery_id, "escalated")
             state = self._state.get_state(discovery_id) or {}
             self._state.record_rejection(

@@ -1,0 +1,59 @@
+name: Test Ollama Download
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-ollama:
+    name: Test Ollama Model Download
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test 1 - Latest with defaults
+        run: |
+          echo "=== Test 1: ollama/ollama:latest with default settings ==="
+          docker run -d --name ollama1 -p 11434:11434 ollama/ollama:latest
+          sleep 10
+
+          echo "Attempting to pull qwen3-embedding:0.6b..."
+          timeout 120 docker exec ollama1 ollama pull qwen3-embedding:0.6b || echo "FAILED"
+
+          docker rm -f ollama1
+          echo ""
+
+      - name: Test 2 - Latest with client2 experiment
+        run: |
+          echo "=== Test 2: ollama/ollama:latest with OLLAMA_EXPERIMENT=client2 ==="
+          docker run -d --name ollama2 \
+            -p 11434:11434 \
+            -e OLLAMA_EXPERIMENT=client2 \
+            -e OLLAMA_REGISTRY_MAXSTREAMS=1 \
+            ollama/ollama:latest
+          sleep 10
+
+          echo "Attempting to pull qwen3-embedding:0.6b..."
+          timeout 120 docker exec ollama2 ollama pull qwen3-embedding:0.6b || echo "FAILED"
+
+          docker rm -f ollama2
+          echo ""
+
+      - name: Test 3 - Pinned version 0.5.4
+        run: |
+          echo "=== Test 3: ollama/ollama:0.5.4 ==="
+          docker run -d --name ollama3 -p 11434:11434 ollama/ollama:0.5.4
+          sleep 10
+
+          echo "Attempting to pull qwen3-embedding:0.6b..."
+          timeout 120 docker exec ollama3 ollama pull qwen3-embedding:0.6b || echo "FAILED"
+
+          docker rm -f ollama3
+          echo ""
+
+      - name: Test 4 - Ubuntu 22.04 runner with latest
+        if: false  # Skip for now, would need separate job
+        run: echo "Would test on ubuntu-22.04"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "All tests completed. Check logs above to see which configuration worked."

@@ -12,6 +12,8 @@ from typing import Any
 
 from dateutil import parser as date_parser
 
+from mnemosyne.alexandria.message_outbox import MessageOutbox
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,7 @@ class ProjectManagerAgent:
         db_conn,
         message_outbox,
         gatekeeper=None,
+        intent_queue=None,
         max_messages_per_hour: int = 10,
     ):
         """
@@ -37,11 +40,13 @@ class ProjectManagerAgent:
             db_conn: PostgreSQL database connection
             message_outbox: Message Outbox for sending questions
             gatekeeper: SQL Gatekeeper for direct updates (optional)
+            intent_queue: PM intent queue for centralized messaging (optional)
             max_messages_per_hour: Throttle limit for messages
         """
         self.db_conn = db_conn
         self.message_outbox = message_outbox
         self.gatekeeper = gatekeeper
+        self.intent_queue = intent_queue
         self.max_messages_per_hour = max_messages_per_hour
 
     # ==========================================================================
@@ -252,6 +257,88 @@ Reply with a brief description."""
         )
 
         logger.info(f"Requested description for project {project['id']}")
+
+    # ==========================================================================
+    # Intent Handling (Story 029)
+    # ==========================================================================
+
+    def process_intents(self, limit: int = 10) -> None:
+        """Translate queued intents into user-facing messages."""
+        if not self.intent_queue:
+            return
+
+        intents = self.intent_queue.list_pending(limit=limit)
+        for intent in intents:
+            intent_type = intent.get("intent_type")
+            payload = intent.get("payload") or {}
+            message_id = intent.get("message_id")
+            context_id = intent.get("context_id")
+
+            if intent_type == "project_approval_request":
+                candidate = payload.get("candidate_key") or "project"
+                confidence = payload.get("confidence")
+                confidence_text = f"{confidence:.2f}" if confidence is not None else "unknown"
+                message_content = (
+                    f"Approve project proposal **{candidate}** "
+                    f"(confidence {confidence_text})?\n"
+                    "Reply `approve` or `reject`."
+                )
+                self.message_outbox.enqueue(
+                    message_type="question",
+                    payload={"text": message_content, "question_type": "approval"},
+                    originating_agent="project_manager",
+                    context_id=context_id,
+                    expects_response=True,
+                    message_id=message_id,
+                )
+            elif intent_type == "proposal_escalation":
+                candidate = payload.get("candidate_key") or "proposal"
+                message_content = (
+                    f"Proposal escalation for **{candidate}**.\n" "Review when you can."
+                )
+                self.message_outbox.enqueue(
+                    message_type="escalation",
+                    payload={"text": message_content},
+                    originating_agent="project_manager",
+                    context_id=context_id,
+                    expects_response=False,
+                    message_id=message_id,
+                )
+            else:
+                logger.info("Skipping unknown intent type: %s", intent_type)
+                continue
+
+            self.intent_queue.mark_handled(message_id)
+
+    def handle_outbox_response(self, context_id: str, response_data: dict[str, Any]) -> None:
+        """Route outbox responses back to gatekeeper or PM handlers."""
+        if not context_id:
+            return
+
+        if context_id.startswith("discovery:"):
+            discovery_id = context_id.split(":", 1)[1]
+            decision = (response_data.get("decision") or "").strip().lower()
+            if not self.gatekeeper:
+                return
+            if decision in {"approve", "approved", "yes"}:
+                self.gatekeeper.approve(discovery_id)
+            elif decision in {"reject", "rejected", "no"}:
+                self.gatekeeper.reject(discovery_id)
+            return
+
+        if context_id.startswith("project:"):
+            project_id = int(context_id.split(":", 1)[1])
+            question_type = response_data.get("question_type")
+            value = response_data.get("value")
+            if question_type == "importance" and value is not None:
+                self.handle_importance_response(project_id, int(value))
+            elif question_type == "urgency" and value is not None:
+                self.handle_urgency_response(project_id, int(value))
+            elif question_type == "deadline" and value is not None:
+                self.handle_deadline_response(project_id, str(value))
+            elif question_type == "description" and value is not None:
+                self.handle_description_response(project_id, str(value))
+        return
 
     # ==========================================================================
     # User Response Handlers (Story 016 - Phase 6)
@@ -532,23 +619,32 @@ Reply with a brief description."""
 
         one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
 
-        # Query the SQLite message outbox (not PostgreSQL)
-        # Use the existing MessageOutbox connection
-        cursor = self.message_outbox.db.cursor()
+        if isinstance(self.message_outbox, MessageOutbox):
+            cursor = self.message_outbox.db.cursor()
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM message_outbox
+                WHERE created_at > ?
+                """,
+                (one_hour_ago.isoformat(),),
+            )
+            row = cursor.fetchone()
+            count = row[0] if row else 0
+            cursor.close()
+            return count
 
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-            FROM message_outbox
-            WHERE created_at > ?
-            """,
-            (one_hour_ago.isoformat(),),
-        )
-        row = cursor.fetchone()
-        count = row[0] if row else 0
-
-        cursor.close()
-        return count
+        with self.db_conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM message_outbox
+                WHERE created_at > %s
+                """,
+                (one_hour_ago,),
+            )
+            row = cursor.fetchone()
+            return row[0] if row else 0
 
     def _get_critical_deadlines(self) -> list[tuple]:
         """
