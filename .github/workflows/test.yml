@@ -293,7 +293,8 @@ jobs:
           TEST_POSTGRES_USER: mnemosyne
           TEST_POSTGRES_PASSWORD: mnemosyne_test_password
         run: |
-          poetry run pytest tests/e2e -v --tb=short -m e2e
+          # Add live output to see which test is running
+          poetry run pytest tests/e2e -v --tb=short -m e2e -s --capture=no --log-cli-level=INFO
 
 
   code-quality:
