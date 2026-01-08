@@ -113,66 +113,24 @@ jobs:
 
           echo "Ollama is ready"
 
-      - name: Pull Ollama models with retry
+      - name: Pull Ollama models
         run: |
-          # Check if model exists
+          # Check if model exists (from cache)
           model_exists() {
             docker exec ollama ollama list | grep -q "$1"
           }
 
-          # Function to pull model with exponential backoff and cleanup
-          pull_model_with_retry() {
-            local model=$1
-
-            # Skip if model already exists (cached)
+          # Pull models (client2 prevents corruption, no retry needed)
+          for model in "qwen3-embedding:0.6b" "gemma3:1b" "qwen3:0.6b"; do
             if model_exists "$model"; then
               echo "Model $model already exists (from cache), skipping download"
-              return 0
+            else
+              echo "Pulling $model..."
+              docker exec ollama ollama pull "$model"
             fi
+          done
 
-            local max_attempts=10
-            local attempt=1
-            local wait_time=5
-
-            while [ $attempt -le $max_attempts ]; do
-              echo "Attempt $attempt of $max_attempts for $model (wait time: ${wait_time}s)"
-
-              # Try to pull the model with longer timeout
-              if timeout 600 docker exec ollama sh -c "OLLAMA_MAX_LOADED_MODELS=0 ollama pull $model"; then
-                echo "Successfully pulled $model"
-                return 0
-              else
-                echo "Failed to pull $model (attempt $attempt/$max_attempts)"
-
-                # Clean up any partial downloads
-                docker exec ollama ollama rm "$model" 2>/dev/null || true
-
-                # Remove the known corrupted empty blob
-                docker exec ollama sh -c "rm -rf /root/.ollama/models/blobs/sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855* 2>/dev/null" || true
-
-                if [ $attempt -lt $max_attempts ]; then
-                  echo "Waiting ${wait_time} seconds before retry..."
-                  sleep $wait_time
-                  # Exponential backoff: double wait time each attempt, cap at 60s
-                  wait_time=$((wait_time * 2))
-                  if [ $wait_time -gt 60 ]; then
-                    wait_time=60
-                  fi
-                fi
-                attempt=$((attempt + 1))
-              fi
-            done
-
-            echo "Failed to pull $model after $max_attempts attempts"
-            return 1
-          }
-
-          # Pull required models with retry logic
-          pull_model_with_retry "qwen3-embedding:0.6b"
-          pull_model_with_retry "gemma3:1b"
-          pull_model_with_retry "qwen3:0.6b"
-
-          # Verify models are available
+          # Verify all models are available
           docker exec ollama ollama list
 
       - name: Install system dependencies
@@ -291,66 +249,24 @@ jobs:
 
           echo "Ollama is ready"
 
-      - name: Pull Ollama models with retry
+      - name: Pull Ollama models
         run: |
-          # Check if model exists
+          # Check if model exists (from cache)
           model_exists() {
             docker exec ollama ollama list | grep -q "$1"
           }
 
-          # Function to pull model with exponential backoff and cleanup
-          pull_model_with_retry() {
-            local model=$1
-
-            # Skip if model already exists (cached)
+          # Pull models (client2 prevents corruption, no retry needed)
+          for model in "qwen3-embedding:0.6b" "gemma3:1b" "qwen3:0.6b"; do
             if model_exists "$model"; then
               echo "Model $model already exists (from cache), skipping download"
-              return 0
+            else
+              echo "Pulling $model..."
+              docker exec ollama ollama pull "$model"
             fi
+          done
 
-            local max_attempts=10
-            local attempt=1
-            local wait_time=5
-
-            while [ $attempt -le $max_attempts ]; do
-              echo "Attempt $attempt of $max_attempts for $model (wait time: ${wait_time}s)"
-
-              # Try to pull the model with longer timeout
-              if timeout 600 docker exec ollama sh -c "OLLAMA_MAX_LOADED_MODELS=0 ollama pull $model"; then
-                echo "Successfully pulled $model"
-                return 0
-              else
-                echo "Failed to pull $model (attempt $attempt/$max_attempts)"
-
-                # Clean up any partial downloads
-                docker exec ollama ollama rm "$model" 2>/dev/null || true
-
-                # Remove the known corrupted empty blob
-                docker exec ollama sh -c "rm -rf /root/.ollama/models/blobs/sha256-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855* 2>/dev/null" || true
-
-                if [ $attempt -lt $max_attempts ]; then
-                  echo "Waiting ${wait_time} seconds before retry..."
-                  sleep $wait_time
-                  # Exponential backoff: double wait time each attempt, cap at 60s
-                  wait_time=$((wait_time * 2))
-                  if [ $wait_time -gt 60 ]; then
-                    wait_time=60
-                  fi
-                fi
-                attempt=$((attempt + 1))
-              fi
-            done
-
-            echo "Failed to pull $model after $max_attempts attempts"
-            return 1
-          }
-
-          # Pull required models with retry logic
-          pull_model_with_retry "qwen3-embedding:0.6b"
-          pull_model_with_retry "gemma3:1b"
-          pull_model_with_retry "qwen3:0.6b"
-
-          # Verify models are available
+          # Verify all models are available
           docker exec ollama ollama list
 
       - name: Install Poetry
