@@ -91,7 +91,7 @@ def test_query_completes_under_2_seconds(weaviate_client):
                     "sourceFile": f"note_{i % 100}.md",
                     "headingPath": f"# Section {i % 10}",
                 },
-                vector=vector.tolist(),
+                vector={"default": vector.tolist()},
                 uuid=uuid.uuid4(),
             )
 
@@ -149,7 +149,7 @@ def test_caching_improves_performance(weaviate_client):
         for i, vector in enumerate(vectors):
             batch.add_object(
                 properties={"text": f"Chunk {i}", "chunkIndex": i},
-                vector=vector.tolist(),
+                vector={"default": vector.tolist()},
                 uuid=uuid.uuid4(),
             )
 

@@ -14,7 +14,7 @@ import hashlib
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from glob import glob
 from pathlib import Path
 from typing import Any
@@ -126,7 +126,7 @@ class ObsidianIngestor:
             True if file needs ingestion
         """
         try:
-            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path), tz=UTC)
             return not self.state_tracker.is_ingested(file_path, mod_time)
         except Exception as e:
             logger.warning(f"Error checking file {file_path}: {e}")
@@ -290,7 +290,7 @@ class ObsidianIngestor:
                 return None
 
             chunks = self._chunk_text_with_structure(cleaned, file_path, structure)
-            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path), tz=UTC)
             return chunks, mod_time
         except Exception as e:
             logger.error(f"Error preparing chunks for {file_path}: {e}")
@@ -342,7 +342,7 @@ class ObsidianIngestor:
             "sourceFileId": self._source_file_id(chunk_data["source_file"]),
             "sourceType": chunk_data["source_type"],
             "chunkIndex": chunk_data["chunk_index"],
-            "ingestedAt": datetime.now(),
+            "ingestedAt": datetime.now(UTC),
             "fileModifiedAt": chunk_data["file_modified_at"],
             # Story 020: Heading metadata
             "headingPath": chunk_data.get("heading_path", ""),
@@ -352,7 +352,7 @@ class ObsidianIngestor:
 
         collection.data.insert(
             properties=properties,
-            vector=chunk_data["embedding"],
+            vector={"default": chunk_data["embedding"]},
         )
 
     def _delete_existing_chunks(self, file_path: str) -> None:

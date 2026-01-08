@@ -18,7 +18,7 @@ class TestWeaviateIngestion:
         # Create collection
         weaviate_client.collections.create(
             name="TheMuses_Test",
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vector_config=wvc.config.Configure.Vectors.self_provided(),
             properties=[
                 wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
                 wvc.config.Property(name="sourceFile", data_type=wvc.config.DataType.TEXT),
@@ -38,7 +38,7 @@ class TestWeaviateIngestion:
         # Create collection
         collection = weaviate_client.collections.create(
             name="TheMuses_Test",
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vector_config=wvc.config.Configure.Vectors.self_provided(),
             properties=[
                 wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
                 wvc.config.Property(name="sourceFile", data_type=wvc.config.DataType.TEXT),
@@ -60,7 +60,7 @@ class TestWeaviateIngestion:
                         "sourceType": "obsidian",
                         "chunkIndex": chunk["chunk_index"],
                     },
-                    vector=embedding,
+                    vector={"default": embedding},
                 )
 
         # Verify insertion
@@ -75,7 +75,7 @@ class TestWeaviateIngestion:
 
         collection = weaviate_client.collections.create(
             name="TheMuses_Test",
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vector_config=wvc.config.Configure.Vectors.self_provided(),
             properties=[
                 wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
                 wvc.config.Property(name="sourceFile", data_type=wvc.config.DataType.TEXT),
@@ -97,7 +97,7 @@ class TestWeaviateIngestion:
                         "sourceType": "obsidian",
                         "chunkIndex": chunk["chunk_index"],
                     },
-                    vector=embedding,
+                    vector={"default": embedding},
                 )
 
         # Query for obsidian only
@@ -121,7 +121,7 @@ class TestSemanticSearch:
 
         collection = weaviate_client.collections.create(
             name="TestCollection",
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vector_config=wvc.config.Configure.Vectors.self_provided(),
             properties=[
                 wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
             ],
@@ -139,13 +139,15 @@ class TestSemanticSearch:
                 embedding = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)[
                     "embedding"
                 ]
-                batch.add_object(properties={"text": text}, vector=embedding)
+                batch.add_object(properties={"text": text}, vector={"default": embedding})
 
         # Query for Docker-related content
         query_embedding = ollama_client.embeddings(
             model="qwen3-embedding:0.6b", prompt="Docker containers"
         )["embedding"]
-        response = collection.query.near_vector(near_vector=query_embedding, limit=2)
+        response = collection.query.near_vector(
+            near_vector=query_embedding, limit=2, target_vector="default"
+        )
 
         # Should return Docker-related docs first
         assert len(response.objects) == 2
@@ -161,7 +163,7 @@ def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollam
 
     collection = weaviate_client.collections.create(
         name="TestCollection",
-        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        vector_config=wvc.config.Configure.Vectors.self_provided(),
         properties=[
             wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT),
         ],
@@ -177,7 +179,7 @@ def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollam
         for i in range(num_docs):
             batch.add_object(
                 properties={"text": f"Test document {i}"},
-                vector=base_embedding,
+                vector={"default": base_embedding},
             )
 
     # Verify count

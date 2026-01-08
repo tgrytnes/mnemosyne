@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from mnemosyne.alexandria.message_outbox import MessageOutbox
 from mnemosyne.hermes.notification_commands import NotificationCommandHandler
 from mnemosyne.hermes.notification_preferences import NotificationPreferences
-from mnemosyne.hermes.outbox_store import OutboxStore
 
 
 class InMemoryPreferencesRepo:
@@ -18,7 +18,7 @@ class InMemoryPreferencesRepo:
 
 def _make_handler(tmp_path):
     repo = InMemoryPreferencesRepo()
-    outbox = OutboxStore(str(tmp_path / "outbox.db"))
+    outbox = MessageOutbox(str(tmp_path / "outbox.db"))
     return NotificationCommandHandler(repo, outbox), repo
 
 
@@ -56,12 +56,12 @@ def test_handle_discoveries_lists_recent(tmp_path):
     outbox = handler.outbox
 
     outbox.enqueue(
+        message_type="notification",
+        payload={"title": "Kitchen Remodel", "discovery_id": "disc-1"},
         message_id="msg-1",
-        message_type="discovery_project_candidate",
-        payload_json={"title": "Kitchen Remodel"},
         expects_response=False,
-        originating_agent="latent_scout",
-        context_id="disc-1",
+        originating_agent="project_manager",
+        context_id="discovery:disc-1",
     )
     outbox.mark_delivered(message_id="msg-1", chat_id="chat-1", telegram_message_id=101)
 

@@ -1,3 +1,6 @@
+import json
+
+
 class FakeTelegramClient:
     def __init__(self):
         self.sent = []
@@ -20,9 +23,9 @@ class FakeTelegramClient:
 
 
 def _make_store(tmp_path):
-    from mnemosyne.hermes.outbox_store import OutboxStore
+    from mnemosyne.alexandria.message_outbox import MessageOutbox
 
-    return OutboxStore(str(tmp_path / "outbox.db"))
+    return MessageOutbox(str(tmp_path / "outbox.db"))
 
 
 def test_delivers_pending_outbox_messages(tmp_path):
@@ -30,16 +33,16 @@ def test_delivers_pending_outbox_messages(tmp_path):
 
     store = _make_store(tmp_path)
     store.enqueue(
-        message_id="msg-10",
-        message_type="discovery_notification",
-        payload_json={
+        message_type="notification",
+        payload={
             "chat_id": "chat-1",
             "text": "Hello",
             "buttons": [],
             "parse_mode": "Markdown",
         },
+        message_id="msg-10",
         expects_response=False,
-        originating_agent="latent_scout",
+        originating_agent="project_manager",
         context_id="disc-10",
     )
 
@@ -48,9 +51,9 @@ def test_delivers_pending_outbox_messages(tmp_path):
     consumer.deliver_pending(limit=5)
 
     row = store.get_by_message_id("msg-10")
-    assert row["status"] == "delivered"
-    assert row["telegram_message_id"] == 101
-    assert row["chat_id"] == "chat-1"
+    assert row.status == "delivered"
+    assert row.telegram_message_id == 101
+    assert row.chat_id == "chat-1"
 
 
 def test_marks_failed_when_send_errors(tmp_path):
@@ -58,11 +61,11 @@ def test_marks_failed_when_send_errors(tmp_path):
 
     store = _make_store(tmp_path)
     store.enqueue(
+        message_type="notification",
+        payload={"chat_id": "chat-2", "text": "Oops", "buttons": [], "parse_mode": "Markdown"},
         message_id="msg-11",
-        message_type="discovery_notification",
-        payload_json={"chat_id": "chat-2", "text": "Oops", "buttons": [], "parse_mode": "Markdown"},
         expects_response=False,
-        originating_agent="latent_scout",
+        originating_agent="project_manager",
         context_id="disc-11",
     )
 
@@ -72,8 +75,8 @@ def test_marks_failed_when_send_errors(tmp_path):
     consumer.deliver_pending(limit=5)
 
     row = store.get_by_message_id("msg-11")
-    assert row["status"] == "failed"
-    assert row["last_error"] is not None
+    assert row.status == "pending"
+    assert row.last_error is not None
 
 
 def test_reply_router_maps_reply_to_outbox(tmp_path):
@@ -81,9 +84,9 @@ def test_reply_router_maps_reply_to_outbox(tmp_path):
 
     store = _make_store(tmp_path)
     store.enqueue(
-        message_id="msg-12",
         message_type="question",
-        payload_json={"chat_id": "chat-3", "text": "Urgency?", "buttons": [], "parse_mode": None},
+        payload={"chat_id": "chat-3", "text": "Urgency?", "buttons": [], "parse_mode": None},
+        message_id="msg-12",
         expects_response=True,
         originating_agent="project_manager",
         context_id="project-12",
@@ -100,7 +103,7 @@ def test_reply_router_maps_reply_to_outbox(tmp_path):
 
     assert handled is True
     row = store.get_by_message_id("msg-12")
-    assert row["response_json"] is not None
+    assert row.response is not None
 
 
 def test_reply_router_ignores_unknown_reply(tmp_path):
@@ -116,3 +119,56 @@ def test_reply_router_ignores_unknown_reply(tmp_path):
     )
 
     assert handled is False
+
+
+def test_consumer_skips_non_pm_messages(tmp_path):
+    from mnemosyne.hermes.telegram_transport import TelegramOutboxConsumer
+
+    store = _make_store(tmp_path)
+    cursor = store.db.cursor()
+    cursor.execute(
+        """
+        INSERT INTO message_outbox (
+            message_id,
+            message_type,
+            originating_agent,
+            context_id,
+            payload_json,
+            expects_response,
+            status
+        ) VALUES (?, ?, ?, ?, ?, ?, 'pending')
+        """,
+        (
+            "msg-gk",
+            "notification",
+            "gatekeeper",
+            "project:1",
+            json.dumps(
+                {
+                    "chat_id": "chat-1",
+                    "text": "Gatekeeper",
+                    "buttons": [],
+                    "parse_mode": None,
+                }
+            ),
+            False,
+        ),
+    )
+    store.db.commit()
+    store.enqueue(
+        message_type="notification",
+        payload={"chat_id": "chat-1", "text": "PM", "buttons": [], "parse_mode": None},
+        message_id="msg-pm",
+        originating_agent="project_manager",
+        context_id="project:1",
+        expects_response=False,
+    )
+
+    client = FakeTelegramClient()
+    consumer = TelegramOutboxConsumer(store, client)
+    consumer.deliver_pending(limit=5)
+
+    assert len(client.sent) == 1
+    assert client.sent[0]["text"] == "PM"
+    gatekeeper_row = store.get_by_message_id("msg-gk")
+    assert gatekeeper_row.status == "pending"

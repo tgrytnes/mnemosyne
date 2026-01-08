@@ -40,41 +40,48 @@ class PDFIngestor:
         if not pdf_files:
             logger.info("No PDFs found in %s", self.input_dir)
             return
+        for pdf_path in pdf_files:
+            self.ingest_file(pdf_path)
+
+    def ingest_file(self, pdf_path: str | Path) -> int:
+        path = Path(pdf_path)
+        if not path.exists() or not path.is_file():
+            return 0
+        if path.suffix.lower() != ".pdf":
+            return 0
 
         collection = self.client.collections.get("TheLethe")
+        try:
+            text = self._extract_text(path)
+        except Exception as exc:
+            logger.warning("Failed to extract %s: %s", path, exc)
+            return 0
+        raw_text = text or ""
+        cleaned = self.clean_text(raw_text)
+        # Fall back to raw text if cleaning removed everything
+        if not cleaned and raw_text.strip():
+            cleaned = raw_text.strip()
+        if not cleaned:
+            logger.info("No text extracted from %s", path)
+            return 0
 
-        for pdf_path in pdf_files:
-            pdf_path = Path(pdf_path)
-            try:
-                text = self._extract_text(pdf_path)
-            except Exception as exc:
-                logger.warning("Failed to extract %s: %s", pdf_path, exc)
-                continue
-            raw_text = text or ""
-            cleaned = self.clean_text(raw_text)
-            # Fall back to raw text if cleaning removed everything
-            if not cleaned and raw_text.strip():
-                cleaned = raw_text.strip()
-            if not cleaned:
-                logger.info("No text extracted from %s", pdf_path)
-                continue
-
-            chunks = self.chunk_text(cleaned, chunk_size=500)
-            metadata = self.extract_metadata(pdf_path)
-            for idx, chunk in enumerate(chunks):
-                vector = self._safe_embed(chunk)
-                props = {
-                    "body": chunk,
-                    "sourcePath": str(pdf_path),
-                    "type": "pdf",
-                    "documentType": "pdf",
-                    "pageNumber": metadata.get("page_number", 1),
-                    "creationDate": metadata.get("creation_date", ""),
-                    "messageId": metadata.get("stable_id", f"{pdf_path.name}-{idx}"),
-                    "clusterId": -1,
-                    "keywords": [],
-                }
-                collection.data.insert(properties=props, vector=vector)
+        chunks = self.chunk_text(cleaned, chunk_size=500)
+        metadata = self.extract_metadata(path)
+        for idx, chunk in enumerate(chunks):
+            vector = self._safe_embed(chunk)
+            props = {
+                "body": chunk,
+                "sourcePath": str(path),
+                "type": "pdf",
+                "documentType": "pdf",
+                "pageNumber": metadata.get("page_number", 1),
+                "creationDate": metadata.get("creation_date", ""),
+                "messageId": metadata.get("stable_id", f"{path.name}-{idx}"),
+                "clusterId": -1,
+                "keywords": [],
+            }
+            collection.data.insert(properties=props, vector={"default": vector})
+        return len(chunks)
 
     # ---------------------- Extraction ---------------------- #
 

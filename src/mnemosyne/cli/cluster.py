@@ -126,7 +126,7 @@ class ClusterManager:
         with self.centroid_collection.batch.fixed_size(batch_size=100) as batch:
             for cluster_id, centroid_vec, size in centroids_to_insert:
                 batch.add_object(
-                    vector=centroid_vec.tolist(),
+                    vector={"default": centroid_vec.tolist()},
                     properties={
                         "clusterId": int(cluster_id),
                         "clusterSize": int(size),

@@ -104,7 +104,7 @@ def test_insert_chunks(weaviate_client, clean_weaviate_collection):
     """Test inserting chunks into Weaviate"""
     collection = weaviate_client.collections.create(
         name="TestCollection",
-        vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        vector_config=wvc.config.Configure.Vectors.self_provided()
     )
 
     # Test implementation...

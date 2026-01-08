@@ -13,7 +13,7 @@ def test_monitor_cli_config_reads_env(monkeypatch, tmp_path):
     monkeypatch.setenv("MONITOR_CONFIDENCE_DELTA", "0.2")
     monkeypatch.setenv("MONITOR_QUEUE_DB_PATH", str(tmp_path / "queue.db"))
     monkeypatch.setenv("MONITOR_STATE_DB_PATH", str(tmp_path / "state.db"))
-    monkeypatch.setenv("MONITOR_OUTBOX_DB_PATH", str(tmp_path / "outbox.db"))
+    monkeypatch.setenv("MESSAGE_OUTBOX_PATH", str(tmp_path / "outbox.db"))
     monkeypatch.setenv("WEAVIATE_HTTP_HOST", "weaviate")
     monkeypatch.setenv("WEAVIATE_HTTP_PORT", "9090")
     monkeypatch.setenv("WEAVIATE_GRPC_PORT", "50052")
@@ -32,7 +32,7 @@ def test_monitor_cli_config_reads_env(monkeypatch, tmp_path):
     assert config.confidence_delta == 0.2
     assert config.queue_db_path == str(tmp_path / "queue.db")
     assert config.state_db_path == str(tmp_path / "state.db")
-    assert config.outbox_db_path == str(tmp_path / "outbox.db")
+    assert config.message_outbox_path == str(tmp_path / "outbox.db")
     assert config.weaviate_host == "weaviate"
     assert config.weaviate_port == 9090
     assert config.weaviate_grpc_port == 50052

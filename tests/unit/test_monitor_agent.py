@@ -31,15 +31,27 @@ class _FakeProjectRepository:
         return discovery_id in self.existing_ids
 
 
-class _InMemoryOutbox:
+class _InMemoryIntentQueue:
     def __init__(self):
-        self.messages: list[dict[str, str]] = []
+        self.intents: list[dict[str, str]] = []
 
-    def enqueue(self, message_type: str, payload: dict, message_id: str) -> None:
-        self.messages.append(
+    def enqueue_intent(
+        self,
+        intent_type: str,
+        payload: dict,
+        message_id: str,
+        originating_agent: str | None = None,
+        context_id: str | None = None,
+        expects_response: bool = False,
+    ) -> None:
+        self.intents.append(
             {
-                "message_type": message_type,
+                "intent_type": intent_type,
                 "message_id": message_id,
+                "originating_agent": originating_agent,
+                "context_id": context_id,
+                "expects_response": expects_response,
+                "payload": payload,
             }
         )
 
@@ -124,14 +136,14 @@ def test_monitor_creates_proposal_for_new_discovery():
 
     proposal_queue = _InMemoryProposalQueue()
     state_store = _InMemoryStateStore()
-    outbox = _InMemoryOutbox()
+    intent_queue = _InMemoryIntentQueue()
 
     agent = MonitorAgent(
         discovery_reader=reader,
         project_repository=projects,
         proposal_queue=proposal_queue,
         state_store=state_store,
-        outbox=outbox,
+        intent_queue=intent_queue,
         config=MonitorConfig(confidence_threshold=0.7),
     )
 
@@ -155,14 +167,14 @@ def test_monitor_skips_discovery_already_in_sql():
 
     proposal_queue = _InMemoryProposalQueue()
     state_store = _InMemoryStateStore()
-    outbox = _InMemoryOutbox()
+    intent_queue = _InMemoryIntentQueue()
 
     agent = MonitorAgent(
         discovery_reader=reader,
         project_repository=projects,
         proposal_queue=proposal_queue,
         state_store=state_store,
-        outbox=outbox,
+        intent_queue=intent_queue,
         config=MonitorConfig(confidence_threshold=0.7),
     )
 
@@ -178,7 +190,7 @@ def test_monitor_respects_reask_policy():
 
     proposal_queue = _InMemoryProposalQueue()
     state_store = _InMemoryStateStore()
-    outbox = _InMemoryOutbox()
+    intent_queue = _InMemoryIntentQueue()
 
     rejected_at = datetime.now(UTC) - timedelta(days=1)
     state_store.record_rejection(
@@ -193,7 +205,7 @@ def test_monitor_respects_reask_policy():
         project_repository=projects,
         proposal_queue=proposal_queue,
         state_store=state_store,
-        outbox=outbox,
+        intent_queue=intent_queue,
         config=MonitorConfig(
             confidence_threshold=0.7,
             cooldown_days=14,
@@ -205,6 +217,38 @@ def test_monitor_respects_reask_policy():
     agent.run()
 
     assert proposal_queue.get_by_discovery_id(discovery.discovery_id) is None
+
+
+def test_monitor_escalation_records_intent():
+    discovery = _sample_discovery(confidence=0.95)
+    reader = _FakeDiscoveryReader([])
+    projects = _FakeProjectRepository(existing_ids=set())
+
+    proposal_queue = _InMemoryProposalQueue()
+    state_store = _InMemoryStateStore()
+    intent_queue = _InMemoryIntentQueue()
+
+    proposal_queue.upsert(discovery)
+    proposal_queue.update_status(discovery.discovery_id, "rejected")
+
+    agent = MonitorAgent(
+        discovery_reader=reader,
+        project_repository=projects,
+        proposal_queue=proposal_queue,
+        state_store=state_store,
+        intent_queue=intent_queue,
+        config=MonitorConfig(confidence_threshold=0.7),
+    )
+
+    agent.run()
+
+    assert intent_queue.intents
+    intent = intent_queue.intents[0]
+    assert intent["intent_type"] == "proposal_escalation"
+    assert intent["message_id"] == f"proposal_escalation:{discovery.discovery_id}"
+    assert intent["originating_agent"] == "monitor"
+    assert intent["context_id"] == f"discovery:{discovery.discovery_id}"
+    assert intent["expects_response"] is False
 
 
 def test_monitor_logs_summary_counts(caplog):
@@ -238,7 +282,7 @@ def test_monitor_logs_summary_counts(caplog):
 
     proposal_queue = _InMemoryProposalQueue()
     state_store = _InMemoryStateStore()
-    outbox = _InMemoryOutbox()
+    intent_queue = _InMemoryIntentQueue()
 
     future = datetime.now(UTC) + timedelta(days=3)
     state_store._state[d_snoozed.discovery_id] = {
@@ -263,7 +307,7 @@ def test_monitor_logs_summary_counts(caplog):
         project_repository=projects,
         proposal_queue=proposal_queue,
         state_store=state_store,
-        outbox=outbox,
+        intent_queue=intent_queue,
         config=MonitorConfig(
             confidence_threshold=0.7,
             max_asks=2,

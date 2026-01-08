@@ -271,7 +271,9 @@ Commands:
         query_embedding = ingestor._generate_embedding(query_text)
 
         # Search by vector
-        result = collection.query.near_vector(near_vector=query_embedding, limit=3)
+        result = collection.query.near_vector(
+            near_vector=query_embedding, limit=3, target_vector="default"
+        )
 
         # THEN: Finds relevant chunks
         assert len(result.objects) > 0

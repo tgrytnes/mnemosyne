@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
+from mnemosyne.alexandria.communication_intents import PMIntentQueue
 from mnemosyne.alexandria.sql_gatekeeper import GatekeeperConfig, SQLProjectGatekeeper
-from mnemosyne.argus.scout.monitor_agent import DiscoveryRecord, MessageOutbox, ProposalQueue
+from mnemosyne.argus.scout.monitor_agent import DiscoveryRecord, ProposalQueue
 
 
 def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -> DiscoveryRecord:
@@ -25,7 +26,7 @@ def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -
 def _reset_gatekeeper_tables(postgres_connection) -> None:
     cursor = postgres_connection.cursor()
     cursor.execute("DELETE FROM proposal_queue")
-    cursor.execute("DELETE FROM message_outbox")
+    cursor.execute("DELETE FROM pm_intent_queue")
     postgres_connection.commit()
 
 
@@ -33,12 +34,12 @@ def _reset_gatekeeper_tables(postgres_connection) -> None:
 @pytest.mark.postgres
 def test_auto_reject_updates_queue_and_audit(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(auto_reject_threshold=0.6, auto_approve_threshold=0.9),
     )
 
@@ -59,12 +60,12 @@ def test_auto_reject_updates_queue_and_audit(postgres_connection, ananke_test_db
 @pytest.mark.postgres
 def test_auto_approve_inserts_project(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(auto_reject_threshold=0.6, auto_approve_threshold=0.9),
     )
 
@@ -82,14 +83,14 @@ def test_auto_approve_inserts_project(postgres_connection, ananke_test_db):
 
 @pytest.mark.integration
 @pytest.mark.postgres
-def test_requires_approval_sends_outbox(postgres_connection, ananke_test_db):
+def test_requires_approval_enqueues_intent(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(auto_reject_threshold=0.6, auto_approve_threshold=0.9),
     )
 
@@ -98,7 +99,8 @@ def test_requires_approval_sends_outbox(postgres_connection, ananke_test_db):
 
     result = gatekeeper.process_pending()
     assert result["awaiting_approval"] == 1
-    assert outbox.dequeue()[0]["message_type"] == "project_approval_request"
+    intents = intent_queue.list_pending(limit=10)
+    assert intents[0]["intent_type"] == "project_approval_request"
     assert queue.list_by_status("awaiting_approval")
 
 
@@ -106,12 +108,12 @@ def test_requires_approval_sends_outbox(postgres_connection, ananke_test_db):
 @pytest.mark.postgres
 def test_manual_approval_flow(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(auto_reject_threshold=0.6, auto_approve_threshold=0.95),
     )
 
@@ -133,12 +135,12 @@ def test_manual_approval_flow(postgres_connection, ananke_test_db):
 @pytest.mark.postgres
 def test_rollback_with_token(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(
             auto_reject_threshold=0.6,
             auto_approve_threshold=0.9,

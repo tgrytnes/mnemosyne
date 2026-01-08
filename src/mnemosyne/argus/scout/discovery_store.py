@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from weaviate.classes.query import Filter
 
@@ -67,7 +67,7 @@ class DiscoveryStore:
                     "patternType": detection.pattern_type,
                     "clusterIds": detection.cluster_ids,
                     "confidenceScore": detection.confidence_score,
-                    "detectedAt": datetime.utcnow(),
+                    "detectedAt": datetime.now(UTC),
                     "signals": json.dumps(
                         {"concept_key": detection.concept_key, **detection.signals},
                         sort_keys=True,
@@ -85,7 +85,7 @@ class DiscoveryStore:
                     properties["candidateKey"] = detection.candidate_key
                 response = collection.data.insert(
                     properties=properties,
-                    vector=detection.embedding,
+                    vector={"default": detection.embedding},
                 )
                 stored_ids.append(str(response))
 

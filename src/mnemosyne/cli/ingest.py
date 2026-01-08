@@ -14,9 +14,11 @@ from pathlib import Path
 import ollama
 import weaviate
 
+from ..aletheia.email_ingest import EmailIngestConfig, EmailIngestor
 from ..aletheia.ingestion_state import IngestionStateTracker
+from ..aletheia.ingestion_watch_hub import IngestionWatchConfig, IngestionWatchHub
 from ..aletheia.obsidian_ingestor import ObsidianIngestor
-from ..aletheia.vault_watcher import VaultWatcher
+from ..aletheia.pdf_ingestor import PDFIngestor
 
 # Configure logging
 logging.basicConfig(
@@ -88,7 +90,11 @@ class IngestionConfig:
         return True
 
 
-def create_ingestor(config: IngestionConfig) -> ObsidianIngestor:
+def create_ingestor(
+    config: IngestionConfig,
+    weaviate_client=None,
+    ollama_client=None,
+) -> ObsidianIngestor:
     """
     Create ObsidianIngestor instance with configuration.
 
@@ -98,15 +104,17 @@ def create_ingestor(config: IngestionConfig) -> ObsidianIngestor:
     Returns:
         Configured ObsidianIngestor instance
     """
-    logger.info("Connecting to Weaviate...")
-    weaviate_client = weaviate.connect_to_local(
-        host=config.weaviate_host,
-        port=config.weaviate_port,
-        grpc_port=config.weaviate_grpc_port,
-    )
+    if weaviate_client is None:
+        logger.info("Connecting to Weaviate...")
+        weaviate_client = weaviate.connect_to_local(
+            host=config.weaviate_host,
+            port=config.weaviate_port,
+            grpc_port=config.weaviate_grpc_port,
+        )
 
-    logger.info("Connecting to Ollama...")
-    ollama_client = ollama.Client(host=config.ollama_base_url)
+    if ollama_client is None:
+        logger.info("Connecting to Ollama...")
+        ollama_client = ollama.Client(host=config.ollama_base_url)
 
     logger.info("Initializing state tracker...")
     state_tracker = IngestionStateTracker(config.state_db_path)
@@ -256,70 +264,145 @@ def re_ingest_vault(vault_path: str | None = None, force: bool = False):
 
 def watch_vault(vault_path: str | None = None):
     """
-    Watch vault for changes and ingest automatically.
+    Watch ingestion sources for changes and ingest automatically.
 
     Args:
         vault_path: Optional path to vault (overrides env var)
     """
+    hub = None
+    ingestor = None
+    email_ingestor = None
+    pdf_ingestor = None
+    weaviate_client = None
+
     try:
         if not is_watch_enabled():
             logger.info("Ingestor watch disabled; exiting.")
             return
 
-        config = IngestionConfig()
+        watch_config = IngestionWatchConfig()
+        if vault_path:
+            watch_config.vault_path = vault_path
 
+        if not (
+            watch_config.watch_vault_enabled
+            or watch_config.watch_email_enabled
+            or watch_config.watch_pdf_enabled
+        ):
+            logger.info("No ingestion watchers enabled; exiting.")
+            return
+
+        config = IngestionConfig()
         if vault_path:
             config.vault_path = vault_path
 
-        config.validate()
+        logger.info("Connecting to Weaviate...")
+        weaviate_client = weaviate.connect_to_local(
+            host=config.weaviate_host,
+            port=config.weaviate_port,
+            grpc_port=config.weaviate_grpc_port,
+        )
 
-        logger.info("=" * 60)
-        logger.info("Starting Vault Watcher")
-        logger.info("=" * 60)
-        logger.info(f"Vault: {config.vault_path}")
-        logger.info(f"Weaviate: {config.weaviate_host}:{config.weaviate_port}")
-        logger.info(f"Ollama: {config.ollama_base_url}")
-        logger.info(f"State DB: {config.state_db_path}")
-        logger.info(f"Debounce: {config.watch_debounce}s")
-        logger.info("=" * 60)
+        logger.info("Connecting to Ollama...")
+        ollama_client = ollama.Client(host=config.ollama_base_url)
+        embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
 
-        ingestor = create_ingestor(config)
+        def embedder(text: str) -> list[float]:
+            response = ollama_client.embeddings(model=embedding_model, prompt=text)
+            return response["embedding"]
 
-        # Define callback for file changes
-        def on_file_change(file_path: str):
-            """Process a single file when it changes."""
+        if watch_config.watch_vault_enabled:
+            config.validate()
+            ingestor = create_ingestor(
+                config, weaviate_client=weaviate_client, ollama_client=ollama_client
+            )
+
+        if watch_config.watch_email_enabled:
+            email_config = EmailIngestConfig.from_env()
+            email_ingestor = EmailIngestor(
+                config=email_config,
+                weaviate_client=weaviate_client,
+                embedder=embedder,
+                ollama_client=ollama_client,
+            )
+
+        if watch_config.watch_pdf_enabled:
+            pdf_scan_path = watch_config.pdf_scan_path
+            if not pdf_scan_path:
+                raise ValueError("PDF_SCAN_PATH environment variable not set")
+            pdf_ingestor = PDFIngestor(
+                input_dir=str(pdf_scan_path),
+                weaviate_client=weaviate_client,
+                embedder=embedder,
+            )
+
+        def on_vault_change(file_path: str) -> None:
+            if not ingestor:
+                return
             logger.info(f"\n{'=' * 60}")
-            logger.info(f"Processing: {file_path}")
+            logger.info(f"Processing vault file: {file_path}")
             logger.info("=" * 60)
-
             try:
                 chunk_count = ingestor.ingest_file(file_path)
                 logger.info(f"✓ Created {chunk_count} chunk(s)")
-            except Exception as e:
-                logger.error(f"✗ Error: {e}")
+            except Exception as exc:
+                logger.error(f"✗ Error: {exc}")
+
+        def on_email_change(file_path: str) -> None:
+            if not email_ingestor:
+                return
+            logger.info(f"\n{'=' * 60}")
+            logger.info(f"Processing email file: {file_path}")
+            logger.info("=" * 60)
+            try:
+                summary = email_ingestor.ingest_file(file_path)
+                logger.info(
+                    "✓ Email ingest loaded=%s stored=%s duplicates=%s rejected=%s",
+                    summary.total_loaded,
+                    summary.total_stored,
+                    summary.duplicates,
+                    summary.rejected,
+                )
+            except Exception as exc:
+                logger.error(f"✗ Error: {exc}")
+
+        def on_pdf_change(file_path: str) -> None:
+            if not pdf_ingestor:
+                return
+            logger.info(f"\n{'=' * 60}")
+            logger.info(f"Processing PDF file: {file_path}")
+            logger.info("=" * 60)
+            try:
+                chunk_count = pdf_ingestor.ingest_file(file_path)
+                logger.info(f"✓ PDF ingest created {chunk_count} chunk(s)")
+            except Exception as exc:
+                logger.error(f"✗ Error: {exc}")
 
         # Register signal handlers for graceful shutdown
         signal.signal(signal.SIGTERM, ingest_signal_handler)
         signal.signal(signal.SIGINT, ingest_signal_handler)
 
-        # Create and start watcher
-        watcher = VaultWatcher(
-            vault_path=config.vault_path,
-            on_file_change=on_file_change,
-            debounce_seconds=config.watch_debounce,
+        logger.info("=" * 60)
+        logger.info("Starting Ingestion Watchers")
+        logger.info("=" * 60)
+        logger.info("Watch vault enabled: %s", watch_config.watch_vault_enabled)
+        logger.info("Watch email enabled: %s", watch_config.watch_email_enabled)
+        logger.info("Watch PDF enabled: %s", watch_config.watch_pdf_enabled)
+        logger.info("=" * 60)
+
+        hub = IngestionWatchHub(
+            config=watch_config,
+            on_vault_change=on_vault_change,
+            on_email_change=on_email_change,
+            on_pdf_change=on_pdf_change,
         )
 
-        logger.info("\nWatcher started. Monitoring for changes...")
+        logger.info("\nWatcher hub started. Monitoring for changes...")
         logger.info("Press Ctrl+C to stop.\n")
 
-        watcher.start()
+        hub.start()
         while not shutdown_flag:
             time.sleep(1)
-
-        # Cleanup on exit
-        logger.info("\nCleaning up...")
-        ingestor.state_tracker.close()
-        ingestor.weaviate_client.close()
 
     except Exception as e:
         logger.error(f"Error during watching: {e}")
@@ -327,6 +410,14 @@ def watch_vault(vault_path: str | None = None):
 
         traceback.print_exc()
         sys.exit(1)
+    finally:
+        if hub:
+            logger.info("\nCleaning up...")
+            hub.stop()
+        if ingestor:
+            ingestor.state_tracker.close()
+        if weaviate_client:
+            weaviate_client.close()
 
 
 def main():
