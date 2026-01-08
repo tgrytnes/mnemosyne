@@ -32,7 +32,7 @@ def mock_db_conn():
 def mock_outbox():
     """Mock Message Outbox"""
     outbox = Mock()
-    outbox.enqueue_message = Mock(return_value={"id": "msg_123", "status": "pending"})
+    outbox.enqueue = Mock(return_value={"id": "msg_123", "status": "pending"})
     return outbox
 
 
@@ -232,16 +232,17 @@ class TestQuestionHandlers:
         agent._request_importance(project)
 
         # Should enqueue message
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
         # Check message content
-        assert "importance" in call_args["content"].lower()
-        assert "Implement Dark Mode" in call_args["content"]
+        assert "importance" in call_args["payload"]["text"].lower()
+        assert "Implement Dark Mode" in call_args["payload"]["text"]
         assert call_args["expects_response"] is True
-        assert call_args["sender"] == "project_manager"
-        assert call_args["metadata"]["project_id"] == 42
-        assert call_args["metadata"]["question_type"] == "importance"
+        assert call_args["originating_agent"] == "project_manager"
+        assert call_args["context_id"] == "project:42"
+        assert call_args["message_type"] == "question"
+        assert call_args["payload"]["question_type"] == "importance"
 
     def test_request_urgency_formats_message(self, mock_db_conn, mock_outbox):
         """Test urgency question formatting"""
@@ -257,12 +258,12 @@ class TestQuestionHandlers:
 
         agent._request_urgency(project)
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
-        assert "urgency" in call_args["content"].lower()
+        assert "urgency" in call_args["payload"]["text"].lower()
         assert call_args["expects_response"] is True
-        assert call_args["metadata"]["question_type"] == "urgency"
+        assert call_args["payload"]["question_type"] == "urgency"
 
     def test_request_deadline_formats_message(self, mock_db_conn, mock_outbox):
         """Test deadline question formatting"""
@@ -279,12 +280,12 @@ class TestQuestionHandlers:
 
         agent._request_deadline(project)
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
-        assert "deadline" in call_args["content"].lower()
+        assert "deadline" in call_args["payload"]["text"].lower()
         assert call_args["expects_response"] is True
-        assert call_args["metadata"]["question_type"] == "deadline"
+        assert call_args["payload"]["question_type"] == "deadline"
 
     def test_request_description_formats_message(self, mock_db_conn, mock_outbox):
         """Test description enrichment question formatting"""
@@ -300,15 +301,15 @@ class TestQuestionHandlers:
 
         agent._request_description(project)
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
         assert (
-            "describe" in call_args["content"].lower()
-            or "description" in call_args["content"].lower()
+            "describe" in call_args["payload"]["text"].lower()
+            or "description" in call_args["payload"]["text"].lower()
         )
         assert call_args["expects_response"] is True
-        assert call_args["metadata"]["question_type"] == "description"
+        assert call_args["payload"]["question_type"] == "description"
 
 
 # ==============================================================================
@@ -345,9 +346,9 @@ class TestResponseHandler:
         agent.continue_enrichment(project_id=42)
 
         # Should call _request_urgency
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
-        assert call_args["metadata"]["question_type"] == "urgency"
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
+        assert call_args["payload"]["question_type"] == "urgency"
 
     def test_continue_enrichment_stops_when_complete(self, mock_db_conn, mock_outbox):
         """Test that continue_enrichment stops when all metadata present"""
@@ -375,7 +376,7 @@ class TestResponseHandler:
         agent.continue_enrichment(project_id=42)
 
         # Should NOT enqueue any messages
-        mock_outbox.enqueue_message.assert_not_called()
+        mock_outbox.enqueue.assert_not_called()
 
     def test_continue_enrichment_handles_nonexistent_project(self, mock_db_conn, mock_outbox):
         """Test handling of nonexistent project ID"""
@@ -389,7 +390,7 @@ class TestResponseHandler:
         # Should handle gracefully, not crash
         agent.continue_enrichment(project_id=99999)
 
-        mock_outbox.enqueue_message.assert_not_called()
+        mock_outbox.enqueue.assert_not_called()
 
 
 # ==============================================================================
@@ -419,7 +420,7 @@ class TestPMCheckCycle:
         agent.run_pm_check_cycle()
 
         # Should ask at least one question for new projects
-        assert mock_outbox.enqueue_message.call_count >= 1
+        assert mock_outbox.enqueue.call_count >= 1
 
     def test_messages_sent_last_hour_counts_correctly(self, mock_db_conn, mock_outbox):
         """Test counting messages sent in last hour"""
@@ -453,7 +454,7 @@ class TestPMCheckCycle:
         agent.run_pm_check_cycle()
 
         # Should not send more messages (throttled)
-        mock_outbox.enqueue_message.assert_not_called()
+        mock_outbox.enqueue.assert_not_called()
 
     def test_get_critical_deadlines_identifies_urgent_items(self, mock_db_conn, mock_outbox):
         """Test identifying projects with deadlines <24 hours"""
@@ -489,12 +490,13 @@ class TestPMCheckCycle:
 
         agent._handle_critical_deadline(project)
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
         # Should be urgent tone
         assert (
-            "urgent" in call_args["content"].lower() or "deadline" in call_args["content"].lower()
+            "urgent" in call_args["payload"]["text"].lower()
+            or "deadline" in call_args["payload"]["text"].lower()
         )
 
 
@@ -585,11 +587,11 @@ class TestReminderHandlers:
 
         agent._send_gentle_reminder(project, "importance")
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
         # Should be gentle (no "urgent", "critical", etc.)
-        content_lower = call_args["content"].lower()
+        content_lower = call_args["payload"]["text"].lower()
         assert "urgent" not in content_lower
         assert "critical" not in content_lower
 
@@ -609,13 +611,13 @@ class TestReminderHandlers:
 
         agent._send_escalated_reminder(project, "deadline")
 
-        mock_outbox.enqueue_message.assert_called_once()
-        call_args = mock_outbox.enqueue_message.call_args[1]
+        mock_outbox.enqueue.assert_called_once()
+        call_args = mock_outbox.enqueue.call_args[1]
 
         # Should mention high priority
         assert (
-            "important" in call_args["content"].lower()
-            or "priority" in call_args["content"].lower()
+            "important" in call_args["payload"]["text"].lower()
+            or "priority" in call_args["payload"]["text"].lower()
         )
 
     def test_mark_as_avoiding_after_many_questions(self, mock_db_conn, mock_gatekeeper):

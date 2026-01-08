@@ -73,7 +73,7 @@ class ObsidianGatekeeper:
                 "chunkIndex": 0,
             }
             vector = [0.0, 0.0, 0.0]
-            collection.data.insert(properties=props, vector=vector)
+            collection.data.insert(properties=props, vector={"default": vector})
         except Exception:
             # best-effort; don't block approvals
             return

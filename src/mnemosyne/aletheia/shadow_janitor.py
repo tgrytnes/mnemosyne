@@ -76,9 +76,11 @@ class Janitor:
         Best-effort connection using default test env vars so deletion hygiene
         works even if caller forgets to pass a client.
         """
-        host = os.getenv("TEST_WEAVIATE_HOST", "localhost")
-        http_port = int(os.getenv("TEST_WEAVIATE_PORT", "8080"))
-        grpc_port = int(os.getenv("TEST_WEAVIATE_GRPC_PORT", "50051"))
+        host = os.getenv("WEAVIATE_HTTP_HOST", os.getenv("TEST_WEAVIATE_HOST", "localhost"))
+        http_port = int(os.getenv("WEAVIATE_HTTP_PORT", os.getenv("TEST_WEAVIATE_PORT", "8080")))
+        grpc_port = int(
+            os.getenv("WEAVIATE_GRPC_PORT", os.getenv("TEST_WEAVIATE_GRPC_PORT", "50051"))
+        )
         try:
             client = weaviate.connect_to_custom(
                 http_host=host,

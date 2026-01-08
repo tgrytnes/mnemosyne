@@ -4,7 +4,7 @@ E2E tests for Story 003 - Automated Graph Taxonomy with Neo4j.
 
 import re
 from collections import Counter
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -32,18 +32,18 @@ def test_story_003_builds_taxonomy_graph(
     collection = weaviate_client.collections.get(ClusterCentroidLethe.collection_name)
     collection.data.delete_many(where=Filter.by_property("clusterId").greater_or_equal(0))
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     collection.data.insert(
         properties={"clusterId": 1, "clusterSize": 8, "lastUpdated": now},
-        vector=[1.0, 0.0],
+        vector={"default": [1.0, 0.0]},
     )
     collection.data.insert(
         properties={"clusterId": 2, "clusterSize": 6, "lastUpdated": now},
-        vector=[0.9, 0.1],
+        vector={"default": [0.9, 0.1]},
     )
     collection.data.insert(
         properties={"clusterId": 3, "clusterSize": 5, "lastUpdated": now},
-        vector=[0.0, 1.0],
+        vector={"default": [0.0, 1.0]},
     )
 
     project_notes = _load_named_notes(

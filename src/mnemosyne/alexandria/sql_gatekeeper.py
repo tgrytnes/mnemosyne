@@ -8,7 +8,8 @@ from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any
 
-from mnemosyne.argus.scout.monitor_agent import MessageOutbox, ProposalQueue
+from mnemosyne.alexandria.communication_intents import PMIntentQueue
+from mnemosyne.argus.scout.monitor_agent import ProposalQueue
 
 
 @dataclass(frozen=True)
@@ -25,12 +26,12 @@ class SQLProjectGatekeeper:
         self,
         db_conn,
         proposal_queue: ProposalQueue,
-        outbox: MessageOutbox,
+        intent_queue: PMIntentQueue,
         config: GatekeeperConfig | None = None,
     ):
         self._db = db_conn
         self._queue = proposal_queue
-        self._outbox = outbox
+        self._intent_queue = intent_queue
         self._config = config or GatekeeperConfig()
         self._ensure_schema()
 
@@ -53,16 +54,26 @@ class SQLProjectGatekeeper:
                 continue
 
             message_id = f"project_approval:{discovery_id}"
+            detected_at = proposal.get("detected_at")
+            if hasattr(detected_at, "isoformat"):
+                detected_at = detected_at.isoformat()
             payload = {
                 "type": "project_approval_request",
                 "discovery_id": discovery_id,
                 "discovery_job_key": proposal["discovery_job_key"],
                 "candidate_key": proposal["candidate_key"],
                 "confidence": confidence,
-                "detected_at": proposal["detected_at"],
+                "detected_at": detected_at,
                 "cluster_ids": proposal["cluster_ids"],
             }
-            self._outbox.enqueue("project_approval_request", payload, message_id)
+            self._intent_queue.enqueue_intent(
+                intent_type="project_approval_request",
+                payload=payload,
+                message_id=message_id,
+                originating_agent="gatekeeper",
+                context_id=f"discovery:{discovery_id}",
+                expects_response=True,
+            )
             self._queue.update_status(discovery_id, "awaiting_approval")
             counts["awaiting_approval"] += 1
 

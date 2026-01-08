@@ -6,12 +6,9 @@ from datetime import UTC, datetime
 
 import pytest
 
+from mnemosyne.alexandria.communication_intents import PMIntentQueue
 from mnemosyne.alexandria.sql_gatekeeper import GatekeeperConfig, SQLProjectGatekeeper
-from mnemosyne.argus.scout.monitor_agent import (
-    DiscoveryRecord,
-    MessageOutbox,
-    ProposalQueue,
-)
+from mnemosyne.argus.scout.monitor_agent import DiscoveryRecord, ProposalQueue
 
 
 def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -> DiscoveryRecord:
@@ -31,7 +28,7 @@ def _make_record(discovery_id: str, confidence: float, cluster_ids: list[str]) -
 def _reset_gatekeeper_tables(postgres_connection) -> None:
     cursor = postgres_connection.cursor()
     cursor.execute("DELETE FROM proposal_queue")
-    cursor.execute("DELETE FROM message_outbox")
+    cursor.execute("DELETE FROM pm_intent_queue")
     postgres_connection.commit()
 
 
@@ -39,12 +36,12 @@ def _reset_gatekeeper_tables(postgres_connection) -> None:
 @pytest.mark.postgres
 def test_story_014_gatekeeper_auto_approve_and_rollback(postgres_connection, ananke_test_db):
     queue = ProposalQueue(postgres_connection)
-    outbox = MessageOutbox(postgres_connection)
+    intent_queue = PMIntentQueue(postgres_connection)
     _reset_gatekeeper_tables(postgres_connection)
     gatekeeper = SQLProjectGatekeeper(
         postgres_connection,
         queue,
-        outbox,
+        intent_queue,
         GatekeeperConfig(
             auto_reject_threshold=0.6,
             auto_approve_threshold=0.9,
@@ -57,7 +54,9 @@ def test_story_014_gatekeeper_auto_approve_and_rollback(postgres_connection, ana
 
     result = gatekeeper.process_pending()
     assert result["auto_approved"] == 1
-    assert not outbox.dequeue(), "Auto-approved path should not enqueue approval requests"
+    assert not intent_queue.list_pending(
+        limit=5
+    ), "Auto-approved path should not enqueue approval intents"
 
     cur = postgres_connection.cursor()
     cur.execute(

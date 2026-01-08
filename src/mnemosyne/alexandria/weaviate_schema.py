@@ -381,7 +381,7 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=TheMuses.collection_name,
             description=TheMuses.description,
-            vectorizer_config=Configure.Vectorizer.none(),  # Manual vectors via Ollama
+            vector_config=Configure.Vectors.self_provided(),  # Manual vectors via Ollama
             properties=properties,
         )
 
@@ -399,7 +399,7 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=TheLethe.collection_name,
             description=TheLethe.description,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vector_config=Configure.Vectors.self_provided(),
             properties=properties,
         )
 
@@ -417,7 +417,7 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=ClusterCentroidCollection.collection_name,
             description=ClusterCentroidCollection.description,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vector_config=Configure.Vectors.self_provided(),
             properties=properties,
         )
 
@@ -435,7 +435,7 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=ClusterCentroidLethe.collection_name,
             description=ClusterCentroidLethe.description,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vector_config=Configure.Vectors.self_provided(),
             properties=properties,
         )
 
@@ -454,7 +454,7 @@ class WeaviateSchemaManager:
         self.client.collections.create(
             name=Discoveries.collection_name,
             description=Discoveries.description,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vector_config=Configure.Vectors.self_provided(),
             properties=properties,
         )
 

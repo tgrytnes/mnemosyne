@@ -3,6 +3,7 @@ Semantic chunking using LLM boundary detection.
 """
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -89,6 +90,10 @@ class SemanticChunker:
         )
 
     def _identify_boundaries(self, text: str) -> list[int]:
+        boundaries = self._request_boundary_json(text)
+        if boundaries is not None:
+            return boundaries
+
         sentences = self._split_sentences(text)
         if len(sentences) <= 1:
             return []
@@ -136,6 +141,30 @@ class SemanticChunker:
             prev_end = sentence["end"]
 
         return boundaries
+
+    def _request_boundary_json(self, text: str) -> list[int] | None:
+        prompt = (
+            "Return semantic chunk boundaries as JSON in the form "
+            '{"boundaries": [index, ...]}. Indices are character offsets '
+            "into the original text. Respond with JSON only.\n\n"
+            f"Text:\n{text}\n"
+        )
+        response = self.ollama_client.generate(
+            model=self.model,
+            prompt=prompt,
+            options={"temperature": self.temperature},
+        )
+        raw = response.get("response", "")
+        if not raw:
+            return None
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        boundaries = data.get("boundaries")
+        if not isinstance(boundaries, list):
+            return None
+        return [int(b) for b in boundaries if isinstance(b, (int, float))]
 
     def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
         sentences = re.split(r"(?<=[.!?])\s+", text.strip())

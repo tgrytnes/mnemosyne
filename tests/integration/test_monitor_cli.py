@@ -57,7 +57,7 @@ def test_monitor_cli_run_creates_proposal(
             "discoveryJobKey": "private_projects",
             "candidateKey": "house_painting",
         },
-        vector=[0.1, 0.2],
+        vector={"default": [0.1, 0.2]},
     )
 
     env = {

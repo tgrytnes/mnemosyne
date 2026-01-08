@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from mnemosyne.hermes.outbox_store import OutboxStore
+from mnemosyne.alexandria.message_outbox import MessageOutbox
 
 
 @dataclass
@@ -14,13 +14,15 @@ class TelegramMessagePayload:
 
 
 class TelegramOutboxConsumer:
-    def __init__(self, outbox: OutboxStore, telegram_client):
+    def __init__(self, outbox: MessageOutbox, telegram_client):
         self._outbox = outbox
         self._client = telegram_client
 
     def deliver_pending(self, *, limit: int = 10) -> None:
         pending = self._outbox.fetch_pending(limit=limit)
         for row in pending:
+            if row.originating_agent and row.originating_agent != "project_manager":
+                continue
             payload = self._build_payload(row)
             try:
                 message_id = self._client.send_message(
@@ -30,15 +32,15 @@ class TelegramOutboxConsumer:
                     parse_mode=payload.parse_mode,
                 )
                 self._outbox.mark_delivered(
-                    message_id=row["message_id"],
+                    message_id=row.message_id,
                     chat_id=payload.chat_id,
                     telegram_message_id=message_id,
                 )
             except Exception as exc:  # pragma: no cover - error path
-                self._outbox.mark_failed(message_id=row["message_id"], error=str(exc))
+                self._outbox.mark_failed(message_id=row.message_id, error=str(exc))
 
     def _build_payload(self, row) -> TelegramMessagePayload:
-        data = row["payload_json"]
+        data = row.payload if hasattr(row, "payload") else row["payload_json"]
         if isinstance(data, str):
             import json
 
@@ -52,7 +54,7 @@ class TelegramOutboxConsumer:
 
 
 class TelegramReplyRouter:
-    def __init__(self, outbox: OutboxStore):
+    def __init__(self, outbox: MessageOutbox):
         self._outbox = outbox
 
     def handle_text_reply(
@@ -65,8 +67,9 @@ class TelegramReplyRouter:
     ) -> bool:
         if not parsed_response:
             return False
-        return self._outbox.record_response_from_reply(
+        agent = self._outbox.record_response_from_reply(
             chat_id=chat_id,
             reply_to_message_id=reply_to_message_id,
             response_json=parsed_response,
         )
+        return agent is not None

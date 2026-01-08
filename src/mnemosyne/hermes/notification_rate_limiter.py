@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from mnemosyne.hermes.outbox_store import OutboxStore
+from mnemosyne.alexandria.message_outbox import MessageOutbox
 
 
 @dataclass
 class NotificationRateLimiter:
-    outbox: OutboxStore
+    outbox: MessageOutbox
 
     def can_send(
         self,

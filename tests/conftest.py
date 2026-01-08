@@ -219,12 +219,23 @@ def clean_weaviate_collection(weaviate_client):
 @pytest.fixture(scope="session")
 def ollama_client(test_config):
     """Create Ollama client for integration/e2e tests."""
+    import signal
+
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Ollama list() timed out")
+
     client = ollama.Client(
         host=test_config["ollama_url"],
         timeout=test_config["ollama_timeout"],
     )
     try:
-        client.list()
+        # Set a 30-second alarm for the list() call
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(30)
+        try:
+            client.list()
+        finally:
+            signal.alarm(0)  # Cancel the alarm
     except Exception as e:
         pytest.skip(f"Could not connect to Ollama: {e}")
     return client
