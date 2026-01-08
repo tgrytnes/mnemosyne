@@ -99,9 +99,13 @@ jobs:
           # Create directory for Ollama models if it doesn't exist
           mkdir -p ~/.ollama
 
+          # Fix: Use client2 experiment with MAXSTREAMS=1 to prevent concurrent write corruption
+          # See: https://github.com/ollama/ollama/issues/8445
           docker run -d --name ollama \
             -p 11434:11434 \
             -v ~/.ollama:/root/.ollama \
+            -e OLLAMA_EXPERIMENT=client2 \
+            -e OLLAMA_REGISTRY_MAXSTREAMS=1 \
             ollama/ollama:latest
 
           # Wait for Ollama to be ready (use /api/tags endpoint for health check)
@@ -273,9 +277,13 @@ jobs:
           # Create directory for Ollama models if it doesn't exist
           mkdir -p ~/.ollama
 
+          # Fix: Use client2 experiment with MAXSTREAMS=1 to prevent concurrent write corruption
+          # See: https://github.com/ollama/ollama/issues/8445
           docker run -d --name ollama \
             -p 11434:11434 \
             -v ~/.ollama:/root/.ollama \
+            -e OLLAMA_EXPERIMENT=client2 \
+            -e OLLAMA_REGISTRY_MAXSTREAMS=1 \
             ollama/ollama:latest
 
           # Wait for Ollama to be ready (use /api/tags endpoint for health check)
