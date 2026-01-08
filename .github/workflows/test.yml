@@ -96,14 +96,44 @@ jobs:
           # Wait for Ollama to be ready
           timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull required models
-          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+      - name: Pull Ollama models with retry
+        run: |
+          # Function to pull model with retry and cleanup
+          pull_model_with_retry() {
+            local model=$1
+            local max_attempts=5
+            local attempt=1
 
-          # Pull generation model for cluster metadata synthesis
-          docker exec ollama ollama pull qwen3:0.6b
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for $model"
+
+              if timeout 300 docker exec ollama ollama pull "$model"; then
+                echo "Successfully pulled $model"
+                return 0
+              else
+                echo "Failed to pull $model, cleaning up..."
+                # Remove the failed/partial model
+                docker exec ollama ollama rm "$model" 2>/dev/null || true
+
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "Waiting 10 seconds before retry..."
+                  sleep 10
+                fi
+                attempt=$((attempt + 1))
+              fi
+            done
+
+            echo "Failed to pull $model after $max_attempts attempts"
+            return 1
+          }
+
+          # Pull required models with retry logic
+          pull_model_with_retry "qwen3-embedding:0.6b"
+          pull_model_with_retry "gemma3:1b"
+          pull_model_with_retry "qwen3:0.6b"
+
+          # Verify models are available
+          docker exec ollama ollama list
 
       - name: Install system dependencies
         run: |
@@ -204,11 +234,44 @@ jobs:
           # Wait for Ollama to be ready
           timeout 120 bash -c 'until curl -f http://localhost:11434/; do sleep 2; done'
 
-          # Pull required models
-          timeout 300 docker exec ollama ollama pull qwen3-embedding:0.6b  # Embedding model
-          timeout 300 docker exec ollama ollama pull gemma3:1b  # Text generation for semantic chunking
-          timeout 300 docker exec ollama ollama pull qwen3:0.6b  # LLM for metadata synthesis (Story 002)
-          docker exec ollama ollama list | grep -q "gemma3:1b"
+      - name: Pull Ollama models with retry
+        run: |
+          # Function to pull model with retry and cleanup
+          pull_model_with_retry() {
+            local model=$1
+            local max_attempts=5
+            local attempt=1
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for $model"
+
+              if timeout 300 docker exec ollama ollama pull "$model"; then
+                echo "Successfully pulled $model"
+                return 0
+              else
+                echo "Failed to pull $model, cleaning up..."
+                # Remove the failed/partial model
+                docker exec ollama ollama rm "$model" 2>/dev/null || true
+
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "Waiting 10 seconds before retry..."
+                  sleep 10
+                fi
+                attempt=$((attempt + 1))
+              fi
+            done
+
+            echo "Failed to pull $model after $max_attempts attempts"
+            return 1
+          }
+
+          # Pull required models with retry logic
+          pull_model_with_retry "qwen3-embedding:0.6b"
+          pull_model_with_retry "gemma3:1b"
+          pull_model_with_retry "qwen3:0.6b"
+
+          # Verify models are available
+          docker exec ollama ollama list
 
       - name: Install Poetry
         run: |
