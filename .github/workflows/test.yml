@@ -287,6 +287,9 @@ jobs:
         env:
           OLLAMA_BASE_URL: http://localhost:11434
           SEMANTIC_LLM_MODEL: gemma3:1b
+          E2E_HYBRID_INGEST_FILE_COUNT: "10"
+          E2E_HYBRID_INGEST_MAX_MINUTES: "10"
+          INGEST_PROGRESS_EVERY: "1"
           TEST_POSTGRES_HOST: localhost
           TEST_POSTGRES_PORT: 5432
           TEST_POSTGRES_DB: mnemosyne_test
