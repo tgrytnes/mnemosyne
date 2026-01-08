@@ -87,10 +87,21 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache Ollama models
+        id: cache-ollama
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama
+          key: ollama-models-${{ runner.os }}-qwen3-embedding-0.6b-gemma3-1b-qwen3-0.6b-v1
+
       - name: Start Ollama container
         run: |
+          # Create directory for Ollama models if it doesn't exist
+          mkdir -p ~/.ollama
+
           docker run -d --name ollama \
             -p 11434:11434 \
+            -v ~/.ollama:/root/.ollama \
             ollama/ollama:latest
 
           # Wait for Ollama to be ready
@@ -98,9 +109,21 @@ jobs:
 
       - name: Pull Ollama models with retry
         run: |
+          # Check if model exists
+          model_exists() {
+            docker exec ollama ollama list | grep -q "$1"
+          }
+
           # Function to pull model with retry and cleanup
           pull_model_with_retry() {
             local model=$1
+
+            # Skip if model already exists (cached)
+            if model_exists "$model"; then
+              echo "Model $model already exists (from cache), skipping download"
+              return 0
+            fi
+
             local max_attempts=5
             local attempt=1
 
@@ -225,10 +248,21 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache Ollama models
+        id: cache-ollama
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama
+          key: ollama-models-${{ runner.os }}-qwen3-embedding-0.6b-gemma3-1b-qwen3-0.6b-v1
+
       - name: Start Ollama container
         run: |
+          # Create directory for Ollama models if it doesn't exist
+          mkdir -p ~/.ollama
+
           docker run -d --name ollama \
             -p 11434:11434 \
+            -v ~/.ollama:/root/.ollama \
             ollama/ollama:latest
 
           # Wait for Ollama to be ready
@@ -236,9 +270,21 @@ jobs:
 
       - name: Pull Ollama models with retry
         run: |
+          # Check if model exists
+          model_exists() {
+            docker exec ollama ollama list | grep -q "$1"
+          }
+
           # Function to pull model with retry and cleanup
           pull_model_with_retry() {
             local model=$1
+
+            # Skip if model already exists (cached)
+            if model_exists "$model"; then
+              echo "Model $model already exists (from cache), skipping download"
+              return 0
+            fi
+
             local max_attempts=5
             local attempt=1
 
