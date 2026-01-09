@@ -13,7 +13,7 @@ Layers:
     - prometheus: Layer 6 - Execution (Future Phase)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Your Name"
 
 # Layer imports will be added as they're implemented
