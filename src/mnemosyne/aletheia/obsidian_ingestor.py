@@ -161,8 +161,24 @@ class ObsidianIngestor:
                 return 0
 
             self._delete_existing_chunks(file_path)
+            inserted_chunks = 0
+            failed_embedding = False
             for chunk in chunks:
-                embedding = self._generate_embedding(chunk.text)
+                try:
+                    embedding = self._generate_embedding(chunk.text)
+                except Exception as exc:
+                    logger.error(
+                        "Embedding failed for %s chunk %s: %s",
+                        file_path,
+                        chunk.index,
+                        exc,
+                    )
+                    failed_embedding = True
+                    continue
+                if not embedding:
+                    logger.error("Embedding empty for %s chunk %s", file_path, chunk.index)
+                    failed_embedding = True
+                    continue
                 self._store_chunk(
                     {
                         "text": chunk.text,
@@ -176,10 +192,15 @@ class ObsidianIngestor:
                         "embedding": embedding,
                     }
                 )
+                inserted_chunks += 1
 
-            self.state_tracker.mark_ingested(file_path, mod_time, len(chunks))
-            logger.info(f"Ingested {file_path}: {len(chunks)} chunks")
-            return len(chunks)
+            if not failed_embedding:
+                self.state_tracker.mark_ingested(file_path, mod_time, inserted_chunks)
+            else:
+                logger.error("Embedding failures detected for %s; skipping state update", file_path)
+
+            logger.info(f"Ingested {file_path}: {inserted_chunks} chunks")
+            return inserted_chunks
         except Exception as e:
             logger.error(f"Error ingesting {file_path}: {e}")
             return 0
@@ -224,8 +245,24 @@ class ObsidianIngestor:
         total_to_process = len(prepared_files)
         for index, (file_path, mod_time, chunks) in enumerate(prepared_files, start=1):
             self._delete_existing_chunks(file_path)
+            inserted_chunks = 0
+            failed_embedding = False
             for chunk in chunks:
-                embedding = self._generate_embedding(chunk.text)
+                try:
+                    embedding = self._generate_embedding(chunk.text)
+                except Exception as exc:
+                    logger.error(
+                        "Embedding failed for %s chunk %s: %s",
+                        file_path,
+                        chunk.index,
+                        exc,
+                    )
+                    failed_embedding = True
+                    continue
+                if not embedding:
+                    logger.error("Embedding empty for %s chunk %s", file_path, chunk.index)
+                    failed_embedding = True
+                    continue
                 self._store_chunk(
                     {
                         "text": chunk.text,
@@ -239,8 +276,12 @@ class ObsidianIngestor:
                         "embedding": embedding,
                     }
                 )
+                inserted_chunks += 1
 
-            self.state_tracker.mark_ingested(file_path, mod_time, len(chunks))
+            if not failed_embedding:
+                self.state_tracker.mark_ingested(file_path, mod_time, inserted_chunks)
+            else:
+                logger.error("Embedding failures detected for %s; skipping state update", file_path)
             self._log_progress(index, total_to_process, start_time)
 
         stats = {

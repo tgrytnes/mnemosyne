@@ -15,6 +15,7 @@
 - Before development, ensure the user story is absolutely clear.
 - Ensure acceptance criteria are excellent and complete.
 - Ensure test coverage plan is excellent (unit + integration + e2e).
+- When writing GitHub issues, use proper Markdown with real newlines (no escaped `\\n`).
 - Quality Gate #1: begin test or implementation work only after the above is completed and explicitly approved by the user.
 
 ## Test Quality Gate

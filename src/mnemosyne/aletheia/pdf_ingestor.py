@@ -68,7 +68,14 @@ class PDFIngestor:
         chunks = self.chunk_text(cleaned, chunk_size=500)
         metadata = self.extract_metadata(path)
         for idx, chunk in enumerate(chunks):
-            vector = self._safe_embed(chunk)
+            try:
+                vector = self.embedder(chunk)
+            except Exception as exc:
+                logger.error("Embedding failed for %s chunk %s: %s", path, idx, exc)
+                continue
+            if not vector:
+                logger.error("Embedding empty for %s chunk %s", path, idx)
+                continue
             props = {
                 "body": chunk,
                 "sourcePath": str(path),
@@ -215,13 +222,6 @@ class PDFIngestor:
         return data
 
     # ---------------------- Helpers ---------------------- #
-
-    def _safe_embed(self, text: str) -> list[float]:
-        try:
-            return self.embedder(text)
-        except Exception as exc:
-            logger.warning("Embedding failed, returning zero vector: %s", exc)
-            return [0.0] * DEFAULT_EMBED_DIM
 
     # ---------------------- Internal helpers ---------------------- #
 

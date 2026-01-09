@@ -183,6 +183,9 @@ class EmailIngestor:
                 rejected += 1
                 continue
 
+            chunk_embeddings: list[tuple[EmailChunk, list[float]]] = []
+            failed_embedding = False
+
             for chunk in chunks:
                 if not chunk.text.strip():
                     continue
@@ -196,7 +199,34 @@ class EmailIngestor:
                     parent_source_path=email.source_path,
                 )
 
-                vec = self.embedder(chunk_item.chunk_text)
+                try:
+                    vec = self.embedder(chunk_item.chunk_text)
+                except Exception as exc:
+                    logger.error(
+                        "Embedding failed for %s chunk %s: %s",
+                        chunk_item.parent_source_path,
+                        chunk_item.chunk_index,
+                        exc,
+                    )
+                    failed_embedding = True
+                    break
+
+                if not vec:
+                    logger.error(
+                        "Embedding empty for %s chunk %s",
+                        chunk_item.parent_source_path,
+                        chunk_item.chunk_index,
+                    )
+                    failed_embedding = True
+                    break
+
+                chunk_embeddings.append((chunk_item, vec))
+
+            if failed_embedding or not chunk_embeddings:
+                rejected += 1
+                continue
+
+            for chunk_item, vec in chunk_embeddings:
                 props = {
                     "subject": chunk_item.parent_subject,
                     "body": chunk_item.chunk_text,
