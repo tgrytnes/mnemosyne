@@ -427,6 +427,7 @@ class MonitorAgent:
         for proposal in rejected:
             discovery_id = proposal["discovery_id"]
             message_id = f"proposal_escalation:{discovery_id}"
+            detected_at = _serialize_datetime(proposal.get("detected_at"))
             payload = {
                 "type": "proposal_escalation",
                 "proposal_id": proposal["proposal_id"],
@@ -434,7 +435,7 @@ class MonitorAgent:
                 "discovery_job_key": proposal["discovery_job_key"],
                 "candidate_key": proposal["candidate_key"],
                 "confidence": proposal["confidence_score"],
-                "detected_at": proposal["detected_at"],
+                "detected_at": detected_at,
             }
             self._intent_queue.enqueue_intent(
                 intent_type="proposal_escalation",
@@ -494,3 +495,13 @@ def _parse_datetime(value: Any) -> datetime | None:
         except ValueError:
             return None
     return None
+
+
+def _serialize_datetime(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, str):
+        return value
+    return str(value)
