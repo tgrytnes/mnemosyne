@@ -56,6 +56,25 @@ class _InMemoryIntentQueue:
         )
 
 
+class _JsonIntentQueue:
+    def __init__(self):
+        self.payloads: list[dict] = []
+
+    def enqueue_intent(
+        self,
+        intent_type: str,
+        payload: dict,
+        message_id: str,
+        originating_agent: str | None = None,
+        context_id: str | None = None,
+        expects_response: bool = False,
+    ) -> None:
+        import json
+
+        json.dumps(payload)
+        self.payloads.append(payload)
+
+
 class _InMemoryProposalQueue:
     def __init__(self):
         self._proposals: dict[str, dict] = {}
@@ -249,6 +268,33 @@ def test_monitor_escalation_records_intent():
     assert intent["originating_agent"] == "monitor"
     assert intent["context_id"] == f"discovery:{discovery.discovery_id}"
     assert intent["expects_response"] is False
+
+
+def test_monitor_escalation_payload_is_json_serializable():
+    discovery = _sample_discovery(confidence=0.95)
+    reader = _FakeDiscoveryReader([])
+    projects = _FakeProjectRepository(existing_ids=set())
+
+    proposal_queue = _InMemoryProposalQueue()
+    state_store = _InMemoryStateStore()
+    intent_queue = _JsonIntentQueue()
+
+    proposal_queue.upsert(discovery)
+    proposal_queue.update_status(discovery.discovery_id, "rejected")
+
+    agent = MonitorAgent(
+        discovery_reader=reader,
+        project_repository=projects,
+        proposal_queue=proposal_queue,
+        state_store=state_store,
+        intent_queue=intent_queue,
+        config=MonitorConfig(confidence_threshold=0.7),
+    )
+
+    agent.run()
+
+    assert intent_queue.payloads
+    assert isinstance(intent_queue.payloads[0]["detected_at"], str)
 
 
 def test_monitor_logs_summary_counts(caplog):
