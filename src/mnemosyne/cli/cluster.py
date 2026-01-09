@@ -61,14 +61,28 @@ class ClusterManager:
         logger.info("Fetching all vectors from %s collection...", self.collection_name)
         vectors = []
         uuids = []
+        skipped = 0
 
         query_result = self.collection.iterator(include_vector=True)
 
         for item in query_result:
-            vectors.append(item.vector["default"])
+            vector = item.vector
+            default_vector = None
+            if isinstance(vector, dict):
+                default_vector = vector.get("default")
+            elif vector is not None:
+                default_vector = vector
+
+            if not default_vector:
+                skipped += 1
+                continue
+
+            vectors.append(default_vector)
             uuids.append(str(item.uuid))
 
-        logger.info(f"Fetched {len(vectors)} vectors.")
+        if skipped:
+            logger.warning("Skipped %s objects without default vectors.", skipped)
+        logger.info("Fetched %s vectors.", len(vectors))
         return np.array(vectors), uuids
 
     def run_kmeans_clustering(
