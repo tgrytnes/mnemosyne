@@ -143,6 +143,37 @@ def test_poller_handles_async_get_updates(tmp_path):
     row = store.get_by_message_id("msg-urgency")
     assert row.response == {"question_type": "urgency", "value": 3}
 
+def test_api_client_awaits_async_send_message(monkeypatch):
+    import sys
+    import types
+
+    from mnemosyne.hermes.telegram_poller import TelegramApiClient
+
+    class FakeMessage:
+        def __init__(self, message_id: int):
+            self.message_id = message_id
+
+    class FakeBot:
+        def __init__(self, token: str):
+            self.token = token
+
+        async def send_message(self, **_kwargs):
+            return FakeMessage(123)
+
+    fake_module = types.ModuleType("telegram")
+    fake_module.Bot = FakeBot
+    monkeypatch.setitem(sys.modules, "telegram", fake_module)
+
+    client = TelegramApiClient(token="token")
+    message_id = client.send_message(
+        chat_id="chat-1",
+        text="Hello",
+        buttons=[],
+        parse_mode=None,
+    )
+
+    assert message_id == 123
+
 
 def test_poller_records_non_reply_when_single_pending(tmp_path):
     from mnemosyne.hermes.telegram_poller import TelegramOutboxPoller
