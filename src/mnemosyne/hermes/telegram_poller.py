@@ -107,27 +107,32 @@ class TelegramOutboxPoller:
         message = getattr(update, "message", None)
         if not message:
             return
-        reply_to = getattr(message, "reply_to_message", None)
-        if not reply_to:
-            return
-        reply_to_message_id = getattr(reply_to, "message_id", None)
-        if reply_to_message_id is None:
-            return
         chat_id = str(getattr(message, "chat_id", ""))
         text = getattr(message, "text", "") or ""
-        context_id, question_type = self._find_outbox_context(chat_id, reply_to_message_id)
+        reply_to = getattr(message, "reply_to_message", None)
+        reply_to_message_id = getattr(reply_to, "message_id", None) if reply_to else None
+        context_id = None
+        question_type = None
+        if reply_to_message_id is not None:
+            context_id, question_type = self._find_outbox_context(chat_id, reply_to_message_id)
+        else:
+            context_id, question_type = self._find_single_pending_context(chat_id)
         if not context_id:
             return
         parsed_response = _parse_response(text, context_id, question_type)
         if not parsed_response:
             return
-        agent = self._reply_router.handle_text_reply(
-            chat_id=chat_id,
-            reply_to_message_id=reply_to_message_id,
-            text=text,
-            parsed_response=parsed_response,
-        )
-        if agent and self._response_router:
+        if reply_to_message_id is not None:
+            recorded = self._reply_router.handle_text_reply(
+                chat_id=chat_id,
+                reply_to_message_id=reply_to_message_id,
+                text=text,
+                parsed_response=parsed_response,
+            )
+        else:
+            recorded = self._outbox.record_response(context_id, parsed_response) is not None
+
+        if recorded and self._response_router:
             self._response_router(context_id, parsed_response)
 
     def _find_outbox_context(
@@ -149,6 +154,26 @@ class TelegramOutboxPoller:
         row = cursor.fetchone()
         if not row:
             return None, None
+        payload = json.loads(row["payload_json"]) if row["payload_json"] else {}
+        return row["context_id"], payload.get("question_type")
+
+    def _find_single_pending_context(self, chat_id: str) -> tuple[str | None, str | None]:
+        cursor = self._outbox.db.cursor()
+        cursor.execute(
+            """
+            SELECT context_id, payload_json
+            FROM message_outbox
+            WHERE chat_id = ?
+            AND expects_response = 1
+            AND status = 'awaiting_response'
+            ORDER BY created_at ASC
+        """,
+            (chat_id,),
+        )
+        rows = cursor.fetchall()
+        if len(rows) != 1:
+            return None, None
+        row = rows[0]
         payload = json.loads(row["payload_json"]) if row["payload_json"] else {}
         return row["context_id"], payload.get("question_type")
 

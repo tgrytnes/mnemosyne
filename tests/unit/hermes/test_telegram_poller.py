@@ -174,3 +174,58 @@ def test_api_client_awaits_async_send_message(monkeypatch):
     )
 
     assert message_id == 123
+
+
+def test_poller_records_non_reply_when_single_pending(tmp_path):
+    from mnemosyne.hermes.telegram_poller import TelegramOutboxPoller
+
+    store = _make_store(tmp_path)
+    store.enqueue(
+        message_type="question",
+        payload={"chat_id": "chat-5", "text": "Approve?", "question_type": "approval"},
+        message_id="msg-nonreply",
+        expects_response=True,
+        originating_agent="project_manager",
+        context_id="project:nonreply",
+    )
+    store.mark_delivered(message_id="msg-nonreply", chat_id="chat-5", telegram_message_id=930)
+
+    client = FakeTelegramClient(updates=[FakeUpdate(FakeMessage(chat_id="chat-5", text="approve"))])
+    poller = TelegramOutboxPoller(store, client)
+    poller.poll_replies()
+
+    row = store.get_by_message_id("msg-nonreply")
+    assert row.response == {"decision": "approve"}
+
+
+def test_poller_ignores_non_reply_when_multiple_pending(tmp_path):
+    from mnemosyne.hermes.telegram_poller import TelegramOutboxPoller
+
+    store = _make_store(tmp_path)
+    store.enqueue(
+        message_type="question",
+        payload={"chat_id": "chat-6", "text": "Approve A?", "question_type": "approval"},
+        message_id="msg-nonreply-a",
+        expects_response=True,
+        originating_agent="project_manager",
+        context_id="project:nonreply-a",
+    )
+    store.enqueue(
+        message_type="question",
+        payload={"chat_id": "chat-6", "text": "Approve B?", "question_type": "approval"},
+        message_id="msg-nonreply-b",
+        expects_response=True,
+        originating_agent="project_manager",
+        context_id="project:nonreply-b",
+    )
+    store.mark_delivered(message_id="msg-nonreply-a", chat_id="chat-6", telegram_message_id=931)
+    store.mark_delivered(message_id="msg-nonreply-b", chat_id="chat-6", telegram_message_id=932)
+
+    client = FakeTelegramClient(updates=[FakeUpdate(FakeMessage(chat_id="chat-6", text="approve"))])
+    poller = TelegramOutboxPoller(store, client)
+    poller.poll_replies()
+
+    row_a = store.get_by_message_id("msg-nonreply-a")
+    row_b = store.get_by_message_id("msg-nonreply-b")
+    assert row_a.response is None
+    assert row_b.response is None
