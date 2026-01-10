@@ -93,3 +93,37 @@ def test_poller_records_discovery_decision(tmp_path):
 
     row = store.get_by_message_id("msg-approval")
     assert row.response == {"decision": "approve"}
+
+
+def test_poller_handles_async_get_updates(tmp_path):
+    from mnemosyne.hermes.telegram_poller import TelegramOutboxPoller
+
+    class AsyncTelegramClient:
+        async def get_updates(self, *, offset=None, timeout=None):
+            return [
+                FakeUpdate(
+                    FakeMessage(
+                        chat_id="chat-3",
+                        text="3",
+                        reply_to_message_id=920,
+                        message_id=921,
+                    )
+                )
+            ]
+
+    store = _make_store(tmp_path)
+    store.enqueue(
+        message_type="question",
+        payload={"chat_id": "chat-3", "text": "Urgency?", "question_type": "urgency"},
+        message_id="msg-urgency",
+        expects_response=True,
+        originating_agent="project_manager",
+        context_id="project:3",
+    )
+    store.mark_delivered(message_id="msg-urgency", chat_id="chat-3", telegram_message_id=920)
+
+    poller = TelegramOutboxPoller(store, AsyncTelegramClient())
+    poller.poll_replies()
+
+    row = store.get_by_message_id("msg-urgency")
+    assert row.response == {"question_type": "urgency", "value": 3}

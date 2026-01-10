@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import inspect
 from dataclasses import dataclass
+from typing import Any
 
 from mnemosyne.alexandria.message_outbox import MessageOutbox
 
@@ -37,12 +40,16 @@ class TelegramOutboxConsumer:
                 )
                 continue
             try:
-                message_id = self._client.send_message(
-                    chat_id=payload.chat_id,
-                    text=payload.text,
-                    buttons=payload.buttons,
-                    parse_mode=payload.parse_mode,
+                message_id = _resolve_maybe_async(
+                    self._client.send_message(
+                        chat_id=payload.chat_id,
+                        text=payload.text,
+                        buttons=payload.buttons,
+                        parse_mode=payload.parse_mode,
+                    )
                 )
+                if hasattr(message_id, "message_id"):
+                    message_id = message_id.message_id
                 self._outbox.mark_delivered(
                     message_id=row.message_id,
                     chat_id=payload.chat_id,
@@ -85,3 +92,15 @@ class TelegramReplyRouter:
             response_json=parsed_response,
         )
         return agent is not None
+
+
+def _resolve_maybe_async(result: Any) -> Any:
+    if not inspect.isawaitable(result):
+        return result
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(result)
+    if loop.is_running():
+        raise RuntimeError("Async Telegram client requires a non-running event loop.")
+    return loop.run_until_complete(result)

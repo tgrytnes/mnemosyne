@@ -194,3 +194,27 @@ def test_consumer_uses_default_chat_id_when_missing(tmp_path):
     row = store.get_by_message_id("msg-default-chat")
     assert row.status == "delivered"
     assert client.sent[0]["chat_id"] == "chat-default"
+
+
+def test_consumer_handles_async_send_message(tmp_path):
+    from mnemosyne.hermes.telegram_transport import TelegramOutboxConsumer
+
+    class AsyncTelegramClient:
+        async def send_message(self, *, chat_id: str, text: str, buttons: list, parse_mode):
+            return 4242
+
+    store = _make_store(tmp_path)
+    store.enqueue(
+        message_type="notification",
+        payload={"chat_id": "chat-async", "text": "Hello", "buttons": [], "parse_mode": None},
+        message_id="msg-async",
+        expects_response=False,
+        originating_agent="project_manager",
+        context_id="project:async",
+    )
+
+    consumer = TelegramOutboxConsumer(store, AsyncTelegramClient())
+    consumer.deliver_pending(limit=5)
+
+    row = store.get_by_message_id("msg-async")
+    assert row.status == "delivered"
