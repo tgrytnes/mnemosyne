@@ -4,7 +4,11 @@ import json
 import time
 from collections.abc import Callable
 
-from mnemosyne.hermes.telegram_transport import TelegramOutboxConsumer, TelegramReplyRouter
+from mnemosyne.hermes.telegram_transport import (
+    TelegramOutboxConsumer,
+    TelegramReplyRouter,
+    _resolve_maybe_async,
+)
 
 
 class TelegramApiClient:
@@ -66,9 +70,11 @@ class TelegramOutboxPoller:
         self._consumer.deliver_pending(limit=self._send_limit)
 
     def poll_replies(self) -> None:
-        updates = self._client.get_updates(
-            offset=self._next_update_offset(),
-            timeout=self._reply_timeout_seconds,
+        updates = _resolve_maybe_async(
+            self._client.get_updates(
+                offset=self._next_update_offset(),
+                timeout=self._reply_timeout_seconds,
+            )
         )
         for update in updates:
             self._handle_update(update)
