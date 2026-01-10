@@ -51,7 +51,7 @@ fi
 pkill -f "mnemosyne.cli.ingest watch" || true
 
 compose() {
-  docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" "$@"
+  docker compose --env-file "$ENV_FILE" --env-file "$LOCAL_ENV" "${COMPOSE_FILES[@]}" "$@"
 }
 
 RUNTIME_IMAGE_TAG_OVERRIDE="${IMAGE_TAG_OVERRIDE:-}"
@@ -72,6 +72,10 @@ if [[ ! -f "$LOCAL_ENV" ]]; then
   echo "Creating missing local override file: $LOCAL_ENV"
   touch "$LOCAL_ENV"
 fi
+echo "Loading local overrides from $LOCAL_ENV"
+set -o allexport
+source "$LOCAL_ENV"
+set +o allexport
 
 if [[ -n "$RUNTIME_IMAGE_TAG_OVERRIDE" ]]; then
   export IMAGE_TAG="$RUNTIME_IMAGE_TAG_OVERRIDE"
