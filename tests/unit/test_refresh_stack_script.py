@@ -55,13 +55,13 @@ def test_refresh_stack_reports_container_status():
 
 def test_refresh_stack_sources_local_env_file():
     content = _script_text()
-    assert "source \"$LOCAL_ENV\"" in content
+    assert 'source "$LOCAL_ENV"' in content
 
 
 def test_refresh_stack_passes_local_env_to_compose():
     content = _script_text()
-    assert "--env-file \"$ENV_FILE\"" in content
-    assert "--env-file \"$LOCAL_ENV\"" in content
+    assert '--env-file "$ENV_FILE"' in content
+    assert '--env-file "$LOCAL_ENV"' in content
 
 
 def test_refresh_stack_checks_watcher_processes_in_containers():
