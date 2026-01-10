@@ -28,11 +28,13 @@ class TelegramApiClient:
         parse_mode: str | None,
     ) -> int:
         reply_markup = _build_reply_markup(buttons)
-        message = self._bot.send_message(
-            chat_id=chat_id,
-            text=text,
-            reply_markup=reply_markup,
-            parse_mode=parse_mode,
+        message = _resolve_maybe_async(
+            self._bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode=parse_mode,
+            )
         )
         return message.message_id
 
