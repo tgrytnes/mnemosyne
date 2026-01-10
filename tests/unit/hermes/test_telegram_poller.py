@@ -99,7 +99,21 @@ def test_poller_handles_async_get_updates(tmp_path):
     from mnemosyne.hermes.telegram_poller import TelegramOutboxPoller
 
     class AsyncTelegramClient:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.loop = None
+
         async def get_updates(self, *, offset=None, timeout=None):
+            import asyncio
+
+            loop = asyncio.get_running_loop()
+            if self.loop is None:
+                self.loop = loop
+            elif self.loop is not loop:
+                raise RuntimeError("loop changed")
+            self.calls += 1
+            if self.calls > 1:
+                return []
             return [
                 FakeUpdate(
                     FakeMessage(
@@ -123,6 +137,7 @@ def test_poller_handles_async_get_updates(tmp_path):
     store.mark_delivered(message_id="msg-urgency", chat_id="chat-3", telegram_message_id=920)
 
     poller = TelegramOutboxPoller(store, AsyncTelegramClient())
+    poller.poll_replies()
     poller.poll_replies()
 
     row = store.get_by_message_id("msg-urgency")
