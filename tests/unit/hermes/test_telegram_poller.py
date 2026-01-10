@@ -143,6 +143,7 @@ def test_poller_handles_async_get_updates(tmp_path):
     row = store.get_by_message_id("msg-urgency")
     assert row.response == {"question_type": "urgency", "value": 3}
 
+
 def test_api_client_awaits_async_send_message(monkeypatch):
     import sys
     import types
