@@ -172,3 +172,25 @@ def test_consumer_skips_non_pm_messages(tmp_path):
     assert client.sent[0]["text"] == "PM"
     gatekeeper_row = store.get_by_message_id("msg-gk")
     assert gatekeeper_row.status == "pending"
+
+
+def test_consumer_uses_default_chat_id_when_missing(tmp_path):
+    from mnemosyne.hermes.telegram_transport import TelegramOutboxConsumer
+
+    store = _make_store(tmp_path)
+    store.enqueue(
+        message_type="notification",
+        payload={"text": "Hello", "buttons": [], "parse_mode": None},
+        message_id="msg-default-chat",
+        expects_response=False,
+        originating_agent="project_manager",
+        context_id="project:default",
+    )
+
+    client = FakeTelegramClient()
+    consumer = TelegramOutboxConsumer(store, client, default_chat_id="chat-default")
+    consumer.deliver_pending(limit=5)
+
+    row = store.get_by_message_id("msg-default-chat")
+    assert row.status == "delivered"
+    assert client.sent[0]["chat_id"] == "chat-default"

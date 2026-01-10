@@ -7,16 +7,22 @@ from mnemosyne.alexandria.message_outbox import MessageOutbox
 
 @dataclass
 class TelegramMessagePayload:
-    chat_id: str
+    chat_id: str | None
     text: str
     buttons: list
     parse_mode: str | None
 
 
 class TelegramOutboxConsumer:
-    def __init__(self, outbox: MessageOutbox, telegram_client):
+    def __init__(
+        self,
+        outbox: MessageOutbox,
+        telegram_client,
+        default_chat_id: str | None = None,
+    ):
         self._outbox = outbox
         self._client = telegram_client
+        self._default_chat_id = default_chat_id
 
     def deliver_pending(self, *, limit: int = 10) -> None:
         pending = self._outbox.fetch_pending(limit=limit)
@@ -24,6 +30,12 @@ class TelegramOutboxConsumer:
             if row.originating_agent and row.originating_agent != "project_manager":
                 continue
             payload = self._build_payload(row)
+            if not payload.chat_id:
+                self._outbox.mark_failed(
+                    message_id=row.message_id,
+                    error="missing chat_id for delivery",
+                )
+                continue
             try:
                 message_id = self._client.send_message(
                     chat_id=payload.chat_id,
@@ -46,7 +58,7 @@ class TelegramOutboxConsumer:
 
             data = json.loads(data)
         return TelegramMessagePayload(
-            chat_id=str(data["chat_id"]),
+            chat_id=str(data["chat_id"]) if data.get("chat_id") else self._default_chat_id,
             text=str(data.get("text", "")),
             buttons=data.get("buttons", []),
             parse_mode=data.get("parse_mode"),

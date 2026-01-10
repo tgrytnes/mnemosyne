@@ -106,6 +106,7 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-neo4jpassword}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OBSIDIAN_VAULT_PATH: ${OBSIDIAN_VAULT_PATH:-/data/vault}
+      MESSAGE_OUTBOX_PATH: ${MESSAGE_OUTBOX_PATH:-/state/message_outbox.db}
       SCHEDULER_INTERVAL_HOURS: ${SCHEDULER_INTERVAL_HOURS:-24}
       N_CLUSTERS: ${N_CLUSTERS:-50}
       SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
@@ -121,6 +122,31 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ${DATA_ROOT}/vault:/data/vault
+      - ${DATA_ROOT}/outbox:/state
+    networks:
+      - mnemosyne_net
+
+  mnemosyne_hermes:
+    image: ghcr.io/tgrytnes/mnemosyne:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-mnemosyne}
+      POSTGRES_USER: ${POSTGRES_USER:-mnemosyne_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
+      MESSAGE_OUTBOX_PATH: ${MESSAGE_OUTBOX_PATH:-/state/message_outbox.db}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_USER_ID: ${TELEGRAM_USER_ID:-}
+      TELEGRAM_POLL_INTERVAL_SECONDS: ${TELEGRAM_POLL_INTERVAL_SECONDS:-30}
+      TELEGRAM_REPLY_TIMEOUT_SECONDS: ${TELEGRAM_REPLY_TIMEOUT_SECONDS:-25}
+      TELEGRAM_SEND_LIMIT: ${TELEGRAM_SEND_LIMIT:-10}
+      PYTHONPATH: /app/src
+    command: ["python", "-m", "mnemosyne.cli.hermes"]
+    volumes:
+      - ${DATA_ROOT}/outbox:/state
     networks:
       - mnemosyne_net
 
