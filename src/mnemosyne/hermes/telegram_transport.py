@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import threading
 from dataclasses import dataclass
 from typing import Any
 
@@ -94,13 +95,36 @@ class TelegramReplyRouter:
         return agent is not None
 
 
+class _AsyncRunner:
+    def __init__(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._run_loop, daemon=True)
+        self._thread.start()
+
+    def _run_loop(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def run(self, coro: Any) -> Any:
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return future.result()
+
+    def is_closed(self) -> bool:
+        return self._loop.is_closed()
+
+
+_ASYNC_RUNNER: _AsyncRunner | None = None
+
+
+def _get_async_runner() -> _AsyncRunner:
+    global _ASYNC_RUNNER
+    if _ASYNC_RUNNER is None or _ASYNC_RUNNER.is_closed():
+        _ASYNC_RUNNER = _AsyncRunner()
+    return _ASYNC_RUNNER
+
+
 def _resolve_maybe_async(result: Any) -> Any:
     if not inspect.isawaitable(result):
         return result
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(result)
-    if loop.is_running():
-        raise RuntimeError("Async Telegram client requires a non-running event loop.")
-    return loop.run_until_complete(result)
+    runner = _get_async_runner()
+    return runner.run(result)
