@@ -30,7 +30,9 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
     """
     # Use REAL Ollama client
     config = ProviderConfig(
-        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(config)
 
@@ -150,7 +152,9 @@ def test_real_llm_identifies_themes(
     - Identifies key entities and topics
     """
     config = ProviderConfig(
-        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(config)
 
@@ -201,7 +205,9 @@ def test_story_002_performance_target(postgres_connection, test_config):
     Scale to 50 for full acceptance validation.
     """
     config = ProviderConfig(
-        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(config)
 

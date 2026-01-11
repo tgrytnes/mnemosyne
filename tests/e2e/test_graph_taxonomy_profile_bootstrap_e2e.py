@@ -70,7 +70,9 @@ def test_bootstrap_creates_profiles_for_empty_source(
     postgres_connection.commit()
 
     config = ProviderConfig(
-        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        ollama_base_url="http://localhost:11434",
     )
     llm_provider = create_llm_provider(config)
 
