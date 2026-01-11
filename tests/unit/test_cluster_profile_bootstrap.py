@@ -15,7 +15,7 @@ def test_bootstrapper_skips_when_profiles_exist(mocker):
     bootstrapper = ClusterProfileBootstrapper(
         weaviate_client=mocker.MagicMock(),
         postgres_connection=mocker.MagicMock(),
-        ollama_client=mocker.MagicMock(),
+        llm_provider=mocker.MagicMock(),
         profile_source="lethe",
         centroid_collection_name="ClusterCentroidLethe",
         chunk_collection_name="TheLethe",
@@ -44,7 +44,7 @@ def test_bootstrapper_runs_delta_sync_when_empty(mocker):
     bootstrapper = ClusterProfileBootstrapper(
         weaviate_client=mocker.MagicMock(),
         postgres_connection=mocker.MagicMock(),
-        ollama_client=mocker.MagicMock(),
+        llm_provider=mocker.MagicMock(),
         profile_source="lethe",
         centroid_collection_name="ClusterCentroidLethe",
         chunk_collection_name="TheLethe",

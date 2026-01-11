@@ -29,8 +29,8 @@ class TestClusterMetadataSynthesizer:
     """
 
     def test_synthesizes_profile_from_json(self, mocker):
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.return_value = {
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.return_value = {
             "response": json.dumps(
                 {
                     "cluster_id": "cluster-1",
@@ -44,7 +44,7 @@ class TestClusterMetadataSynthesizer:
             )
         }
 
-        synthesizer = ClusterMetadataSynthesizer(ollama_client)
+        synthesizer = ClusterMetadataSynthesizer(llm_provider)
         cluster = ClusterData(
             cluster_id="cluster-1",
             representative_notes=["Note content"],
@@ -56,11 +56,11 @@ class TestClusterMetadataSynthesizer:
         assert result.status == "success"
         assert result.profile is not None
         assert "Project milestones and planning" in result.profile.theme_summary
-        ollama_client.generate.assert_called_once()
+        llm_provider.generate.assert_called_once()
 
     def test_retries_on_invalid_json(self, mocker):
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.side_effect = [
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.side_effect = [
             {"response": "not-json"},
             {
                 "response": json.dumps(
@@ -77,7 +77,7 @@ class TestClusterMetadataSynthesizer:
             },
         ]
 
-        synthesizer = ClusterMetadataSynthesizer(ollama_client, max_retries=1)
+        synthesizer = ClusterMetadataSynthesizer(llm_provider, max_retries=1)
         cluster = ClusterData(
             cluster_id="cluster-1",
             representative_notes=["Note content"],
@@ -87,11 +87,11 @@ class TestClusterMetadataSynthesizer:
         result = synthesizer.synthesize(cluster)
 
         assert result.status == "success"
-        assert ollama_client.generate.call_count == 1
+        assert llm_provider.generate.call_count == 1
 
     def test_coerces_numeric_cluster_id(self, mocker):
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.return_value = {
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.return_value = {
             "response": json.dumps(
                 {
                     "cluster_id": 91001,
@@ -105,7 +105,7 @@ class TestClusterMetadataSynthesizer:
             )
         }
 
-        synthesizer = ClusterMetadataSynthesizer(ollama_client)
+        synthesizer = ClusterMetadataSynthesizer(llm_provider)
         cluster = ClusterData(
             cluster_id="91001",
             representative_notes=["Note content"],
@@ -119,10 +119,10 @@ class TestClusterMetadataSynthesizer:
         assert result.profile.cluster_id == "91001"
 
     def test_fails_after_retries(self, mocker):
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.side_effect = RuntimeError("LLM offline")
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.side_effect = RuntimeError("LLM offline")
 
-        synthesizer = ClusterMetadataSynthesizer(ollama_client, max_retries=1)
+        synthesizer = ClusterMetadataSynthesizer(llm_provider, max_retries=1)
         cluster = ClusterData(
             cluster_id="cluster-1",
             representative_notes=["Note content"],
@@ -133,4 +133,4 @@ class TestClusterMetadataSynthesizer:
 
         assert result.status == "failed"
         assert result.profile is None
-        assert ollama_client.generate.call_count == 2
+        assert llm_provider.generate.call_count == 2

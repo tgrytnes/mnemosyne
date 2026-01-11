@@ -15,12 +15,14 @@ def test_ingest_vault_logs_progress(mocker, caplog):
         lambda *args, **kwargs: None,
     )
     weaviate_client = mocker.MagicMock()
-    ollama_client = mocker.MagicMock()
+    llm_provider = mocker.MagicMock()
+    embedding_provider = mocker.MagicMock()
 
     ingestor = ObsidianIngestor(
         vault_path="/tmp",
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
         chunking_strategy="recursive",
         progress_every=1,
     )

@@ -12,7 +12,7 @@ from mnemosyne.argus.delta_sync import ClusterSnapshot, DeltaSyncConfig, DeltaSy
 def test_delta_sync_saves_profile_with_source(mocker):
     weaviate_client = mocker.MagicMock()
     postgres_connection = mocker.MagicMock()
-    ollama_client = mocker.MagicMock()
+    llm_provider = mocker.MagicMock()
 
     profile_repo = mocker.MagicMock()
     sync_repo = mocker.MagicMock()
@@ -47,7 +47,7 @@ def test_delta_sync_saves_profile_with_source(mocker):
     node = DeltaSyncNode(
         weaviate_client=weaviate_client,
         postgres_connection=postgres_connection,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
         config=DeltaSyncConfig(max_retries=0, retry_backoff_seconds=0.0),
         profile_source="lethe",
     )
