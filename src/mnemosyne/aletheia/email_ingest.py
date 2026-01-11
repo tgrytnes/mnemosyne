@@ -5,10 +5,11 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+import click
 from weaviate.classes.config import DataType, Property
 
 from mnemosyne.aletheia.chunking_strategy_factory import (
@@ -21,6 +22,9 @@ from mnemosyne.aletheia.email_parser import parse_eml_file, parse_mbox_file
 from mnemosyne.aletheia.models import Email, EmailChunk
 from mnemosyne.aletheia.text_chunker import TextChunker
 from mnemosyne.alexandria.weaviate_schema import TheLethe, WeaviateSchemaManager
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.base import EmbeddingProvider, LLMProvider
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +90,13 @@ class EmailIngestor:
         self,
         config: EmailIngestConfig,
         weaviate_client,
-        embedder: Callable[[str], list[float]],
-        ollama_client=None,
+        embedding_provider: EmbeddingProvider,
+        llm_provider: LLMProvider | None = None,
     ) -> None:
         self.config = config
         self.client = weaviate_client
-        self.embedder = embedder
-        self.ollama_client = ollama_client
+        self.embedding_provider = embedding_provider
+        self.llm_provider = llm_provider
         self.state = EmailIngestionState(config.state_path)
 
         WeaviateSchemaManager(self.client).ensure_collection_exists(config.collection_name)
@@ -109,10 +113,10 @@ class EmailIngestor:
         if strategy == "recursive":
             return recursive
 
-        if self.ollama_client is None:
-            raise ValueError("ollama_client is required for semantic or hybrid chunking")
+        if self.llm_provider is None:
+            raise ValueError("llm_provider is required for semantic or hybrid chunking")
 
-        factory = ChunkingStrategyFactory(self.ollama_client, state_tracker=None)
+        factory = ChunkingStrategyFactory(self.llm_provider, state_tracker=None)
         cfg = ChunkingStrategyConfig(
             strategy=strategy,
             chunk_size=self.config.chunk_size,
@@ -200,7 +204,7 @@ class EmailIngestor:
                 )
 
                 try:
-                    vec = self.embedder(chunk_item.chunk_text)
+                    vec = self.embedding_provider.embed(model="", text=chunk_item.chunk_text)
                 except Exception as exc:
                     logger.error(
                         "Embedding failed for %s chunk %s: %s",
@@ -271,9 +275,9 @@ class EmailIngestor:
             yield from parse_mbox_file(path)
 
 
-def main() -> None:
+@click.command("email-ingest")
+def email_ingest_cli():
     """CLI entry point for email ingestion."""
-    import ollama
     import weaviate
 
     logging.basicConfig(
@@ -282,6 +286,7 @@ def main() -> None:
 
     try:
         config = EmailIngestConfig.from_env()
+        provider_config = ProviderConfig.from_env()
     except ValueError as exc:
         logger.error("%s", exc)
         sys.exit(1)
@@ -289,8 +294,6 @@ def main() -> None:
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
     weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
     weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
 
     logger.info("=" * 60)
     logger.info("Email Ingestion Pipeline")
@@ -298,8 +301,8 @@ def main() -> None:
     logger.info("Source dir: %s", config.source_dir)
     logger.info("State path: %s", config.state_path)
     logger.info("Weaviate: %s:%s", weaviate_host, weaviate_port)
-    logger.info("Ollama: %s", ollama_url)
-    logger.info("Embedding model: %s", embedding_model)
+    logger.info(f"LLM Provider: {provider_config.llm_provider}")
+    logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
     logger.info("Chunking strategy: %s", config.chunking_strategy)
     logger.info("=" * 60)
 
@@ -308,17 +311,15 @@ def main() -> None:
         port=weaviate_port,
         grpc_port=weaviate_grpc_port,
     )
-    ollama_client = ollama.Client(host=ollama_url)
 
-    def embedder(text: str) -> list[float]:
-        response = ollama_client.embeddings(model=embedding_model, prompt=text)
-        return response["embedding"]
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
 
     ingestor = EmailIngestor(
         config=config,
         weaviate_client=weaviate_client,
-        embedder=embedder,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
     )
 
     try:
@@ -338,7 +339,3 @@ def main() -> None:
         sys.exit(1)
     finally:
         weaviate_client.close()
-
-
-if __name__ == "__main__":
-    main()

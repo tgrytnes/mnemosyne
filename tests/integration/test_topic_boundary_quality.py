@@ -4,10 +4,11 @@ Integration test for topic boundary quality with semantic chunking.
 USES REAL OLLAMA (no mocks).
 """
 
-import ollama
 import pytest
 
 from mnemosyne.aletheia.semantic_chunker import SemanticChunker
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_llm_provider
 
 
 @pytest.mark.integration
@@ -69,9 +70,12 @@ def test_semantic_chunking_aligns_with_topic_boundaries(
     test_config, text, keywords, expected_min_chunks
 ):
     """Semantic boundaries should align with topic shifts using REAL Ollama."""
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    provider_config = ProviderConfig(
+        llm_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    llm_provider = create_llm_provider(provider_config)
 
-    chunker = SemanticChunker(ollama_client=ollama_client, min_chunk_size=1)
+    chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
     chunks = chunker.chunk(text, source_file="note.md")
 
     assert (

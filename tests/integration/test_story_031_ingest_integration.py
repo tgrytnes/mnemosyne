@@ -8,14 +8,12 @@ from pathlib import Path
 
 import pytest
 
-
-def _embed(ollama_client, text: str) -> list[float]:
-    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-    return response["embedding"]
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider
 
 
 def _write_eml(
-    path: Path,
+    path,
     *,
     subject: str,
     body: str,
@@ -23,6 +21,8 @@ def _write_eml(
     sender: str = "alice@example.com",
     date: str = "Mon, 01 Jan 2024 10:00:00 +0000",
 ) -> None:
+    from email.message import EmailMessage
+
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = sender
@@ -33,7 +33,7 @@ def _write_eml(
     path.write_bytes(msg.as_bytes())
 
 
-def _write_mbox(path: Path, messages: list[EmailMessage]) -> None:
+def _write_mbox(path, messages) -> None:
     mbox = mailbox.mbox(path)
     for message in messages:
         mbox.add(message)
@@ -47,9 +47,14 @@ def test_email_ingest_raw_sources_to_lethe(
     tmp_path: Path,
     weaviate_client,
     clean_weaviate_collection,
-    ollama_client,
+    test_config,
 ):
     from mnemosyne.aletheia.email_ingest import EmailIngestConfig, EmailIngestor
+
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
 
     source_dir = tmp_path / "source"
     source_dir.mkdir()
@@ -97,7 +102,7 @@ def test_email_ingest_raw_sources_to_lethe(
     ingestor = EmailIngestor(
         cfg,
         weaviate_client,
-        embedder=lambda text: _embed(ollama_client, text),
+        embedding_provider=embedding_provider,
     )
     result = ingestor.run()
 

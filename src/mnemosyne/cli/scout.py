@@ -4,11 +4,13 @@ import logging
 import os
 import sys
 
-import ollama
+import click
 import weaviate
 
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider
 
 # Configure logging
 logging.basicConfig(
@@ -17,7 +19,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+@click.command("scout")
+def scout_cli():
+    """Run Scout pattern detection."""
+    run_scout()
+
+
+def run_scout():
     """Run Scout pattern detection."""
     logger.info("=" * 60)
     logger.info("Scout Pattern Detection")
@@ -27,12 +35,11 @@ def main():
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
     weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
     weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+    provider_config = ProviderConfig.from_env()
 
     logger.info(f"Weaviate: {weaviate_host}:{weaviate_port}")
-    logger.info(f"Ollama: {ollama_url}")
-    logger.info(f"Embedding Model: {embedding_model}")
+    logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
     logger.info("=" * 60)
 
     # Connect to services
@@ -43,14 +50,12 @@ def main():
         grpc_port=weaviate_grpc_port,
     )
 
-    logger.info("Connecting to Ollama...")
-    ollama_client = ollama.Client(host=ollama_url)
+    embedding_provider = create_embedding_provider(provider_config)
 
     # Create embedder function
     def embedder(text: str) -> list[float]:
-        """Generate embedding using Ollama."""
-        response = ollama_client.embeddings(model=embedding_model, prompt=text)
-        return response["embedding"]
+        """Generate embedding using the configured provider."""
+        return embedding_provider.embed(model="", text=text)
 
     # Define project concept patterns
     project_positives = [
@@ -117,7 +122,3 @@ def main():
         sys.exit(1)
     finally:
         weaviate_client.close()
-
-
-if __name__ == "__main__":
-    main()

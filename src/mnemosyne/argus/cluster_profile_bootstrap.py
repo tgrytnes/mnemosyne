@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.argus.delta_sync import DeltaSyncNode
+from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class ClusterProfileBootstrapper:
 
     weaviate_client: object
     postgres_connection: object
-    ollama_client: object
+    llm_provider: LLMProvider
     profile_source: str
     centroid_collection_name: str
     chunk_collection_name: str
@@ -53,7 +54,7 @@ class ClusterProfileBootstrapper:
         node = DeltaSyncNode(
             weaviate_client=self.weaviate_client,
             postgres_connection=self.postgres_connection,
-            ollama_client=self.ollama_client,
+            llm_provider=self.llm_provider,
             graph_pipeline=None,
             cache_store=None,
             centroid_collection_name=self.centroid_collection_name,

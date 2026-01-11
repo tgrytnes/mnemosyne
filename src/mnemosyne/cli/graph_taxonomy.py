@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 
+import click
 import ollama
 import psycopg2
 import weaviate
@@ -26,7 +27,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+@click.command("graph-taxonomy")
+def graph_taxonomy_cli():
+    """Run graph taxonomy building."""
+    run_graph_taxonomy()
+
+
+def run_graph_taxonomy():
     """Run graph taxonomy building."""
     logger.info("=" * 60)
     logger.info("Graph Taxonomy Builder")
@@ -141,7 +148,3 @@ def main():
 
         traceback.print_exc()
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

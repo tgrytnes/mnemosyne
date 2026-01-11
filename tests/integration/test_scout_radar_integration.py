@@ -9,15 +9,17 @@ from mnemosyne.argus.scout.radar import (
     ConceptPrototype,
     LatentRadar,
 )
-
-
-def _embed(ollama_client, text: str) -> list[float]:
-    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-    return response["embedding"]
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider
 
 
 @pytest.mark.integration
-def test_latent_radar_detects_private_projectness(ollama_client):
+def test_latent_radar_detects_private_projectness(test_config):
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
+
     positives = [
         "Renovate the house: budget, timeline, contractors, materials.",
         "Plan education goals: coursework, tuition, schedule, deadlines.",
@@ -34,30 +36,30 @@ def test_latent_radar_detects_private_projectness(ollama_client):
         ClusterRepresentation(
             cluster_id="project_renovation",
             text="Renovate the kitchen with a timeline, budget, and materials list.",
-            embedding=_embed(
-                ollama_client,
-                "Renovate the kitchen with a timeline, budget, and materials list.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Renovate the kitchen with a timeline, budget, and materials list.",
             ),
         ),
         ClusterRepresentation(
             cluster_id="project_training",
             text="Draft a 12-week training program with milestones and weekly goals.",
-            embedding=_embed(
-                ollama_client,
-                "Draft a 12-week training program with milestones and weekly goals.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Draft a 12-week training program with milestones and weekly goals.",
             ),
         ),
         ClusterRepresentation(
             cluster_id="non_project_history",
             text="Notes on Roman empire politics and historical events.",
-            embedding=_embed(
-                ollama_client,
-                "Notes on Roman empire politics and historical events.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Notes on Roman empire politics and historical events.",
             ),
         ),
     ]
 
-    radar = LatentRadar(lambda text: _embed(ollama_client, text))
+    radar = LatentRadar(lambda text: embedding_provider.embed(model="", text=text))
     base_concept = ConceptPrototype(
         key="project_private",
         positive_texts=positives,

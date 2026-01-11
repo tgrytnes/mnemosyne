@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from mnemosyne.alexandria.the_gates import ClusterProfile
+from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,12 @@ class ClusterMetadataSynthesizer:
 
     def __init__(
         self,
-        ollama_client,
+        llm_provider: LLMProvider,
         model: str = "gemma3:1b",
         temperature: float = 0.3,
         max_retries: int = 1,
     ):
-        self.ollama_client = ollama_client
+        self.llm_provider = llm_provider
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
@@ -57,7 +58,7 @@ class ClusterMetadataSynthesizer:
 
         for attempt in range(self.max_retries + 1):
             try:
-                response = self.ollama_client.generate(
+                response = self.llm_provider.generate(
                     model=self.model,
                     prompt=prompt,
                     format="json",

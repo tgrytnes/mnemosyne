@@ -1,11 +1,11 @@
 # src/mnemosyne/cli/cluster.py
 
-import argparse
 import logging
 import os
 import sys
 from datetime import datetime
 
+import click
 import numpy as np
 import weaviate
 from sklearn.cluster import MiniBatchKMeans
@@ -239,33 +239,25 @@ def run_clustering(
         sys.exit(1)
 
 
-def main():
-    """Main CLI entry point for clustering."""
-    parser = argparse.ArgumentParser(
-        description="Mnemosyne - Chunk Clustering",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
-
-    # 'run' command
-    parser_run = subparsers.add_parser("run", help="Run clustering on TheMuses collection")
-    parser_run.add_argument(
-        "--n-clusters",
-        type=int,
-        default=416,
-        help="The number of clusters to create (default: 416)",
-    )
-
-    args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    if args.command == "run":
-        run_clustering(args.n_clusters)
+@click.group("cluster")
+def cluster_cli():
+    """Mnemosyne - Chunk Clustering"""
+    pass
 
 
-if __name__ == "__main__":
-    main()
+@cluster_cli.command("run")
+@click.option(
+    "--n-clusters",
+    type=int,
+    default=416,
+    help="The number of clusters to create (default: 416)",
+)
+@click.option(
+    "--collection-name",
+    type=str,
+    default=TheMuses.collection_name,
+    help=f"The collection to cluster (default: {TheMuses.collection_name})",
+)
+def run(n_clusters: int, collection_name: str):
+    """Run clustering on a specified collection."""
+    run_clustering(n_clusters, collection_name=collection_name)

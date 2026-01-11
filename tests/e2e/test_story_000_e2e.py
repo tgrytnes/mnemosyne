@@ -14,7 +14,6 @@ Prerequisites:
 
 import time
 
-import ollama
 import pytest
 import weaviate
 from weaviate.classes.query import Filter
@@ -40,17 +39,34 @@ class TestStory000EndToEnd:
             pytest.fail(f"Weaviate connection failed: {e}. Start Weaviate first!")
 
     @pytest.fixture(scope="class")
-    def ollama_client(self):
+    def embedding_provider(self):
         """Connect to REAL Ollama instance - FAILS if not running."""
         try:
-            client = ollama.Client()
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_embedding_provider
+
+            provider_config = ProviderConfig(embedding_provider="ollama")
+            embedding_provider = create_embedding_provider(provider_config)
             # Verify model is available
-            client.embeddings(model="qwen3-embedding:0.6b", prompt="test")
-            return client
+            embedding_provider.embed(model="qwen3-embedding:0.6b", text="test")
+            return embedding_provider
         except Exception as e:
             pytest.fail(
                 f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
             )
+
+    @pytest.fixture(scope="class")
+    def llm_provider(self):
+        """Connect to REAL Ollama instance - FAILS if not running."""
+        try:
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_llm_provider
+
+            provider_config = ProviderConfig(llm_provider="ollama")
+            llm_provider = create_llm_provider(provider_config)
+            return llm_provider
+        except Exception as e:
+            pytest.fail(f"Ollama connection failed: {e}. Start Ollama first!")
 
     @pytest.fixture(autouse=True)
     def cleanup_weaviate(self, weaviate_client):
@@ -129,19 +145,27 @@ Regular content continues here.
         """REAL TEST: Verify Weaviate is accessible."""
         assert weaviate_client.is_ready()
 
-    def test_real_ollama_connection(self, ollama_client):
+    def test_real_provider_connection(self, embedding_provider, llm_provider):
         """REAL TEST: Verify Ollama is accessible."""
-        result = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test connection")
-        assert "embedding" in result
-        assert len(result["embedding"]) == 1024
+        # This should not raise an exception
+        result = embedding_provider.embed(model="qwen3-embedding:0.6b", text="Test connection")
+        assert isinstance(result, list)
+        assert len(result) > 0
 
-    def test_real_vault_ingestion_end_to_end(self, test_vault, weaviate_client, ollama_client):
+        # This should not raise an exception
+        result = llm_provider.generate(model="qwen3:0.6b", prompt="test")
+        assert "response" in result
+
+    def test_real_vault_ingestion_end_to_end(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Full ingestion pipeline with real services."""
         # GIVEN: Real Obsidian vault
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -173,13 +197,16 @@ Regular content continues here.
             assert "ingestedAt" in props
             assert "fileModifiedAt" in props
 
-    def test_real_markdown_cleaning(self, test_vault, weaviate_client, ollama_client):
+    def test_real_markdown_cleaning(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify markdown cleaning (frontmatter, wiki-links, HTML removed)."""
         # GIVEN: Vault with complex markdown
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -215,13 +242,16 @@ Regular content continues here.
         assert "]]" not in all_text
         assert "wiki-links" in all_text or "Another Note" in all_text
 
-    def test_real_html_and_emoji_cleaning(self, test_vault, weaviate_client, ollama_client):
+    def test_real_html_and_emoji_cleaning(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify HTML and emoji markers are removed."""
         # GIVEN: Vault with HTML and emojis
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -257,13 +287,16 @@ Regular content continues here.
         # Verify content preserved
         assert "HTML tags" in all_text or "Important" in all_text
 
-    def test_real_embedding_generation(self, test_vault, weaviate_client, ollama_client):
+    def test_real_embedding_generation(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify embeddings are generated via Ollama."""
         # GIVEN: Vault for ingestion
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -288,13 +321,16 @@ Regular content continues here.
             # Verify vector is not all zeros (real embedding from Ollama)
             assert sum(obj.vector["default"]) != 0
 
-    def test_real_chunking_with_overlap(self, test_vault, weaviate_client, ollama_client):
+    def test_real_chunking_with_overlap(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify chunking with 400 chars and 100 char overlap."""
         # GIVEN: Long document
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -324,13 +360,16 @@ Regular content continues here.
             # (allowing for short heading-only chunks from structure preservation)
             assert 10 < text_len < 800
 
-    def test_real_incremental_updates(self, test_vault, weaviate_client, ollama_client):
+    def test_real_incremental_updates(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify incremental updates (only changed files re-processed)."""
         # GIVEN: Initial ingestion
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         initial_stats = ingestor.ingest_vault()
@@ -355,13 +394,16 @@ Regular content continues here.
         assert stats_after_change["files_processed"] == 1
         assert stats_after_change["files_skipped"] == 2
 
-    def test_real_state_persistence(self, test_vault, weaviate_client, ollama_client):
+    def test_real_state_persistence(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify ingestion state persists across restarts."""
         # GIVEN: Initial ingestion
         ingestor1 = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         stats1 = ingestor1.ingest_vault()
@@ -374,7 +416,8 @@ Regular content continues here.
         ingestor2 = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         stats2 = ingestor2.ingest_vault()

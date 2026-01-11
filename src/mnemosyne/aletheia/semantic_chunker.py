@@ -10,6 +10,7 @@ import re
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
+from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class SemanticChunker:
 
     def __init__(
         self,
-        ollama_client,
+        llm_provider: LLMProvider,
         state_tracker: IngestionStateTracker | None = None,
         fallback_chunker: TextChunker | None = None,
         min_chunk_size: int = 100,
@@ -33,7 +34,7 @@ class SemanticChunker:
         request_timeout: float = 10.0,  # Longer timeout for larger model
         total_timeout: float = 60.0,
     ):
-        self.ollama_client = ollama_client
+        self.llm_provider = llm_provider
         self.state_tracker = state_tracker
         self.fallback_chunker = fallback_chunker or TextChunker()
         self.min_chunk_size = min_chunk_size
@@ -125,7 +126,7 @@ class SemanticChunker:
                 "Answer:"
             )
 
-            response = self.ollama_client.generate(
+            response = self.llm_provider.generate(
                 model=self.model,
                 prompt=prompt,
                 options={"temperature": self.temperature},
@@ -149,7 +150,7 @@ class SemanticChunker:
             "into the original text. Respond with JSON only.\n\n"
             f"Text:\n{text}\n"
         )
-        response = self.ollama_client.generate(
+        response = self.llm_provider.generate(
             model=self.model,
             prompt=prompt,
             options={"temperature": self.temperature},

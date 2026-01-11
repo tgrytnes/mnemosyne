@@ -19,6 +19,7 @@ from mnemosyne.alexandria.cluster_sync_state_repository import (
 from mnemosyne.alexandria.weaviate_schema import ClusterCentroidCollection, TheMuses
 from mnemosyne.argus.cluster_metadata_synthesis import ClusterData, ClusterMetadataSynthesizer
 from mnemosyne.argus.nodes.cluster_representatives import GetClusterRepresentatives
+from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class DeltaSyncNode:
         *,
         weaviate_client,
         postgres_connection,
-        ollama_client,
+        llm_provider: LLMProvider,
         graph_pipeline=None,
         cache_store=None,
         centroid_collection_name: str = ClusterCentroidCollection.collection_name,
@@ -113,7 +114,7 @@ class DeltaSyncNode:
     ) -> None:
         self.weaviate_client = weaviate_client
         self.postgres_connection = postgres_connection
-        self.ollama_client = ollama_client
+        self.llm_provider = llm_provider
         self.graph_pipeline = graph_pipeline
         self.cache_store = cache_store
         self.centroid_collection_name = centroid_collection_name
@@ -280,7 +281,7 @@ class DeltaSyncNode:
             tags=None,
         )
 
-        synthesizer = ClusterMetadataSynthesizer(self.ollama_client)
+        synthesizer = ClusterMetadataSynthesizer(self.llm_provider)
         result = synthesizer.synthesize(cluster_data)
         if result.status != "success" or result.profile is None:
             raise ValueError(result.error or "Profile synthesis failed")

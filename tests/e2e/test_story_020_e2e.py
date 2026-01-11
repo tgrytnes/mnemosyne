@@ -12,7 +12,6 @@ Prerequisites:
     - Ollama running with qwen3-embedding:0.6b model
 """
 
-import ollama
 import pytest
 import weaviate
 from weaviate.classes.query import Filter
@@ -39,17 +38,34 @@ class TestStory020EndToEnd:
             pytest.fail(f"Weaviate connection failed: {e}. Start Weaviate first!")
 
     @pytest.fixture(scope="class")
-    def ollama_client(self):
+    def embedding_provider(self):
         """Connect to REAL Ollama instance - FAILS if not running."""
         try:
-            client = ollama.Client()
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_embedding_provider
+
+            provider_config = ProviderConfig(embedding_provider="ollama")
+            embedding_provider = create_embedding_provider(provider_config)
             # Verify model is available
-            client.embeddings(model="qwen3-embedding:0.6b", prompt="test")
-            return client
+            embedding_provider.embed(model="qwen3-embedding:0.6b", text="test")
+            return embedding_provider
         except Exception as e:
             pytest.fail(
                 f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
             )
+
+    @pytest.fixture(scope="class")
+    def llm_provider(self):
+        """Connect to REAL Ollama instance - FAILS if not running."""
+        try:
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_llm_provider
+
+            provider_config = ProviderConfig(llm_provider="ollama")
+            llm_provider = create_llm_provider(provider_config)
+            return llm_provider
+        except Exception as e:
+            pytest.fail(f"Ollama connection failed: {e}. Start Ollama first!")
 
     @pytest.fixture
     def test_vault(self, tmp_path):
@@ -102,22 +118,27 @@ Test component interactions. """
         """REAL TEST: Verify Weaviate is accessible."""
         assert weaviate_client.is_ready()
 
-    def test_real_ollama_connection(self, ollama_client):
+    def test_real_provider_connection(self, embedding_provider, llm_provider):
         """REAL TEST: Verify Ollama is accessible."""
         # This should not raise an exception
-        result = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test connection")
-        assert "embedding" in result
-        assert len(result["embedding"]) == 1024
+        result = embedding_provider.embed(model="qwen3-embedding:0.6b", text="Test connection")
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # This should not raise an exception
+        result = llm_provider.generate(model="qwen3:0.6b", prompt="test")
+        assert "response" in result
 
     def test_real_ingestion_with_structure_metadata(
-        self, test_vault, weaviate_client, ollama_client
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
     ):
         """REAL TEST: Ingest documents and verify heading metadata is stored in Weaviate."""
         # GIVEN: Real Obsidian vault
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
 
         # WHEN: Ingesting vault
@@ -152,13 +173,16 @@ Test component interactions. """
                 assert props["headingLevel"] > 0
                 assert props["sectionTitle"]
 
-    def test_real_structure_preservation_score(self, test_vault, weaviate_client, ollama_client):
+    def test_real_structure_preservation_score(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify >95% structure preservation with real data."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
         ingestor.ingest_vault()
 
@@ -193,13 +217,16 @@ Test component interactions. """
         )
         assert metrics.heading_depth_accuracy >= 0.95
 
-    def test_real_query_by_heading_path(self, test_vault, weaviate_client, ollama_client):
+    def test_real_query_by_heading_path(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify we can query chunks by heading path."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
         ingestor.ingest_vault()
 
@@ -216,13 +243,16 @@ Test component interactions. """
             props = obj.properties
             assert "Testing Strategies" in props.get("headingPath", "")
 
-    def test_real_nested_heading_queries(self, test_vault, weaviate_client, ollama_client):
+    def test_real_nested_heading_queries(
+        self, test_vault, weaviate_client, embedding_provider, llm_provider
+    ):
         """REAL TEST: Verify nested heading path queries work correctly."""
         # GIVEN: Real ingestion
         ingestor = ObsidianIngestor(
             vault_path=str(test_vault),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            embedding_provider=embedding_provider,
+            llm_provider=llm_provider,
         )
         ingestor.ingest_vault()
 

@@ -26,10 +26,10 @@ class TestSemanticChunker:
 
     def test_splits_text_at_llm_boundaries(self, mocker):
         """Should split text using boundaries returned by the LLM"""
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
 
-        chunker = SemanticChunker(ollama_client=ollama_client, min_chunk_size=1)
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
         text = "hello world"
 
         chunks = chunker.chunk(text, source_file="note.md")
@@ -40,11 +40,11 @@ class TestSemanticChunker:
 
     def test_uses_cached_boundaries_when_available(self, mocker, temp_db):
         """Should skip LLM call when cached boundaries exist"""
-        ollama_client = mocker.MagicMock()
+        llm_provider = mocker.MagicMock()
         state_tracker = IngestionStateTracker(temp_db)
 
         chunker = SemanticChunker(
-            ollama_client=ollama_client, state_tracker=state_tracker, min_chunk_size=1
+            llm_provider=llm_provider, state_tracker=state_tracker, min_chunk_size=1
         )
         text = "alpha beta gamma"
 
@@ -60,12 +60,12 @@ class TestSemanticChunker:
         chunks = chunker.chunk(text, source_file="note.md")
 
         assert len(chunks) == 2
-        ollama_client.generate.assert_not_called()
+        llm_provider.generate.assert_not_called()
 
     def test_falls_back_to_recursive_on_llm_error(self, mocker):
         """Should fall back to recursive chunker if LLM fails"""
-        ollama_client = mocker.MagicMock()
-        ollama_client.generate.side_effect = RuntimeError("LLM failure")
+        llm_provider = mocker.MagicMock()
+        llm_provider.generate.side_effect = RuntimeError("LLM failure")
 
         fallback_chunker = mocker.MagicMock()
         fallback_chunker.chunk.return_value = [
@@ -73,7 +73,7 @@ class TestSemanticChunker:
         ]
 
         chunker = SemanticChunker(
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
             fallback_chunker=fallback_chunker,
             min_chunk_size=1,
         )
@@ -85,13 +85,13 @@ class TestSemanticChunker:
 
     def test_preserves_topic_boundaries(self, mocker):
         """Should split at topic change to avoid mixing topics"""
-        ollama_client = mocker.MagicMock()
+        llm_provider = mocker.MagicMock()
         text = "Topic A: Alpha details.\nTopic A: More alpha.\n\nTopic B: Beta details."
         boundary_index = text.index("Topic B")
-        ollama_client.generate.return_value = {
+        llm_provider.generate.return_value = {
             "response": json.dumps({"boundaries": [boundary_index]})
         }
-        chunker = SemanticChunker(ollama_client=ollama_client, min_chunk_size=1)
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
 
         chunks = chunker.chunk(text, source_file="note.md")
 

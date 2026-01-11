@@ -11,6 +11,25 @@ import pytest
 class TestWeaviateIngestion:
     """Test ingestion into Weaviate collections"""
 
+    @pytest.fixture(scope="class")
+    def embedding_provider(self, test_config):
+        """Connect to REAL Ollama instance - FAILS if not running."""
+        try:
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_embedding_provider
+
+            provider_config = ProviderConfig(
+                embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+            )
+            embedding_provider = create_embedding_provider(provider_config)
+            # Verify model is available
+            embedding_provider.embed(model="qwen3-embedding:0.6b", text="test")
+            return embedding_provider
+        except Exception as e:
+            pytest.fail(
+                f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
+            )
+
     def test_create_the_muses_collection(self, weaviate_client, clean_weaviate_collection):
         """Test creating TheMuses collection"""
         import weaviate.classes as wvc
@@ -30,7 +49,7 @@ class TestWeaviateIngestion:
         assert weaviate_client.collections.exists("TheMuses_Test")
 
     def test_insert_obsidian_chunks(
-        self, weaviate_client, clean_weaviate_collection, sample_chunks, ollama_client
+        self, weaviate_client, clean_weaviate_collection, sample_chunks, embedding_provider
     ):
         """Test inserting Obsidian chunks into TheMuses"""
         import weaviate.classes as wvc
@@ -50,9 +69,9 @@ class TestWeaviateIngestion:
         # Insert chunks
         with collection.batch.dynamic() as batch:
             for chunk in sample_chunks:
-                embedding = ollama_client.embeddings(
-                    model="qwen3-embedding:0.6b", prompt=chunk["text"]
-                )["embedding"]
+                embedding = embedding_provider.embed(
+                    model="qwen3-embedding:0.6b", text=chunk["text"]
+                )
                 batch.add_object(
                     properties={
                         "text": chunk["text"],
@@ -68,7 +87,7 @@ class TestWeaviateIngestion:
         assert len(response.objects) == len(sample_chunks)
 
     def test_query_by_source_type(
-        self, weaviate_client, clean_weaviate_collection, sample_chunks, ollama_client
+        self, weaviate_client, clean_weaviate_collection, sample_chunks, embedding_provider
     ):
         """Test filtering by sourceType"""
         import weaviate.classes as wvc
@@ -87,9 +106,9 @@ class TestWeaviateIngestion:
         # Insert mixed data
         with collection.batch.dynamic() as batch:
             for chunk in sample_chunks:
-                embedding = ollama_client.embeddings(
-                    model="qwen3-embedding:0.6b", prompt=chunk["text"]
-                )["embedding"]
+                embedding = embedding_provider.embed(
+                    model="qwen3-embedding:0.6b", text=chunk["text"]
+                )
                 batch.add_object(
                     properties={
                         "text": chunk["text"],
@@ -115,7 +134,26 @@ class TestWeaviateIngestion:
 class TestSemanticSearch:
     """Test semantic search operations"""
 
-    def test_near_text_search(self, weaviate_client, clean_weaviate_collection, ollama_client):
+    @pytest.fixture(scope="class")
+    def embedding_provider(self, test_config):
+        """Connect to REAL Ollama instance - FAILS if not running."""
+        try:
+            from mnemosyne.config.providers import ProviderConfig
+            from mnemosyne.providers.factory import create_embedding_provider
+
+            provider_config = ProviderConfig(
+                embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+            )
+            embedding_provider = create_embedding_provider(provider_config)
+            # Verify model is available
+            embedding_provider.embed(model="qwen3-embedding:0.6b", text="test")
+            return embedding_provider
+        except Exception as e:
+            pytest.fail(
+                f"Ollama connection failed: {e}. Start Ollama and pull qwen3-embedding:0.6b!"
+            )
+
+    def test_near_text_search(self, weaviate_client, clean_weaviate_collection, embedding_provider):
         """Test semantic search with vector similarity"""
         import weaviate.classes as wvc
 
@@ -136,15 +174,13 @@ class TestSemanticSearch:
 
         with collection.batch.dynamic() as batch:
             for text in test_docs:
-                embedding = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)[
-                    "embedding"
-                ]
+                embedding = embedding_provider.embed(model="qwen3-embedding:0.6b", text=text)
                 batch.add_object(properties={"text": text}, vector={"default": embedding})
 
         # Query for Docker-related content
-        query_embedding = ollama_client.embeddings(
-            model="qwen3-embedding:0.6b", prompt="Docker containers"
-        )["embedding"]
+        query_embedding = embedding_provider.embed(
+            model="qwen3-embedding:0.6b", text="Docker containers"
+        )
         response = collection.query.near_vector(
             near_vector=query_embedding, limit=2, target_vector="default"
         )
@@ -157,9 +193,17 @@ class TestSemanticSearch:
 @pytest.mark.integration
 @pytest.mark.weaviate
 @pytest.mark.slow
-def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollama_client):
+def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, test_config):
     """Test inserting large batch of documents"""
     import weaviate.classes as wvc
+
+    from mnemosyne.config.providers import ProviderConfig
+    from mnemosyne.providers.factory import create_embedding_provider
+
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
 
     collection = weaviate_client.collections.create(
         name="TestCollection",
@@ -169,9 +213,7 @@ def test_large_batch_insertion(weaviate_client, clean_weaviate_collection, ollam
         ],
     )
 
-    base_embedding = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt="Test document")[
-        "embedding"
-    ]
+    base_embedding = embedding_provider.embed(model="qwen3-embedding:0.6b", text="Test document")
 
     # Insert 1000 documents
     num_docs = 1000

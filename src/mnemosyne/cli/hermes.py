@@ -1,9 +1,9 @@
-import argparse
 import logging
 import os
 import signal
 import sys
 
+import click
 import psycopg2
 
 from mnemosyne.aletheia.agents.project_manager import ProjectManagerAgent
@@ -125,23 +125,15 @@ def run_poller(*, once: bool) -> None:
             postgres_conn.close()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Mnemosyne Hermes outbox poller",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "--once",
-        action="store_true",
-        help="Run a single delivery + reply poll cycle and exit.",
-    )
-    args = parser.parse_args()
-
+@click.command("hermes")
+@click.option(
+    "--once",
+    is_flag=True,
+    help="Run a single delivery + reply poll cycle and exit.",
+)
+def hermes_cli(once: bool):
+    """Mnemosyne Hermes outbox poller"""
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
-    run_poller(once=args.once)
-
-
-if __name__ == "__main__":
-    main()
+    run_poller(once=once)

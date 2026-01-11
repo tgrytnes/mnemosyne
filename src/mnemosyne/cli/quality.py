@@ -4,9 +4,9 @@ Provides commands for generating quality reports, comparing strategies, and benc
 """
 
 import logging
-import sys
 from pathlib import Path
 
+import click
 import numpy as np
 import weaviate
 
@@ -82,34 +82,15 @@ def generate_quality_report(
         client.close()
 
 
-def main():
-    """Main entry point for CLI."""
-    if len(sys.argv) < 2:
-        print("Usage: python -m mnemosyne.cli.quality <command> [options]")
-        print("\nCommands:")
-        print("  report --output <file>    Generate quality report")
-        sys.exit(1)
-
-    command = sys.argv[1]
-
-    if command == "report":
-        # Parse output argument
-        if "--output" not in sys.argv:
-            print("Error: --output argument is required")
-            sys.exit(1)
-
-        output_idx = sys.argv.index("--output") + 1
-        if output_idx >= len(sys.argv):
-            print("Error: --output requires a file path")
-            sys.exit(1)
-
-        output_path = Path(sys.argv[output_idx])
-        generate_quality_report(output_path)
-
-    else:
-        print(f"Unknown command: {command}")
-        sys.exit(1)
+@click.group("quality")
+def quality_cli():
+    """Mnemosyne - Quality Assurance"""
+    pass
 
 
-if __name__ == "__main__":
-    main()
+@quality_cli.command("report")
+@click.option("--output", required=True, type=click.Path(), help="Path to output markdown file")
+def report(output: str):
+    """Generate quality report."""
+    output_path = Path(output)
+    generate_quality_report(output_path)

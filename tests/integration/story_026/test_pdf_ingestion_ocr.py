@@ -19,9 +19,16 @@ except (ImportError, Exception) as e:
 @pytest.mark.integration
 @pytest.mark.weaviate
 @pytest.mark.ollama
-def test_ocr_pdf_ingestion(tmp_path, weaviate_client, ollama_client):
-    from mnemosyne.aletheia.pdf_ingestor import PDFIngestor  # to be implemented
+def test_ocr_pdf_ingestion(tmp_path, weaviate_client, test_config):
+    from mnemosyne.aletheia.pdf_ingestor import PDFIngestor
     from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+    from mnemosyne.config.providers import ProviderConfig
+    from mnemosyne.providers.factory import create_embedding_provider
+
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
 
     # Use a sample scanned PDF (place one in test_data/fake_pdfs)
     scanned_pdf = tmp_path / "scanned.pdf"
@@ -33,9 +40,7 @@ def test_ocr_pdf_ingestion(tmp_path, weaviate_client, ollama_client):
     ingestor = PDFIngestor(
         input_dir=str(tmp_path),
         weaviate_client=weaviate_client,
-        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
-            "embedding"
-        ],
+        embedding_provider=embedding_provider,
     )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")

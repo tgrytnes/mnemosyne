@@ -11,8 +11,11 @@ import sys
 import time
 from pathlib import Path
 
-import ollama
+import click
 import weaviate
+
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 from ..aletheia.email_ingest import EmailIngestConfig, EmailIngestor
 from ..aletheia.ingestion_state import IngestionStateTracker
@@ -92,14 +95,15 @@ class IngestionConfig:
 
 def create_ingestor(
     config: IngestionConfig,
+    provider_config: ProviderConfig,
     weaviate_client=None,
-    ollama_client=None,
 ) -> ObsidianIngestor:
     """
     Create ObsidianIngestor instance with configuration.
 
     Args:
         config: Ingestion configuration
+        provider_config: Provider configuration
 
     Returns:
         Configured ObsidianIngestor instance
@@ -112,9 +116,8 @@ def create_ingestor(
             grpc_port=config.weaviate_grpc_port,
         )
 
-    if ollama_client is None:
-        logger.info("Connecting to Ollama...")
-        ollama_client = ollama.Client(host=config.ollama_base_url)
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
 
     logger.info("Initializing state tracker...")
     state_tracker = IngestionStateTracker(config.state_db_path)
@@ -123,7 +126,8 @@ def create_ingestor(
     ingestor = ObsidianIngestor(
         vault_path=config.vault_path,
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
         state_tracker=state_tracker,
         chunk_size=config.chunk_size,
         chunk_overlap=config.chunk_overlap,
@@ -149,6 +153,7 @@ def ingest_once(vault_path: str | None = None):
     """
     try:
         config = IngestionConfig()
+        provider_config = ProviderConfig.from_env()
 
         if vault_path:
             config.vault_path = vault_path
@@ -160,11 +165,12 @@ def ingest_once(vault_path: str | None = None):
         logger.info("=" * 60)
         logger.info(f"Vault: {config.vault_path}")
         logger.info(f"Weaviate: {config.weaviate_host}:{config.weaviate_port}")
-        logger.info(f"Ollama: {config.ollama_base_url}")
+        logger.info(f"LLM Provider: {provider_config.llm_provider}")
+        logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
         logger.info(f"State DB: {config.state_db_path}")
         logger.info("=" * 60)
 
-        ingestor = create_ingestor(config)
+        ingestor = create_ingestor(config, provider_config)
 
         logger.info("\nScanning vault for markdown files...")
         files = ingestor.scan_vault()
@@ -207,6 +213,7 @@ def re_ingest_vault(vault_path: str | None = None, force: bool = False):
     """
     try:
         config = IngestionConfig()
+        provider_config = ProviderConfig.from_env()
 
         if vault_path:
             config.vault_path = vault_path
@@ -218,11 +225,12 @@ def re_ingest_vault(vault_path: str | None = None, force: bool = False):
         logger.info("=" * 60)
         logger.info(f"Vault: {config.vault_path}")
         logger.info(f"Weaviate: {config.weaviate_host}:{config.weaviate_port}")
-        logger.info(f"Ollama: {config.ollama_base_url}")
+        logger.info(f"LLM Provider: {provider_config.llm_provider}")
+        logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
         logger.info(f"Force mode: {force}")
         logger.info("=" * 60)
 
-        ingestor = create_ingestor(config)
+        ingestor = create_ingestor(config, provider_config)
 
         logger.info("\nScanning vault for markdown files...")
         files = ingestor.scan_vault()
@@ -293,6 +301,7 @@ def watch_vault(vault_path: str | None = None):
             return
 
         config = IngestionConfig()
+        provider_config = ProviderConfig.from_env()
         if vault_path:
             config.vault_path = vault_path
 
@@ -303,27 +312,20 @@ def watch_vault(vault_path: str | None = None):
             grpc_port=config.weaviate_grpc_port,
         )
 
-        logger.info("Connecting to Ollama...")
-        ollama_client = ollama.Client(host=config.ollama_base_url)
-        embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
-
-        def embedder(text: str) -> list[float]:
-            response = ollama_client.embeddings(model=embedding_model, prompt=text)
-            return response["embedding"]
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         if watch_config.watch_vault_enabled:
             config.validate()
-            ingestor = create_ingestor(
-                config, weaviate_client=weaviate_client, ollama_client=ollama_client
-            )
+            ingestor = create_ingestor(config, provider_config, weaviate_client=weaviate_client)
 
         if watch_config.watch_email_enabled:
             email_config = EmailIngestConfig.from_env()
             email_ingestor = EmailIngestor(
                 config=email_config,
                 weaviate_client=weaviate_client,
-                embedder=embedder,
-                ollama_client=ollama_client,
+                embedding_provider=embedding_provider,
+                llm_provider=llm_provider,
             )
 
         if watch_config.watch_pdf_enabled:
@@ -333,7 +335,7 @@ def watch_vault(vault_path: str | None = None):
             pdf_ingestor = PDFIngestor(
                 input_dir=str(pdf_scan_path),
                 weaviate_client=weaviate_client,
-                embedder=embedder,
+                embedder=lambda text: embedding_provider.embed(model="", text=text),
             )
 
         def on_vault_change(file_path: str) -> None:
@@ -420,83 +422,33 @@ def watch_vault(vault_path: str | None = None):
             weaviate_client.close()
 
 
-def main():
-    """Main CLI entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Mnemosyne - Obsidian Vault Ingestion",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Ingest entire vault once (manual mode)
-  python -m mnemosyne.cli.ingest once
-
-  # Watch vault for changes (automatic mode)
-  python -m mnemosyne.cli.ingest watch
-
-  # Specify vault path explicitly
-  python -m mnemosyne.cli.ingest once --vault-path /path/to/vault
-
-  # Re-ingest vault with structure metadata (Story 020)
-  python -m mnemosyne.cli.ingest re-ingest --force
-
-Environment Variables:
-  OBSIDIAN_VAULT_PATH     Path to Obsidian vault (required)
-  WEAVIATE_HTTP_HOST      Weaviate host (default: localhost)
-  WEAVIATE_HTTP_PORT      Weaviate HTTP port (default: 8080)
-  WEAVIATE_GRPC_PORT      Weaviate gRPC port (default: 50051)
-  OLLAMA_BASE_URL         Ollama API URL (default: http://localhost:11434)
-  INGESTION_STATE_DB      State database path (default: ingestion_state.db)
-  CHUNK_SIZE              Chunk size in characters (default: 400)
-  CHUNK_OVERLAP           Chunk overlap in characters (default: 100)
-  WATCH_DEBOUNCE_SECONDS  Debounce time for file events (default: 2.0)
-        """,
-    )
-
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
-
-    # 'once' command
-    parser_once = subparsers.add_parser("once", help="Ingest entire vault once (manual mode)")
-    parser_once.add_argument(
-        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
-    )
-
-    # 'watch' command
-    parser_watch = subparsers.add_parser(
-        "watch", help="Watch vault for changes and ingest automatically"
-    )
-    parser_watch.add_argument(
-        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
-    )
-
-    # 're-ingest' command (Story 020)
-    parser_reingest = subparsers.add_parser(
-        "re-ingest",
-        help="Re-ingest entire vault with structure metadata (Story 020)",
-    )
-    parser_reingest.add_argument(
-        "--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)"
-    )
-    parser_reingest.add_argument(
-        "--force",
-        action="store_true",
-        help="Clear all ingestion state and force re-ingestion of all files",
-    )
-
-    args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    if args.command == "once":
-        ingest_once(args.vault_path)
-    elif args.command == "watch":
-        watch_vault(args.vault_path)
-    elif args.command == "re-ingest":
-        re_ingest_vault(args.vault_path, args.force)
+@click.group("ingest")
+def ingest_cli():
+    """Mnemosyne - Obsidian Vault Ingestion"""
+    pass
 
 
-if __name__ == "__main__":
-    main()
+@ingest_cli.command("once")
+@click.option("--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)")
+def once(vault_path: str | None = None):
+    """Ingest entire vault once (manual mode)."""
+    ingest_once(vault_path)
+
+
+@ingest_cli.command("watch")
+@click.option("--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)")
+def watch(vault_path: str | None = None):
+    """Watch vault for changes and ingest automatically."""
+    watch_vault(vault_path)
+
+
+@ingest_cli.command("re-ingest")
+@click.option("--vault-path", help="Path to Obsidian vault (overrides OBSIDIAN_VAULT_PATH env var)")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Clear all ingestion state and force re-ingestion of all files",
+)
+def re_ingest(vault_path: str | None = None, force: bool = False):
+    """Re-ingest entire vault with structure metadata."""
+    re_ingest_vault(vault_path, force)
