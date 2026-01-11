@@ -323,7 +323,7 @@ Behavioral economics examines psychological factors in economic decisions.
                     ), f"Cluster {cluster_id} reps should be ordered by distance"
 
     def test_pipeline_01_chunking_strategy_comparison(
-        self, weaviate_client, clean_weaviate_collection, test_config
+        self, weaviate_client, clean_weaviate_collection, test_config, monkeypatch
     ):
         """
         PIPELINE TEST 01: Compare chunking strategies with quality metrics.
@@ -395,9 +395,7 @@ Future work will expand the scope.
                 # Ingest with strategy
                 state_tracker = IngestionStateTracker(str(vault_path / f"state_{strategy}.db"))
 
-                import os
-
-                os.environ["CHUNKING_STRATEGY"] = strategy
+                monkeypatch.setenv("CHUNKING_STRATEGY", strategy)
 
                 ingestor = ObsidianIngestor(
                     vault_path=str(vault_path),

@@ -51,7 +51,12 @@ class TestCompletePipelineWithMetadataSynthesis:
     """
 
     def test_pipeline_full_vault_to_cluster_profiles(
-        self, weaviate_client, clean_weaviate_collection, postgres_connection, test_config
+        self,
+        weaviate_client,
+        clean_weaviate_collection,
+        postgres_connection,
+        test_config,
+        monkeypatch,
     ):
         """
         COMPLETE PIPELINE: Vault → Ingestion → Clustering → Representatives → Metadata Synthesis.
@@ -244,9 +249,7 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
                 (vault_path / filename).write_text(content)
 
             # STAGE 1: Ingest vault with hybrid chunking
-            import os
-
-            os.environ["CHUNKING_STRATEGY"] = "hybrid"
+            monkeypatch.setenv("CHUNKING_STRATEGY", "hybrid")
 
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
             ingestor = ObsidianIngestor(
