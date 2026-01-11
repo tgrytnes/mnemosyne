@@ -3,7 +3,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from mnemosyne.config.providers import ProviderConfig
 from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
@@ -13,6 +12,7 @@ from mnemosyne.alexandria.weaviate_schema import (
     WeaviateSchemaManager,
 )
 from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.factory import create_llm_provider
 
 

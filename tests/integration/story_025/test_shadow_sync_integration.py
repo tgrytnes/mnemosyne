@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pytest
-from mnemosyne.config.providers import ProviderConfig
 
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.factory import create_llm_provider
 
 

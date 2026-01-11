@@ -11,11 +11,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from mnemosyne.config.providers import ProviderConfig
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.argus.research_graph import ResearchGraph
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 

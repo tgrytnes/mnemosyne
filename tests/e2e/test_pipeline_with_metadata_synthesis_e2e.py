@@ -12,8 +12,8 @@ import time
 from pathlib import Path
 
 import pytest
-from mnemosyne.config.providers import ProviderConfig
 
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 # These imports will only work after Story 002 is merged
