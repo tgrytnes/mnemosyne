@@ -137,3 +137,7 @@ def hermes_cli(once: bool):
     signal.signal(signal.SIGINT, _handle_signal)
 
     run_poller(once=once)
+
+
+if __name__ == "__main__":
+    hermes_cli()
