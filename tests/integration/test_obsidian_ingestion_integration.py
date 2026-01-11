@@ -47,9 +47,7 @@ class TestObsidianIngestionIntegration:
         """Create provider configuration"""
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         return ProviderConfig(
-            llm_provider="ollama",
-            embedding_provider="ollama",
-            ollama_base_url=base_url
+            llm_provider="ollama", embedding_provider="ollama", ollama_base_url=base_url
         )
 
     @pytest.fixture(scope="class")
@@ -128,7 +126,9 @@ Commands:
         return IngestionStateTracker(str(db_path))
 
     @pytest.fixture
-    def ingestor(self, test_vault, weaviate_client, llm_provider, embedding_provider, state_tracker):
+    def ingestor(
+        self, test_vault, weaviate_client, llm_provider, embedding_provider, state_tracker
+    ):
         """Create ingestor with real services"""
         return ObsidianIngestor(
             vault_path=test_vault,
@@ -166,7 +166,7 @@ Commands:
         # GIVEN: Embedding provider
         # WHEN: Generating embedding
         embedding = embedding_provider.embed("test text")
-        
+
         # THEN: Embedding is generated with correct dimension
         assert embedding is not None
         assert len(embedding) == 1024  # qwen3-embedding dimension
@@ -319,7 +319,9 @@ Commands:
             # YAML frontmatter should be removed
             assert "---" not in text or text.count("---") < 2
 
-    def test_state_tracking_persists(self, test_vault, weaviate_client, llm_provider, embedding_provider, tmp_path):
+    def test_state_tracking_persists(
+        self, test_vault, weaviate_client, llm_provider, embedding_provider, tmp_path
+    ):
         """Should persist ingestion state across restarts"""
         # GIVEN: State tracker with persistent database
         db_path = tmp_path / "persistent_state.db"

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import shutil
 
-import ollama
 import pytest
+from mnemosyne.config.provider_config import ProviderConfig
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
@@ -20,6 +20,7 @@ from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
 from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
 from mnemosyne.cli.cluster import ClusterManager
 from mnemosyne.iris.semantic_router import QueryCacheStore
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.e2e
@@ -34,10 +35,15 @@ def test_delta_sync_end_to_end(
     fake_vault_path,
     tmp_path,
 ):
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    config = ProviderConfig(
+        llm_provider="ollama",
+        llm_model="qwen3:0.6b",
+        embedding_provider="ollama",
+        embedding_model="nomic-embed-text:latest",
+        ollama_base_url=test_config["ollama_url"],
     )
+    llm_provider = create_llm_provider(config)
+    embedding_provider = create_embedding_provider(config)
 
     vault_path = tmp_path / "vault"
     shutil.copytree(fake_vault_path, vault_path)
@@ -46,7 +52,8 @@ def test_delta_sync_end_to_end(
     ingestor = ObsidianIngestor(
         vault_path=str(vault_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
     )
     stats = ingestor.ingest_vault()
@@ -84,7 +91,7 @@ def test_delta_sync_end_to_end(
     node = DeltaSyncNode(
         weaviate_client=weaviate_client,
         postgres_connection=postgres_connection,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
         graph_pipeline=graph_pipeline,
         cache_store=cache_store,
         config=DeltaSyncConfig(max_retries=0, retry_backoff_seconds=0.0),

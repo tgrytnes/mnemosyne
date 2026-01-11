@@ -22,8 +22,6 @@ from langgraph.graph import END, START, StateGraph
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
-from mnemosyne.config.providers import ProviderConfig
-from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 from mnemosyne.alexandria.weaviate_schema import (
     ClusterCentroidCollection,
     WeaviateSchemaManager,
@@ -33,7 +31,9 @@ from mnemosyne.argus.nodes.cluster_representatives import (
     GetClusterRepresentatives,
 )
 from mnemosyne.cli.cluster import ClusterManager
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.e2e
@@ -63,7 +63,7 @@ class TestCompleteEndToEndPipeline:
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -210,7 +210,6 @@ Behavioral economics examines psychological factors in economic decisions.
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -341,7 +340,7 @@ Behavioral economics examines psychological factors in economic decisions.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -404,7 +403,6 @@ Future work will expand the scope.
                     vault_path=str(vault_path),
                     weaviate_client=weaviate_client,
                     llm_provider=llm_provider,
-
                     embedding_provider=embedding_provider,
                     state_tracker=state_tracker,
                 )
@@ -486,7 +484,7 @@ Future work will expand the scope.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -526,7 +524,6 @@ Transformers revolutionized natural language processing with attention mechanism
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -629,7 +626,7 @@ Stretch the dough gently to preserve air bubbles.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -676,7 +673,6 @@ Stars guide the way.
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -752,7 +748,7 @@ Stars guide the way.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -792,7 +788,6 @@ Innovation and experimentation.
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -857,7 +852,7 @@ Innovation and experimentation.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -958,7 +953,6 @@ Roman engineering achievements include aqueducts and road networks.
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -1052,7 +1046,7 @@ class TestPipelineEdgeCases:
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -1066,7 +1060,6 @@ class TestPipelineEdgeCases:
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -1087,7 +1080,7 @@ class TestPipelineEdgeCases:
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -1104,7 +1097,6 @@ class TestPipelineEdgeCases:
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
@@ -1131,7 +1123,7 @@ class TestPipelineEdgeCases:
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -1154,7 +1146,6 @@ class TestPipelineEdgeCases:
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
                 llm_provider=llm_provider,
-
                 embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )

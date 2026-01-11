@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from mnemosyne.config.provider_config import ProviderConfig
 from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
@@ -12,6 +13,7 @@ from mnemosyne.alexandria.weaviate_schema import (
     WeaviateSchemaManager,
 )
 from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
+from mnemosyne.providers.factory import create_llm_provider
 
 
 @pytest.mark.e2e
@@ -21,7 +23,6 @@ from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
 def test_bootstrap_creates_profiles_for_empty_source(
     weaviate_client,
     postgres_connection,
-    ollama_client,
 ):
     schema = WeaviateSchemaManager(weaviate_client)
     schema.ensure_collection_exists(TheMuses.collection_name)
@@ -68,10 +69,15 @@ def test_bootstrap_creates_profiles_for_empty_source(
     )
     postgres_connection.commit()
 
+    config = ProviderConfig(
+        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
+    )
+    llm_provider = create_llm_provider(config)
+
     bootstrapper = ClusterProfileBootstrapper(
         weaviate_client=weaviate_client,
         postgres_connection=postgres_connection,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
         profile_source="muses",
         centroid_collection_name=ClusterCentroidCollection.collection_name,
         chunk_collection_name=TheMuses.collection_name,

@@ -4,14 +4,15 @@ E2E tests for Story 002 - Structured Metadata Synthesis with REAL Ollama.
 
 import time
 
-import ollama
 import pytest
+from mnemosyne.config.provider_config import ProviderConfig
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.argus.cluster_metadata_synthesis import (
     ClusterData,
     ClusterMetadataSynthesizer,
 )
+from mnemosyne.providers.factory import create_llm_provider
 
 
 @pytest.mark.e2e
@@ -28,10 +29,10 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
     5. Verify persistence
     """
     # Use REAL Ollama client
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    config = ProviderConfig(
+        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
     )
+    llm_provider = create_llm_provider(config)
 
     # Setup repository
     repo = ClusterProfileRepository(postgres_connection)
@@ -60,7 +61,7 @@ def test_story_002_end_to_end_with_real_ollama(postgres_connection, test_config)
         )
     ]
 
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
     # Measure performance with real LLM
     start = time.monotonic()
@@ -148,15 +149,15 @@ def test_real_llm_identifies_themes(
     - Generates appropriate summaries
     - Identifies key entities and topics
     """
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    config = ProviderConfig(
+        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
     )
+    llm_provider = create_llm_provider(config)
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
 
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
     cluster = ClusterData(
         cluster_id="test-cluster",
@@ -199,10 +200,10 @@ def test_story_002_performance_target(postgres_connection, test_config):
     Note: This test uses 10 clusters for faster CI runtime.
     Scale to 50 for full acceptance validation.
     """
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    config = ProviderConfig(
+        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url=test_config["ollama_url"]
     )
+    llm_provider = create_llm_provider(config)
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
@@ -221,7 +222,7 @@ def test_story_002_performance_target(postgres_connection, test_config):
         for i in range(num_clusters)
     ]
 
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
     start = time.monotonic()
     results = [synthesizer.synthesize(cluster) for cluster in clusters]

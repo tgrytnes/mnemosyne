@@ -10,8 +10,8 @@ import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.aletheia.structure_extractor import StructureExtractor
-from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
 from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
 from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
@@ -60,7 +60,7 @@ Nested content here. """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -70,7 +70,6 @@ Nested content here. """
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
             llm_provider=llm_provider,
-
             embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
@@ -193,7 +192,7 @@ Static type checking with mypy. """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -203,7 +202,6 @@ Static type checking with mypy. """
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
             llm_provider=llm_provider,
-
             embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
@@ -306,7 +304,7 @@ Static type checking with mypy. """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -316,7 +314,6 @@ Static type checking with mypy. """
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
             llm_provider=llm_provider,
-
             embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
@@ -431,7 +428,7 @@ Final thoughts. """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -441,7 +438,6 @@ Final thoughts. """
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
             llm_provider=llm_provider,
-
             embedding_provider=embedding_provider,
         )
 

@@ -38,7 +38,7 @@ More information about topic {i} goes here.
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
     embedding_provider = create_embedding_provider(provider_config)

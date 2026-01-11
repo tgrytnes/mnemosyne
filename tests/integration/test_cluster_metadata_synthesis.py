@@ -28,7 +28,7 @@ def test_synthesis_and_storage_with_real_ollama(postgres_connection, test_config
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
 
@@ -140,7 +140,7 @@ Team coordination and task management.
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -240,7 +240,7 @@ def test_real_llm_topic_extraction(
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
 
@@ -286,7 +286,7 @@ def test_error_handling_with_real_llm(test_config):
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
 

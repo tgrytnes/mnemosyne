@@ -58,7 +58,7 @@ Always write tests first using TDD."""
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -119,7 +119,7 @@ See also [[Another Note|with alias]]."""
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -183,7 +183,7 @@ Second section content here. """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -247,7 +247,7 @@ Content at level 3 (deepest). """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -306,7 +306,7 @@ Content at level 3 (deepest). """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -352,7 +352,7 @@ Content at level 3 (deepest). """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)
@@ -395,7 +395,7 @@ Content at level 3 (deepest). """
         provider_config = ProviderConfig(
             llm_provider="ollama",
             embedding_provider="ollama",
-            ollama_base_url=test_config["ollama_url"]
+            ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(provider_config)
         embedding_provider = create_embedding_provider(provider_config)

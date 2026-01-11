@@ -47,7 +47,7 @@ Final thoughts on note {i}.
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
     embedding_provider = create_embedding_provider(provider_config)
@@ -59,7 +59,6 @@ Final thoughts on note {i}.
         vault_path=str(tmp_path),
         weaviate_client=weaviate_client,
         llm_provider=llm_provider,
-
         embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunking_strategy="hybrid",
@@ -151,7 +150,7 @@ def test_semantic_chunking_detects_topic_shift(
     provider_config = ProviderConfig(
         llm_provider="ollama",
         embedding_provider="ollama",
-        ollama_base_url=test_config["ollama_url"]
+        ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(provider_config)
     embedding_provider = create_embedding_provider(provider_config)
@@ -161,7 +160,6 @@ def test_semantic_chunking_detects_topic_shift(
         vault_path=str(tmp_path),
         weaviate_client=weaviate_client,
         llm_provider=llm_provider,
-
         embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunking_strategy="semantic",
