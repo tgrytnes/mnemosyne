@@ -11,7 +11,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from mnemosyne.config.provider_config import ProviderConfig
+from mnemosyne.config.providers import ProviderConfig
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor

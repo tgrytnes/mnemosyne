@@ -5,7 +5,7 @@ E2E tests for Story 002 - Structured Metadata Synthesis with REAL Ollama.
 import time
 
 import pytest
-from mnemosyne.config.provider_config import ProviderConfig
+from mnemosyne.config.providers import ProviderConfig
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
 from mnemosyne.argus.cluster_metadata_synthesis import (

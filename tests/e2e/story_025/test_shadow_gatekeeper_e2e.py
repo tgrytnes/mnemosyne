@@ -4,7 +4,7 @@ Requires real services: filesystem + Weaviate + Ollama.
 """
 
 import pytest
-from mnemosyne.config.provider_config import ProviderConfig
+from mnemosyne.config.providers import ProviderConfig
 
 from mnemosyne.aletheia.shadow_gatekeeper import ObsidianGatekeeper  # to be implemented
 from mnemosyne.aletheia.shadow_janitor import Janitor  # to be implemented

@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from mnemosyne.config.provider_config import ProviderConfig
+from mnemosyne.config.providers import ProviderConfig
 from weaviate.classes.query import Filter
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
