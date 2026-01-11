@@ -5,11 +5,12 @@ E2E performance benchmark for hybrid chunking with REAL Ollama and Weaviate.
 import os
 import time
 
-import ollama
 import pytest
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.e2e
@@ -43,7 +44,13 @@ Final thoughts on note {i}.
         (tmp_path / f"note-{i}.md").write_text(content)
 
     # Use REAL Ollama client
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
 
     # Use REAL Weaviate client
     state_tracker = IngestionStateTracker(str(tmp_path / "ingestion_state.db"))
@@ -51,7 +58,8 @@ Final thoughts on note {i}.
     ingestor = ObsidianIngestor(
         vault_path=str(tmp_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunking_strategy="hybrid",
         section_semantic_min_length=100,  # Realistic threshold
@@ -139,13 +147,20 @@ def test_semantic_chunking_detects_topic_shift(
     note_path = tmp_path / filename
     note_path.write_text(text)
 
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
     state_tracker = IngestionStateTracker(str(tmp_path / f"{filename}.db"))
 
     ingestor = ObsidianIngestor(
         vault_path=str(tmp_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunking_strategy="semantic",
         semantic_min_chunk_size=1,

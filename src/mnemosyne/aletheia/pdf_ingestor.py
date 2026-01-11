@@ -9,11 +9,15 @@ import logging
 import os
 import re
 import tempfile
-from collections.abc import Callable
 from glob import glob
 from pathlib import Path
 
+import click
+
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.base import EmbeddingProvider
+from mnemosyne.providers.factory import create_embedding_provider
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +30,10 @@ class PDFIngestor:
     Uses: PyPDF2, OCRmyPDF (if available), optional embedder callable.
     """
 
-    def __init__(self, input_dir: str, weaviate_client, embedder: Callable[[str], list[float]]):
+    def __init__(self, input_dir: str, weaviate_client, embedding_provider: EmbeddingProvider):
         self.input_dir = input_dir
         self.client = weaviate_client
-        self.embedder = embedder
+        self.embedding_provider = embedding_provider
         if self.client is not None:
             WeaviateSchemaManager(self.client).ensure_collection_exists("TheLethe")
 
@@ -69,7 +73,7 @@ class PDFIngestor:
         metadata = self.extract_metadata(path)
         for idx, chunk in enumerate(chunks):
             try:
-                vector = self.embedder(chunk)
+                vector = self.embedding_provider.embed(model="", text=chunk)
             except Exception as exc:
                 logger.error("Embedding failed for %s chunk %s: %s", path, idx, exc)
                 continue
@@ -248,11 +252,11 @@ class PDFIngestor:
             return ""
 
 
-def main():
+@click.command("pdf-ingest")
+def pdf_ingest_cli():
     """CLI entry point for PDF ingestion."""
     import sys
 
-    import ollama
     import weaviate
 
     # Configure logging
@@ -269,16 +273,15 @@ def main():
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
     weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
     weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+    provider_config = ProviderConfig.from_env()
 
     logger.info("=" * 60)
     logger.info("PDF Ingestion Pipeline")
     logger.info("=" * 60)
     logger.info(f"PDF Path: {pdf_path}")
     logger.info(f"Weaviate: {weaviate_host}:{weaviate_port}")
-    logger.info(f"Ollama: {ollama_url}")
-    logger.info(f"Embedding Model: {embedding_model}")
+    logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
     logger.info("=" * 60)
 
     # Connect to services
@@ -289,18 +292,15 @@ def main():
         grpc_port=weaviate_grpc_port,
     )
 
-    logger.info("Connecting to Ollama...")
-    ollama_client = ollama.Client(host=ollama_url)
-
-    # Create embedder function
-    def embedder(text: str) -> list[float]:
-        """Generate embedding using Ollama."""
-        response = ollama_client.embeddings(model=embedding_model, prompt=text)
-        return response["embedding"]
+    embedding_provider = create_embedding_provider(provider_config)
 
     # Create ingestor and run
     logger.info("Starting PDF ingestion...")
-    ingestor = PDFIngestor(input_dir=pdf_path, weaviate_client=weaviate_client, embedder=embedder)
+    ingestor = PDFIngestor(
+        input_dir=pdf_path,
+        weaviate_client=weaviate_client,
+        embedding_provider=embedding_provider,
+    )
 
     try:
         ingestor.ingest_pdfs()
@@ -315,7 +315,3 @@ def main():
         sys.exit(1)
     finally:
         weaviate_client.close()
-
-
-if __name__ == "__main__":
-    main()

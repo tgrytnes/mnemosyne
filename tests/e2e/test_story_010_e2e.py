@@ -18,18 +18,20 @@ from mnemosyne.argus.scout.radar import (
 )
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import run_clustering
-
-
-def _embed(ollama_client, text: str) -> list[float]:
-    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-    return response["embedding"]
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.e2e
 @pytest.mark.weaviate
 def test_story_010_discovers_and_stores_projectness(
-    weaviate_client, ollama_client, clean_weaviate_collection
+    weaviate_client, test_config, clean_weaviate_collection
 ):
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
+
     positives = [
         "Renovate the house: budget, timeline, contractors, materials.",
         "Plan education goals: coursework, tuition, schedule, deadlines.",
@@ -46,30 +48,30 @@ def test_story_010_discovers_and_stores_projectness(
         ClusterRepresentation(
             cluster_id="project_renovation",
             text="Renovate the kitchen with a timeline, budget, and materials list.",
-            embedding=_embed(
-                ollama_client,
-                "Renovate the kitchen with a timeline, budget, and materials list.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Renovate the kitchen with a timeline, budget, and materials list.",
             ),
         ),
         ClusterRepresentation(
             cluster_id="project_training",
             text="Draft a 12-week training program with milestones and weekly goals.",
-            embedding=_embed(
-                ollama_client,
-                "Draft a 12-week training program with milestones and weekly goals.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Draft a 12-week training program with milestones and weekly goals.",
             ),
         ),
         ClusterRepresentation(
             cluster_id="non_project_history",
             text="Notes on Roman empire politics and historical events.",
-            embedding=_embed(
-                ollama_client,
-                "Notes on Roman empire politics and historical events.",
+            embedding=embedding_provider.embed(
+                model="",
+                text="Notes on Roman empire politics and historical events.",
             ),
         ),
     ]
 
-    radar = LatentRadar(lambda text: _embed(ollama_client, text))
+    radar = LatentRadar(lambda text: embedding_provider.embed(model="", text=text))
     base_concept = ConceptPrototype(
         key="project_private",
         positive_texts=positives,
@@ -134,8 +136,16 @@ def test_story_010_discovers_and_stores_projectness(
 @pytest.mark.e2e
 @pytest.mark.weaviate
 def test_story_010_full_pipeline_detects_new_project_topic(
-    tmp_path, weaviate_client, ollama_client, clean_weaviate_collection, test_config
+    tmp_path, weaviate_client, clean_weaviate_collection, test_config
 ):
+    provider_config = ProviderConfig(
+        embedding_provider="ollama",
+        llm_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    embedding_provider = create_embedding_provider(provider_config)
+    llm_provider = create_llm_provider(provider_config)
+
     vault = tmp_path / "vault"
     vault.mkdir()
     _write_note(vault / "history.md", "Notes on Roman history and governance.")
@@ -145,7 +155,8 @@ def test_story_010_full_pipeline_detects_new_project_topic(
     ingestor = ObsidianIngestor(
         vault_path=str(vault),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
         state_tracker=state_tracker,
         chunking_strategy="recursive",
         chunk_size=400,
@@ -175,7 +186,7 @@ def test_story_010_full_pipeline_detects_new_project_topic(
     ]
     runner = ScoutRunner(
         weaviate_client,
-        embedder=lambda text: _embed(ollama_client, text),
+        embedder=lambda text: embedding_provider.embed(model="", text=text),
         config=ScoutConfig(project_concepts=project_concepts),
     )
 

@@ -20,6 +20,7 @@ psycopg2-binary = "^2.9.9"
 python-telegram-bot = "^21.0"
 watchdog = "^4.0.0"
 ollama = "^0.3.0"
+groq = "^0.11.0"
 pydantic = "^2.0.0"
 python-dotenv = "^1.0.0"
 python-dateutil = "^2.9.0"
@@ -47,6 +48,9 @@ black = "^24.0.0"
 ruff = "^0.14.0"
 mypy = "^1.10.0"
 pre-commit = "^3.7.0"
+
+[tool.poetry.scripts]
+mnemosyne = "mnemosyne.cli.main:mnemosyne_cli"
 
 [build-system]
 requires = ["poetry-core"]
@@ -107,6 +111,9 @@ select = [
     "N",  # pep8-naming
     "UP", # pyupgrade
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["E501"]  # Allow long lines in tests (function signatures)
 
 [tool.mypy]
 python_version = "3.11"

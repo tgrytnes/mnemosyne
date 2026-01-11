@@ -24,6 +24,8 @@ from mnemosyne.argus.scout.monitor_agent import (
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import run_clustering
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 class _InMemoryIntentQueue:
@@ -58,11 +60,18 @@ def test_story_015_escalates_rejected_discovery(
     tmp_path,
     fake_vault_path,
     weaviate_client,
-    ollama_client,
     postgres_connection,
     ananke_test_db,
     test_config,
 ):
+    provider_config = ProviderConfig(
+        embedding_provider="ollama",
+        llm_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    embedding_provider = create_embedding_provider(provider_config)
+    llm_provider = create_llm_provider(provider_config)
+
     expected_projects = {
         "house_renovation": ["budget", "timeline", "contractor"],
         "training_program": ["training program", "weekly", "milestones"],
@@ -84,7 +93,8 @@ def test_story_015_escalates_rejected_discovery(
     ingestor = ObsidianIngestor(
         vault_path=str(monitor_vault_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
         state_tracker=state_tracker,
         chunking_strategy="recursive",
         chunk_size=400,
@@ -115,7 +125,7 @@ def test_story_015_escalates_rejected_discovery(
     ]
     runner = ScoutRunner(
         weaviate_client,
-        embedder=lambda text: _embed(ollama_client, text),
+        embedder=lambda text: embedding_provider.embed(model="", text=text),
         config=ScoutConfig(project_concepts=project_concepts),
     )
 
@@ -168,11 +178,6 @@ def test_story_015_escalates_rejected_discovery(
     intent = intent_queue.intents[0]
     assert intent["intent_type"] == "proposal_escalation"
     assert intent["message_id"] == f"proposal_escalation:{discovery_id}"
-
-
-def _embed(ollama_client, text: str) -> list[float]:
-    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-    return response["embedding"]
 
 
 def _cluster_text(collection, cluster_id: str) -> str:

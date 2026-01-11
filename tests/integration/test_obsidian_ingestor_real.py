@@ -6,9 +6,11 @@ Precondition: Use a fresh TheMuses collection for ingestion-focused checks.
 
 import pytest
 
-from src.mnemosyne.aletheia.ingestion_state import IngestionStateTracker
-from src.mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
-from src.mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 def _reset_themuses(weaviate_client):
@@ -18,7 +20,7 @@ def _reset_themuses(weaviate_client):
 
 
 @pytest.mark.integration
-def test_ingestor_ingests_single_file(weaviate_client, ollama_client, tmp_path):
+def test_ingestor_ingests_single_file(weaviate_client, test_config, tmp_path):
     _reset_themuses(weaviate_client)
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -35,11 +37,21 @@ This note references [[alpha_notes]] and includes ![[image.png]].
 """
     )
 
+    # Use provider system
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
+
     state_tracker = IngestionStateTracker(str(tmp_path / "state.db"))
     ingestor = ObsidianIngestor(
         vault_path=str(vault),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
     )
 
@@ -58,7 +70,7 @@ This note references [[alpha_notes]] and includes ![[image.png]].
 
 
 @pytest.mark.integration
-def test_ingestor_respects_incremental_state(weaviate_client, ollama_client, tmp_path):
+def test_ingestor_respects_incremental_state(weaviate_client, test_config, tmp_path):
     _reset_themuses(weaviate_client)
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -66,12 +78,22 @@ def test_ingestor_respects_incremental_state(weaviate_client, ollama_client, tmp
     file_path = vault / "note.md"
     file_path.write_text("# Original content")
 
+    # Use provider system
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
+
     state_path = tmp_path / "state.db"
     tracker = IngestionStateTracker(str(state_path))
     ingestor = ObsidianIngestor(
         vault_path=str(vault),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=tracker,
     )
 

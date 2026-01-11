@@ -18,7 +18,7 @@ class TestChunkingStrategyFactory:
 
     def test_creates_recursive_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            ollama_client=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
         )
         config = ChunkingStrategyConfig(strategy="recursive")
 
@@ -28,7 +28,7 @@ class TestChunkingStrategyFactory:
 
     def test_creates_semantic_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            ollama_client=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
         )
         config = ChunkingStrategyConfig(strategy="semantic")
 
@@ -38,7 +38,7 @@ class TestChunkingStrategyFactory:
 
     def test_creates_hybrid_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            ollama_client=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
         )
         config = ChunkingStrategyConfig(strategy="hybrid")
 
@@ -48,7 +48,7 @@ class TestChunkingStrategyFactory:
 
     def test_invalid_strategy_raises(self, mocker):
         factory = ChunkingStrategyFactory(
-            ollama_client=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
         )
         config = ChunkingStrategyConfig(strategy="unknown")
 

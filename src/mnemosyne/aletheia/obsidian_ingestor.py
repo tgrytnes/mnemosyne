@@ -19,6 +19,8 @@ from glob import glob
 from pathlib import Path
 from typing import Any
 
+from mnemosyne.providers.base import EmbeddingProvider, LLMProvider
+
 from ..alexandria.weaviate_schema import WeaviateSchemaManager
 from .chunking_strategy_factory import ChunkingStrategyConfig, ChunkingStrategyFactory
 from .ingestion_state import IngestionStateTracker
@@ -40,7 +42,8 @@ class ObsidianIngestor:
         self,
         vault_path: str,
         weaviate_client,
-        ollama_client,
+        embedding_provider: EmbeddingProvider,
+        llm_provider: LLMProvider | None = None,
         state_tracker: IngestionStateTracker | None = None,
         chunk_size: int = 400,
         chunk_overlap: int = 100,
@@ -60,14 +63,16 @@ class ObsidianIngestor:
         Args:
             vault_path: Path to Obsidian vault directory
             weaviate_client: Connected Weaviate client
-            ollama_client: Ollama client for embeddings
+            embedding_provider: Provider for generating embeddings
+            llm_provider: Optional provider for LLM-based tasks
             state_tracker: Optional state tracker (creates new if None)
             chunk_size: Target chunk size in characters
             chunk_overlap: Overlap between chunks
         """
         self.vault_path = vault_path
         self.weaviate_client = weaviate_client
-        self.ollama_client = ollama_client
+        self.embedding_provider = embedding_provider
+        self.llm_provider = llm_provider
         self.collection_name = "TheMuses"
         self.progress_every = self._resolve_progress_every(progress_every)
 
@@ -77,7 +82,7 @@ class ObsidianIngestor:
         self.state_tracker = state_tracker or IngestionStateTracker()
 
         strategy_factory = ChunkingStrategyFactory(
-            ollama_client=ollama_client, state_tracker=self.state_tracker
+            llm_provider=llm_provider, state_tracker=self.state_tracker
         )
         semantic_model = semantic_model or os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
         strategy_config = ChunkingStrategyConfig(
@@ -357,16 +362,15 @@ class ObsidianIngestor:
 
     def _generate_embedding(self, text: str) -> list[float]:
         """
-        Generate embedding for text via Ollama.
+        Generate embedding for text via the configured provider.
 
         Args:
             text: Text to embed
 
         Returns:
-            1024-dimensional embedding vector
+            Embedding vector
         """
-        response = self.ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-        return response["embedding"]
+        return self.embedding_provider.embed(model="", text=text)
 
     def _store_chunk(self, chunk_data: dict[str, Any]) -> None:
         """

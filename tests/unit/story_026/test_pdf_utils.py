@@ -7,9 +7,15 @@ class DummyPDFIngestor:
     """Minimal wrapper to call functions once implemented."""
 
     def __init__(self):
+        from unittest.mock import Mock
+
         from mnemosyne.aletheia.pdf_ingestor import PDFIngestor  # to be implemented
 
-        self.ingestor = PDFIngestor(input_dir="", weaviate_client=None, embedder=lambda _: [])
+        embedding_provider = Mock()
+        embedding_provider.embed = lambda _: []
+        self.ingestor = PDFIngestor(
+            input_dir="", weaviate_client=None, embedding_provider=embedding_provider
+        )
 
     def clean_text(self, text: str) -> str:
         return self.ingestor.clean_text(text)

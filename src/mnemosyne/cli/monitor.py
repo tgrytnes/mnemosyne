@@ -1,7 +1,8 @@
-import argparse
 import logging
 import os
 import sys
+
+import click
 
 # Configure logging
 logging.basicConfig(
@@ -118,24 +119,17 @@ def run_monitor() -> None:
         sys.exit(1)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Mnemosyne - Monitor Agent",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+@click.group("monitor")
+def monitor_cli():
+    """Mnemosyne - Monitor Agent"""
+    pass
 
-    subparsers.add_parser("run", help="Run a single monitor reconciliation pass")
 
-    args = parser.parse_args()
-
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    if args.command == "run":
-        run_monitor()
+@monitor_cli.command("run")
+def run():
+    """Run a single monitor reconciliation pass"""
+    run_monitor()
 
 
 if __name__ == "__main__":
-    main()
+    monitor_cli()

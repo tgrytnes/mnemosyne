@@ -15,6 +15,8 @@ import pytest
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.argus.research_graph import ResearchGraph
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 def _run_cli(args: list[str], db_path: Path) -> str:
@@ -109,7 +111,6 @@ def test_story_004_cleanup_removes_old_checkpoints(tmp_path: Path):
 def test_story_004_system_resume_with_real_services(
     tmp_path: Path,
     weaviate_client,
-    ollama_client,
     fake_vault_path: Path,
     clean_weaviate_collection,
 ):
@@ -117,10 +118,22 @@ def test_story_004_system_resume_with_real_services(
     REAL E2E TEST: Ingest real vault data, run checkpointed graph, then resume.
     """
     state_tracker = IngestionStateTracker(str(tmp_path / "ingestion_state.db"))
+
+    config = ProviderConfig(
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        embedding_provider="ollama",
+        ollama_embedding_model="nomic-embed-text:latest",
+        ollama_base_url="http://localhost:11434",
+    )
+    llm_provider = create_llm_provider(config)
+    embedding_provider = create_embedding_provider(config)
+
     ingestor = ObsidianIngestor(
         vault_path=str(fake_vault_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunking_strategy="recursive",
         chunk_size=400,

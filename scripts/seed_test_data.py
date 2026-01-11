@@ -9,12 +9,13 @@ import os
 import sys
 from pathlib import Path
 
-import ollama
 import weaviate
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 def _env_int(name: str, default: int) -> int:
@@ -62,13 +63,21 @@ def main() -> int:
     schema_manager = WeaviateSchemaManager(weaviate_client)
     schema_manager.ensure_collection_exists("TheMuses")
 
-    ollama_client = ollama.Client(host=ollama_url)
+    # Create provider config
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=ollama_url,
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
     state_tracker = IngestionStateTracker(state_db_path)
 
     ingestor = ObsidianIngestor(
         vault_path=str(vault),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        llm_provider=llm_provider,
+        embedding_provider=embedding_provider,
         state_tracker=state_tracker,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,

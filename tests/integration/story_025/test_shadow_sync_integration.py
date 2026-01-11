@@ -4,10 +4,13 @@ from pathlib import Path
 
 import pytest
 
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_llm_provider
+
 
 @pytest.mark.integration
 @pytest.mark.ollama
-def test_shadow_sync_and_tagging_with_real_ollama(tmp_path: Path, ollama_client):
+def test_shadow_sync_and_tagging_with_real_ollama(tmp_path: Path):
     from mnemosyne.aletheia.shadow_janitor import Janitor  # to be implemented
     from mnemosyne.aletheia.shadow_tagger import Tagger  # to be implemented
 
@@ -23,7 +26,13 @@ def test_shadow_sync_and_tagging_with_real_ollama(tmp_path: Path, ollama_client)
     assert shadow_file.exists()
     assert "draft note about a project." in shadow_file.read_text()
 
-    tagger = Tagger(ollama_client)
+    config = ProviderConfig(
+        llm_provider="ollama",
+        ollama_llm_model="qwen3:0.6b",
+        ollama_base_url="http://localhost:11434",
+    )
+    llm_provider = create_llm_provider(config)
+    tagger = Tagger(llm_provider)
     tags = tagger.tag_file(shadow_file)
     tagger.apply_tags_to_file(shadow_file, tags)
 

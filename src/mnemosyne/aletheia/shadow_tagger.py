@@ -6,10 +6,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from mnemosyne.providers.base import LLMProvider
+
 
 class Tagger:
-    def __init__(self, ollama_client):
-        self.ollama = ollama_client
+    def __init__(self, llm_provider: LLMProvider):
+        self.llm_provider = llm_provider
 
     def tag_file(self, shadow_file_path: Path) -> list[str]:
         content = Path(shadow_file_path).read_text(encoding="utf-8")
@@ -22,10 +24,13 @@ class Tagger:
             f"Note content:\n{sample}\n\nReturn ONLY the tags (one per line)."
         )
         try:
-            response = self.ollama.generate(
-                model="qwen3:0.6b", prompt=prompt, options={"temperature": 0.2}
+            response = self.llm_provider.generate(
+                model="",
+                prompt=prompt,
+                options={"temperature": 0.2},
             )
-            lines = response.get("response", "").split("\n")
+            text = response.get("response", "") if isinstance(response, dict) else str(response)
+            lines = text.split("\n")
             tags = [line.strip() for line in lines if line.strip().startswith("#")]
         except Exception:
             tags = []

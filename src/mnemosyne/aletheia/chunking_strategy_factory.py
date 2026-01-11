@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from mnemosyne.aletheia.hybrid_chunker import HybridChunker
 from mnemosyne.aletheia.semantic_chunker import SemanticChunker
 from mnemosyne.aletheia.text_chunker import TextChunker
+from mnemosyne.providers.base import LLMProvider
 
 
 @dataclass
@@ -28,8 +29,8 @@ class ChunkingStrategyConfig:
 class ChunkingStrategyFactory:
     """Create chunking strategies from config values."""
 
-    def __init__(self, ollama_client, state_tracker):
-        self.ollama_client = ollama_client
+    def __init__(self, llm_provider: LLMProvider, state_tracker):
+        self.llm_provider = llm_provider
         self.state_tracker = state_tracker
 
     def create(
@@ -46,7 +47,7 @@ class ChunkingStrategyFactory:
             return recursive
 
         semantic = SemanticChunker(
-            ollama_client=self.ollama_client,
+            llm_provider=self.llm_provider,
             state_tracker=self.state_tracker,
             fallback_chunker=recursive,
             min_chunk_size=config.semantic_min_chunk_size,

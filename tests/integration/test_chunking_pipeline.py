@@ -2,11 +2,12 @@
 Integration tests for chunking strategies with REAL Ollama and Weaviate.
 """
 
-import ollama
 import pytest
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 def _make_vault(tmp_path):
@@ -43,8 +44,14 @@ def test_end_to_end_chunking_pipeline_strategies(
     """
     _make_vault(tmp_path)
 
-    # Use REAL Ollama client
-    ollama_client = ollama.Client(host=test_config["ollama_url"])
+    # Use provider system
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    llm_provider = create_llm_provider(provider_config)
+    embedding_provider = create_embedding_provider(provider_config)
 
     results = {}
     for strategy in ("recursive", "semantic", "hybrid"):
@@ -56,7 +63,8 @@ def test_end_to_end_chunking_pipeline_strategies(
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
             state_tracker=state_tracker,
             chunking_strategy=strategy,
             chunk_size=1000,

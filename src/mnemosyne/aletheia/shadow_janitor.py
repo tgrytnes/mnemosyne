@@ -56,6 +56,22 @@ class Janitor:
                 shadow_file.unlink()
                 self._remove_weaviate_chunks_for(str(src_equiv))
 
+    def sync_approved_changes_back(self):
+        # Copy updated shadow files back to source
+        for shadow_file in self.shadow_vault.glob("**/*.md"):
+            rel = shadow_file.relative_to(self.shadow_vault)
+            src = self.source_vault / rel
+            src.parent.mkdir(parents=True, exist_ok=True)
+            src.write_text(shadow_file.read_text(encoding="utf-8"), encoding="utf-8")
+
+        # Remove source files deleted in shadow
+        for source_file in self.source_vault.glob("**/*.md"):
+            rel = source_file.relative_to(self.source_vault)
+            shadow_equiv = self.shadow_vault / rel
+            if not shadow_equiv.exists():
+                source_file.unlink()
+                self._remove_weaviate_chunks_for(str(source_file))
+
     def _remove_weaviate_chunks_for(self, source_path: str):
         if not self.weaviate_client:
             return

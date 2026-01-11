@@ -2,7 +2,6 @@
 Integration tests for cluster metadata synthesis with REAL Ollama and Weaviate.
 """
 
-import ollama
 import pytest
 
 from mnemosyne.alexandria.cluster_profile_repository import ClusterProfileRepository
@@ -10,6 +9,8 @@ from mnemosyne.argus.cluster_metadata_synthesis import (
     ClusterData,
     ClusterMetadataSynthesizer,
 )
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_llm_provider
 
 
 @pytest.mark.integration
@@ -23,16 +24,18 @@ def test_synthesis_and_storage_with_real_ollama(postgres_connection, test_config
     - Profile meets Pydantic schema
     - PostgreSQL storage and retrieval works
     """
-    # Use REAL Ollama client
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    # Use provider system
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
     )
+    llm_provider = create_llm_provider(provider_config)
 
     repo = ClusterProfileRepository(postgres_connection)
     repo.ensure_table()
 
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
     # Realistic cluster data
     cluster = ClusterData(
@@ -94,10 +97,10 @@ def test_cluster_synthesis_from_real_weaviate_data(
     import tempfile
     from pathlib import Path
 
-    import ollama
-
     from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
     from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+    from mnemosyne.config.providers import ProviderConfig
+    from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
     # STEP 1: Create test vault and ingest to Weaviate
 
@@ -133,17 +136,23 @@ Team coordination and task management.
         for filename, content in notes:
             (vault_path / filename).write_text(content)
 
-        # Ingest to Weaviate
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"],
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
+
+        # Ingest to Weaviate
         state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
 
         ingestor = ObsidianIngestor(
             vault_path=str(vault_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
             state_tracker=state_tracker,
         )
 
@@ -176,7 +185,7 @@ Team coordination and task management.
     )
 
     # STEP 4: Synthesize with REAL Ollama
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
     result = synthesizer.synthesize(cluster)
 
     assert result.status == "success", f"Synthesis failed: {result.error}"
@@ -228,12 +237,14 @@ def test_real_llm_topic_extraction(
 
     Parametrized test ensures LLM works across different content types.
     """
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
     )
+    llm_provider = create_llm_provider(provider_config)
 
-    synthesizer = ClusterMetadataSynthesizer(ollama_client)
+    synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
     cluster = ClusterData(
         cluster_id=f"topic-test-{hash(note_content) % 10000}",
@@ -272,13 +283,15 @@ def test_error_handling_with_real_llm(test_config):
     Tests retry logic when LLM gives malformed responses.
     Note: This might pass if Ollama always returns valid JSON.
     """
-    ollama_client = ollama.Client(
-        host=test_config["ollama_url"],
-        timeout=test_config["ollama_timeout"],
+    provider_config = ProviderConfig(
+        llm_provider="ollama",
+        embedding_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
     )
+    llm_provider = create_llm_provider(provider_config)
 
     synthesizer = ClusterMetadataSynthesizer(
-        ollama_client,
+        llm_provider,
         max_retries=2,  # Allow retries
     )
 

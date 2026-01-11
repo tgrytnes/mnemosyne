@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
-import ollama
+import click
 import psycopg2
 import weaviate
 from neo4j import GraphDatabase
@@ -39,6 +39,8 @@ from mnemosyne.argus.scout.monitor_agent import (
 from mnemosyne.argus.scout.radar import ConceptPrototype
 from mnemosyne.argus.scout.scout_runner import ScoutConfig, ScoutRunner
 from mnemosyne.cli.cluster import ClusteringConfig, run_clustering
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 # Configure logging
 logging.basicConfig(
@@ -188,9 +190,8 @@ def run_scout_task():
         weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        embedding_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
+
+        provider_config = ProviderConfig.from_env()
 
         # Connect to services
         weaviate_client = weaviate.connect_to_local(
@@ -199,12 +200,11 @@ def run_scout_task():
             grpc_port=weaviate_grpc_port,
         )
 
-        ollama_client = ollama.Client(host=ollama_url)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # Create embedder function
         def embedder(text: str) -> list[float]:
-            response = ollama_client.embeddings(model=embedding_model, prompt=text)
-            return response["embedding"]
+            return embedding_provider.embed(model="", text=text)
 
         # Define project concept patterns
         project_positives = [
@@ -273,7 +273,6 @@ def run_graph_taxonomy_task():
         weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
         weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
         weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
         postgres_host = os.getenv("POSTGRES_HOST", "localhost")
         postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
@@ -284,6 +283,8 @@ def run_graph_taxonomy_task():
         neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
         neo4j_user = os.getenv("NEO4J_USER", "neo4j")
         neo4j_password = os.getenv("NEO4J_PASSWORD", "neo4j")
+
+        provider_config = ProviderConfig.from_env()
 
         # Connect to services
         weaviate_client = weaviate.connect_to_local(
@@ -301,7 +302,7 @@ def run_graph_taxonomy_task():
         )
 
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        ollama_client = ollama.Client(host=ollama_url)
+        llm_provider = create_llm_provider(provider_config)
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig()
@@ -324,7 +325,7 @@ def run_graph_taxonomy_task():
         bootstrapper = ClusterProfileBootstrapper(
             weaviate_client=weaviate_client,
             postgres_connection=postgres_conn,
-            ollama_client=ollama_client,
+            ollama_client=llm_provider,  # ollama_client is expected here, but we pass the provider
             profile_source=graph_taxonomy_source,
             centroid_collection_name=centroid_collection_name,
             chunk_collection_name=chunk_collection_name,
@@ -701,7 +702,13 @@ def build_jobs(config: SchedulerConfig) -> list[JobSpec]:
     ]
 
 
-def main():
+@click.command("scheduler")
+@click.option(
+    "--once",
+    is_flag=True,
+    help="Run a single scheduler cycle and exit.",
+)
+def scheduler_cli(once: bool):
     """Main scheduler loop."""
     global shutdown_flag
 
@@ -710,7 +717,9 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     config = SchedulerConfig()
-    run_once = _parse_bool(os.getenv("SCHEDULER_RUN_ONCE"), False)
+
+    if once:
+        os.environ["SCHEDULER_RUN_ONCE"] = "true"
 
     jobs = build_jobs(config)
 
@@ -743,7 +752,7 @@ def main():
         logger.info("Next run in 60 seconds")
         logger.info(f"{'=' * 60}\n")
 
-        if run_once:
+        if once:
             break
 
         # Sleep in small increments to allow responsive shutdown
@@ -755,7 +764,3 @@ def main():
 
     logger.info("Scheduler shutting down gracefully")
     sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()

@@ -10,21 +10,23 @@ import pytest
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.iris.router_node import RouterNode
 from mnemosyne.iris.semantic_router import QueryCacheStore, SemanticRouter
-
-
-def ollama_embedder(ollama_client, text: str) -> list[float]:
-    response = ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=text)
-    return response["embedding"]
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.e2e
-def test_story_005_end_to_end_routing_flow(ollama_client):
+def test_story_005_end_to_end_routing_flow(test_config):
     with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
         cache = QueryCacheStore(tmp.name)
+        provider_config = ProviderConfig(
+            embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+        )
+        embedding_provider = create_embedding_provider(provider_config)
+
         router = SemanticRouter(
-            embedder=lambda text: ollama_embedder(ollama_client, text),
+            embedder=lambda text: embedding_provider.embed(model="", text=text),
             cache_store=cache,
         )
 
@@ -44,18 +46,27 @@ def test_story_005_end_to_end_routing_flow(ollama_client):
 def test_story_005_system_routing_with_real_services(
     tmp_path,
     weaviate_client,
-    ollama_client,
+    test_config,
     fake_vault_path,
     clean_weaviate_collection,
 ):
     """
     REAL E2E TEST: Ingest vault, query Weaviate, cache result, then route from cache.
     """
+    provider_config = ProviderConfig(
+        embedding_provider="ollama",
+        llm_provider="ollama",
+        ollama_base_url=test_config["ollama_url"],
+    )
+    embedding_provider = create_embedding_provider(provider_config)
+    llm_provider = create_llm_provider(provider_config)
+
     state_tracker = IngestionStateTracker(str(tmp_path / "ingestion_state.db"))
     ingestor = ObsidianIngestor(
         vault_path=str(fake_vault_path),
         weaviate_client=weaviate_client,
-        ollama_client=ollama_client,
+        embedding_provider=embedding_provider,
+        llm_provider=llm_provider,
         state_tracker=state_tracker,
         chunking_strategy="recursive",
         chunk_size=400,
@@ -66,7 +77,7 @@ def test_story_005_system_routing_with_real_services(
     assert stats["total_chunks"] > 0
 
     query = "semantic search for knowledge graph notes"
-    query_embedding = ollama_embedder(ollama_client, query)
+    query_embedding = embedding_provider.embed(model="", text=query)
 
     collection = weaviate_client.collections.get("TheMuses")
     response = collection.query.near_vector(
@@ -78,7 +89,7 @@ def test_story_005_system_routing_with_real_services(
 
     cache = QueryCacheStore(str(tmp_path / "router_cache.db"))
     router = SemanticRouter(
-        embedder=lambda text: ollama_embedder(ollama_client, text),
+        embedder=lambda text: embedding_provider.embed(model="", text=text),
         cache_store=cache,
     )
 

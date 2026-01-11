@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import sys
 from datetime import datetime
+
+import click
 
 from mnemosyne.argus.checkpointing import CheckpointCleanupJob, CheckpointStore
 
@@ -54,39 +55,42 @@ def cleanup_checkpoints(db_path: str, max_age_days: int) -> int:
     return 0
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Mnemosyne checkpoint utilities")
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+@click.group("checkpoints")
+def checkpoints_cli():
+    """Mnemosyne checkpoint utilities"""
+    pass
 
-    subparsers.add_parser("list", help="List checkpoints (latest per query)")
 
-    resume_help = "Load a checkpoint by query ID"
-    resume_parser = subparsers.add_parser("resume", help=resume_help)
-    resume_parser.add_argument("query_id", help="Query ID to resume")
-
-    delete_help = "Delete checkpoints by query ID"
-    delete_parser = subparsers.add_parser("delete", help=delete_help)
-    delete_parser.add_argument("query_id", help="Query ID to delete")
-
-    cleanup_parser = subparsers.add_parser("cleanup", help="Delete old checkpoints")
-    cleanup_parser.add_argument("--max-age-days", type=int, default=30)
-
-    args = parser.parse_args()
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
+@checkpoints_cli.command("list")
+def list_cmd():
+    """List checkpoints (latest per query)"""
     config = CheckpointConfig()
+    sys.exit(list_checkpoints(config.db_path))
 
-    if args.command == "list":
-        sys.exit(list_checkpoints(config.db_path))
-    if args.command == "resume":
-        sys.exit(resume_checkpoint(config.db_path, args.query_id))
-    if args.command == "delete":
-        sys.exit(delete_checkpoint(config.db_path, args.query_id))
-    if args.command == "cleanup":
-        sys.exit(cleanup_checkpoints(config.db_path, args.max_age_days))
+
+@checkpoints_cli.command("resume")
+@click.argument("query_id")
+def resume_cmd(query_id: str):
+    """Load a checkpoint by query ID"""
+    config = CheckpointConfig()
+    sys.exit(resume_checkpoint(config.db_path, query_id))
+
+
+@checkpoints_cli.command("delete")
+@click.argument("query_id")
+def delete_cmd(query_id: str):
+    """Delete checkpoints by query ID"""
+    config = CheckpointConfig()
+    sys.exit(delete_checkpoint(config.db_path, query_id))
+
+
+@checkpoints_cli.command("cleanup")
+@click.option("--max-age-days", type=int, default=30)
+def cleanup_cmd(max_age_days: int):
+    """Delete old checkpoints"""
+    config = CheckpointConfig()
+    sys.exit(cleanup_checkpoints(config.db_path, max_age_days))
 
 
 if __name__ == "__main__":
-    main()
+    checkpoints_cli()

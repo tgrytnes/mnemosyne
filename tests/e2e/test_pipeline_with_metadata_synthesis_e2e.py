@@ -11,8 +11,10 @@ import tempfile
 import time
 from pathlib import Path
 
-import ollama
 import pytest
+
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 # These imports will only work after Story 002 is merged
 try:
@@ -49,7 +51,12 @@ class TestCompletePipelineWithMetadataSynthesis:
     """
 
     def test_pipeline_full_vault_to_cluster_profiles(
-        self, weaviate_client, clean_weaviate_collection, postgres_connection, test_config
+        self,
+        weaviate_client,
+        clean_weaviate_collection,
+        postgres_connection,
+        test_config,
+        monkeypatch,
     ):
         """
         COMPLETE PIPELINE: Vault → Ingestion → Clustering → Representatives → Metadata Synthesis.
@@ -65,10 +72,15 @@ class TestCompletePipelineWithMetadataSynthesis:
         6. Store profiles in PostgreSQL
         7. Validate profile quality and accuracy
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        config = ProviderConfig(
+            llm_provider="ollama",
+            ollama_llm_model="qwen3:0.6b",
+            embedding_provider="ollama",
+            ollama_embedding_model="nomic-embed-text:latest",
+            ollama_base_url=test_config["ollama_url"],
         )
+        llm_provider = create_llm_provider(config)
+        embedding_provider = create_embedding_provider(config)
 
         # Setup profile repository
         repo = ClusterProfileRepository(postgres_connection)
@@ -237,15 +249,14 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
                 (vault_path / filename).write_text(content)
 
             # STAGE 1: Ingest vault with hybrid chunking
-            import os
-
-            os.environ["CHUNKING_STRATEGY"] = "hybrid"
+            monkeypatch.setenv("CHUNKING_STRATEGY", "hybrid")
 
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -310,7 +321,7 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
 
             # STAGE 4: Synthesize metadata profiles with REAL LLM
             print("\n=== STAGE 4: Synthesizing cluster profiles ===")
-            synthesizer = ClusterMetadataSynthesizer(ollama_client)
+            synthesizer = ClusterMetadataSynthesizer(llm_provider)
 
             profiles = {}
             for cluster_id, representatives in cluster_representatives.items():
@@ -432,10 +443,15 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
         4. Check key entities are relevant
         5. Verify confidence scores correlate with cluster quality
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        config = ProviderConfig(
+            llm_provider="ollama",
+            ollama_llm_model="qwen3:0.6b",
+            embedding_provider="ollama",
+            ollama_embedding_model="nomic-embed-text:latest",
+            ollama_base_url=test_config["ollama_url"],
         )
+        llm_provider = create_llm_provider(config)
+        embedding_provider = create_embedding_provider(config)
 
         repo = ClusterProfileRepository(postgres_connection)
         repo.ensure_table()
@@ -496,7 +512,8 @@ Shawarma wraps spiced meat.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -519,7 +536,7 @@ Shawarma wraps spiced meat.
             cluster_manager.update_centroids(centroids, labels)
 
             # Get representatives and synthesize
-            synthesizer = ClusterMetadataSynthesizer(ollama_client)
+            synthesizer = ClusterMetadataSynthesizer(llm_provider)
             get_reps = GetClusterRepresentatives(weaviate_client)
 
             for cluster_id in range(2):
@@ -589,10 +606,15 @@ Shawarma wraps spiced meat.
         3. Synthesize metadata for all clusters
         4. Validate system handles low-quality clusters gracefully
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        config = ProviderConfig(
+            llm_provider="ollama",
+            ollama_llm_model="qwen3:0.6b",
+            embedding_provider="ollama",
+            ollama_embedding_model="nomic-embed-text:latest",
+            ollama_base_url=test_config["ollama_url"],
         )
+        llm_provider = create_llm_provider(config)
+        embedding_provider = create_embedding_provider(config)
 
         repo = ClusterProfileRepository(postgres_connection)
         repo.ensure_table()
@@ -633,7 +655,8 @@ Asian stir-fry techniques.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -655,7 +678,7 @@ Asian stir-fry techniques.
             cluster_manager.update_centroids(centroids, labels)
 
             # Synthesize for all clusters
-            synthesizer = ClusterMetadataSynthesizer(ollama_client)
+            synthesizer = ClusterMetadataSynthesizer(llm_provider)
             get_reps = GetClusterRepresentatives(weaviate_client)
 
             profiles = []

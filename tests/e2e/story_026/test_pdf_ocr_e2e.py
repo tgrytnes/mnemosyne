@@ -19,15 +19,22 @@ except (ImportError, Exception) as e:
 @pytest.mark.e2e
 @pytest.mark.weaviate
 @pytest.mark.ollama
-def test_mixed_pdf_ingestion_end_to_end(tmp_path, weaviate_client, ollama_client):
+def test_mixed_pdf_ingestion_end_to_end(tmp_path, weaviate_client, test_config):
     """
     Flow:
     - Place mixed PDFs (text + scanned) in input dir
     - Run ingest_pdfs
     - Verify TheLethe contains chunks with metadata (filename, page_number, creation_date)
     """
-    from mnemosyne.aletheia.pdf_ingestor import PDFIngestor  # to be implemented
+    from mnemosyne.aletheia.pdf_ingestor import PDFIngestor
     from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+    from mnemosyne.config.providers import ProviderConfig
+    from mnemosyne.providers.factory import create_embedding_provider
+
+    provider_config = ProviderConfig(
+        embedding_provider="ollama", ollama_base_url=test_config["ollama_url"]
+    )
+    embedding_provider = create_embedding_provider(provider_config)
 
     # Copy mixed PDFs from test_data
     src_dir = Path(__file__).resolve().parents[4] / "test_data" / "fake_pdfs"
@@ -37,9 +44,7 @@ def test_mixed_pdf_ingestion_end_to_end(tmp_path, weaviate_client, ollama_client
     ingestor = PDFIngestor(
         input_dir=str(tmp_path),
         weaviate_client=weaviate_client,
-        embedder=lambda txt: ollama_client.embeddings(model="qwen3-embedding:0.6b", prompt=txt)[
-            "embedding"
-        ],
+        embedding_provider=embedding_provider,
     )
 
     WeaviateSchemaManager(weaviate_client).ensure_collection_exists("TheLethe")

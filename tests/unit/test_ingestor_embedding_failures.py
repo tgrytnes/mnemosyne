@@ -39,12 +39,14 @@ def _fake_client(collection):
 def test_pdf_ingestor_skips_insert_when_embedding_raises(tmp_path, caplog):
     collection = _fake_collection()
     client = _fake_client(collection)
+    embedding_provider = Mock()
+    embedding_provider.embed.side_effect = ValueError("boom")
 
     with patch("mnemosyne.aletheia.pdf_ingestor.WeaviateSchemaManager.ensure_collection_exists"):
         ingestor = PDFIngestor(
             input_dir=str(tmp_path),
             weaviate_client=client,
-            embedder=Mock(side_effect=ValueError("boom")),
+            embedding_provider=embedding_provider,
         )
 
     pdf_path = tmp_path / "doc.pdf"
@@ -65,6 +67,8 @@ def test_pdf_ingestor_skips_insert_when_embedding_raises(tmp_path, caplog):
 def test_email_ingestor_skips_insert_when_embedding_empty(tmp_path, caplog):
     collection = _fake_collection()
     client = _fake_client(collection)
+    embedding_provider = Mock()
+    embedding_provider.embed.return_value = []
     config = EmailIngestConfig(
         source_dir=tmp_path,
         chunking_strategy="recursive",
@@ -72,7 +76,7 @@ def test_email_ingestor_skips_insert_when_embedding_empty(tmp_path, caplog):
     )
 
     with patch("mnemosyne.aletheia.email_ingest.WeaviateSchemaManager.ensure_collection_exists"):
-        ingestor = EmailIngestor(config, client, embedder=Mock(return_value=[]))
+        ingestor = EmailIngestor(config, client, embedding_provider=embedding_provider)
 
     ingestor.chunker = Mock()
     ingestor.chunker.chunk.return_value = [
@@ -101,6 +105,7 @@ def test_email_ingestor_skips_insert_when_embedding_empty(tmp_path, caplog):
 def test_obsidian_ingestor_skips_insert_when_embedding_none(tmp_path, caplog):
     collection = _fake_collection()
     client = _fake_client(collection)
+    embedding_provider = Mock()
 
     with (
         patch(
@@ -114,7 +119,8 @@ def test_obsidian_ingestor_skips_insert_when_embedding_none(tmp_path, caplog):
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=client,
-            ollama_client=Mock(),
+            embedding_provider=embedding_provider,
+            llm_provider=Mock(),
             state_tracker=_DummyState(),
         )
 
