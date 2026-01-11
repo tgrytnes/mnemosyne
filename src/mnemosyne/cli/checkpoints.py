@@ -90,3 +90,7 @@ def cleanup_cmd(max_age_days: int):
     """Delete old checkpoints"""
     config = CheckpointConfig()
     sys.exit(cleanup_checkpoints(config.db_path, max_age_days))
+
+
+if __name__ == "__main__":
+    checkpoints_cli()

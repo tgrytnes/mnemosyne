@@ -37,9 +37,9 @@ def test_delta_sync_updates_profiles_and_state(
 ):
     config = ProviderConfig(
         llm_provider="ollama",
-        llm_model="qwen3:0.6b",
+        ollama_llm_model="qwen3:0.6b",
         embedding_provider="ollama",
-        embedding_model="nomic-embed-text:latest",
+        ollama_embedding_model="nomic-embed-text:latest",
         ollama_base_url=test_config["ollama_url"],
     )
     llm_provider = create_llm_provider(config)

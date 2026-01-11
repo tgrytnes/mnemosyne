@@ -41,7 +41,7 @@ def test_shadow_gatekeeper_approval_flow(tmp_path, weaviate_client):
 
     # 2) Tag in shadow
     config = ProviderConfig(
-        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
+        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
     )
     llm_provider = create_llm_provider(config)
     tagger = Tagger(llm_provider)

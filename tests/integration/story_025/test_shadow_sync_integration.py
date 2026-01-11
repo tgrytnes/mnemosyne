@@ -27,7 +27,7 @@ def test_shadow_sync_and_tagging_with_real_ollama(tmp_path: Path):
     assert "draft note about a project." in shadow_file.read_text()
 
     config = ProviderConfig(
-        llm_provider="ollama", llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
+        llm_provider="ollama", ollama_llm_model="qwen3:0.6b", ollama_base_url="http://localhost:11434"
     )
     llm_provider = create_llm_provider(config)
     tagger = Tagger(llm_provider)

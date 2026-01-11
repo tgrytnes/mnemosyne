@@ -121,9 +121,9 @@ def test_story_004_system_resume_with_real_services(
 
     config = ProviderConfig(
         llm_provider="ollama",
-        llm_model="qwen3:0.6b",
+        ollama_llm_model="qwen3:0.6b",
         embedding_provider="ollama",
-        embedding_model="nomic-embed-text:latest",
+        ollama_embedding_model="nomic-embed-text:latest",
         ollama_base_url="http://localhost:11434",
     )
     llm_provider = create_llm_provider(config)

@@ -69,9 +69,9 @@ class TestCompletePipelineWithMetadataSynthesis:
         """
         config = ProviderConfig(
             llm_provider="ollama",
-            llm_model="qwen3:0.6b",
+            ollama_llm_model="qwen3:0.6b",
             embedding_provider="ollama",
-            embedding_model="nomic-embed-text:latest",
+            ollama_embedding_model="nomic-embed-text:latest",
             ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(config)
@@ -442,9 +442,9 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
         """
         config = ProviderConfig(
             llm_provider="ollama",
-            llm_model="qwen3:0.6b",
+            ollama_llm_model="qwen3:0.6b",
             embedding_provider="ollama",
-            embedding_model="nomic-embed-text:latest",
+            ollama_embedding_model="nomic-embed-text:latest",
             ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(config)
@@ -605,9 +605,9 @@ Shawarma wraps spiced meat.
         """
         config = ProviderConfig(
             llm_provider="ollama",
-            llm_model="qwen3:0.6b",
+            ollama_llm_model="qwen3:0.6b",
             embedding_provider="ollama",
-            embedding_model="nomic-embed-text:latest",
+            ollama_embedding_model="nomic-embed-text:latest",
             ollama_base_url=test_config["ollama_url"],
         )
         llm_provider = create_llm_provider(config)
