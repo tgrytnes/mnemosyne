@@ -764,3 +764,7 @@ def scheduler_cli(once: bool):
 
     logger.info("Scheduler shutting down gracefully")
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    scheduler_cli()
