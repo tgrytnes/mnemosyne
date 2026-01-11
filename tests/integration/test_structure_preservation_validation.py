@@ -6,12 +6,13 @@ Tests that the complete pipeline preserves >95% of document headings.
 USES REAL OLLAMA AND WEAVIATE (no mocks).
 """
 
-import ollama
 import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
 from mnemosyne.aletheia.structure_extractor import StructureExtractor
 from mnemosyne.iris.structure_quality import StructurePreservationAnalyzer
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 class TestStructurePreservationValidation:
@@ -56,13 +57,21 @@ Nested content here. """
         expected_headings = ["# Main Topic", "## Section One", "## Section Two", "### Subsection"]
 
         # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+
+            embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
 
@@ -181,13 +190,21 @@ Static type checking with mypy. """
         ]
 
         # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+
+            embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
 
@@ -286,13 +303,21 @@ Static type checking with mypy. """
         ]
 
         # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # WHEN: Ingesting through pipeline
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+
+            embedding_provider=embedding_provider,
         )
         ingestor.ingest_file(str(test_file))
 
@@ -403,13 +428,21 @@ Final thoughts. """
             collect_headings(structure.root, all_expected_headings)
 
         # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # WHEN: Ingesting all documents
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+
+            embedding_provider=embedding_provider,
         )
 
         for filename in docs.keys():

@@ -7,10 +7,11 @@ heading metadata preserved throughout.
 USES REAL OLLAMA AND WEAVIATE (no mocks).
 """
 
-import ollama
 import pytest
 
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 class TestStructurePreservationPipeline:
@@ -53,14 +54,21 @@ Always write tests first using TDD."""
         test_file = tmp_path / "testing.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # Create ingestor
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -107,13 +115,20 @@ See also [[Another Note|with alias]]."""
         test_file = tmp_path / "linked.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -164,13 +179,20 @@ Second section content here. """
         test_file = tmp_path / "sections.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -221,13 +243,20 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "nested.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -273,13 +302,20 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "levels.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -312,13 +348,20 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "plain.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file
@@ -348,13 +391,20 @@ Content at level 3 (deepest). """
         test_file = tmp_path / "test.md"
         test_file.write_text(markdown_content)
 
-        # Use REAL Ollama client
-        ollama_client = ollama.Client(host=test_config["ollama_url"])
+        # Use provider system
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
+        )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         ingestor = ObsidianIngestor(
             vault_path=str(tmp_path),
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
         )
 
         # WHEN: Ingesting the file

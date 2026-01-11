@@ -17,12 +17,13 @@ import tempfile
 import time
 from pathlib import Path
 
-import ollama
 import pytest
 from langgraph.graph import END, START, StateGraph
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 from mnemosyne.alexandria.weaviate_schema import (
     ClusterCentroidCollection,
     WeaviateSchemaManager,
@@ -59,10 +60,13 @@ class TestCompleteEndToEndPipeline:
 
         This is the GOLDEN PATH test - if this passes, the core pipeline works.
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # STAGE 1: Create realistic test vault
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -205,7 +209,9 @@ Behavioral economics examines psychological factors in economic decisions.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -332,10 +338,13 @@ Behavioral economics examines psychological factors in economic decisions.
         4. Ingest with HYBRID strategy → measure quality
         5. Compare metrics (hybrid should preserve structure better)
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         # Create vault with clear structure
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -394,7 +403,9 @@ Future work will expand the scope.
                 ingestor = ObsidianIngestor(
                     vault_path=str(vault_path),
                     weaviate_client=weaviate_client,
-                    ollama_client=ollama_client,
+                    llm_provider=llm_provider,
+
+                    embedding_provider=embedding_provider,
                     state_tracker=state_tracker,
                 )
 
@@ -472,10 +483,13 @@ Future work will expand the scope.
         6. Re-cluster
         7. Verify cluster assignments updated
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "vault"
@@ -511,7 +525,9 @@ Transformers revolutionized natural language processing with attention mechanism
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -610,10 +626,13 @@ Stretch the dough gently to preserve air bubbles.
         4. Collect structure preservation metrics
         5. Validate all metrics meet thresholds
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "vault"
@@ -656,7 +675,9 @@ Stars guide the way.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -728,10 +749,13 @@ Stars guide the way.
         3. Verify returned chunks belong to correct section
         4. Test nested heading queries
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "vault"
@@ -767,7 +791,9 @@ Innovation and experimentation.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -828,10 +854,13 @@ Innovation and experimentation.
         4. Validate representatives are topically related
         5. Measure intra-cluster vs inter-cluster similarity
         """
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "vault"
@@ -928,7 +957,9 @@ Roman engineering achievements include aqueducts and road networks.
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -1018,10 +1049,13 @@ class TestPipelineEdgeCases:
 
     def test_empty_vault_handling(self, weaviate_client, clean_weaviate_collection, test_config):
         """Verify pipeline handles empty vault gracefully."""
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "empty_vault"
@@ -1031,7 +1065,9 @@ class TestPipelineEdgeCases:
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -1048,10 +1084,13 @@ class TestPipelineEdgeCases:
         self, weaviate_client, clean_weaviate_collection, test_config
     ):
         """Verify pipeline handles minimal content."""
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "minimal_vault"
@@ -1064,7 +1103,9 @@ class TestPipelineEdgeCases:
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 
@@ -1087,10 +1128,13 @@ class TestPipelineEdgeCases:
 
     def test_very_long_document(self, weaviate_client, clean_weaviate_collection, test_config):
         """Verify pipeline handles large documents (many chunks)."""
-        ollama_client = ollama.Client(
-            host=test_config["ollama_url"],
-            timeout=test_config["ollama_timeout"],
+        provider_config = ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=test_config["ollama_url"]
         )
+        llm_provider = create_llm_provider(provider_config)
+        embedding_provider = create_embedding_provider(provider_config)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             vault_path = Path(tmp_dir) / "large_vault"
@@ -1109,7 +1153,9 @@ class TestPipelineEdgeCases:
             ingestor = ObsidianIngestor(
                 vault_path=str(vault_path),
                 weaviate_client=weaviate_client,
-                ollama_client=ollama_client,
+                llm_provider=llm_provider,
+
+                embedding_provider=embedding_provider,
                 state_tracker=state_tracker,
             )
 

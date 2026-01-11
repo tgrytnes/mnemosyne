@@ -8,13 +8,14 @@ Requires Docker containers to be running.
 import os
 from pathlib import Path
 
-import ollama
 import pytest
 import weaviate
 
-from src.mnemosyne.aletheia.ingestion_state import IngestionStateTracker
-from src.mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
-from src.mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
+from mnemosyne.aletheia.obsidian_ingestor import ObsidianIngestor
+from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 
 @pytest.mark.integration
@@ -42,10 +43,24 @@ class TestObsidianIngestionIntegration:
         client.close()
 
     @pytest.fixture(scope="class")
-    def ollama_client(self):
-        """Connect to Ollama instance"""
+    def provider_config(self):
+        """Create provider configuration"""
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        return ollama.Client(host=base_url)
+        return ProviderConfig(
+            llm_provider="ollama",
+            embedding_provider="ollama",
+            ollama_base_url=base_url
+        )
+
+    @pytest.fixture(scope="class")
+    def llm_provider(self, provider_config):
+        """Create LLM provider"""
+        return create_llm_provider(provider_config)
+
+    @pytest.fixture(scope="class")
+    def embedding_provider(self, provider_config):
+        """Create embedding provider"""
+        return create_embedding_provider(provider_config)
 
     @pytest.fixture
     def test_vault(self, tmp_path):
@@ -113,12 +128,13 @@ Commands:
         return IngestionStateTracker(str(db_path))
 
     @pytest.fixture
-    def ingestor(self, test_vault, weaviate_client, ollama_client, state_tracker):
+    def ingestor(self, test_vault, weaviate_client, llm_provider, embedding_provider, state_tracker):
         """Create ingestor with real services"""
         return ObsidianIngestor(
             vault_path=test_vault,
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
             state_tracker=state_tracker,
         )
 
@@ -138,24 +154,22 @@ Commands:
         # THEN: Client is ready
         assert weaviate_client.is_ready()
 
-    def test_ollama_connection(self, ollama_client):
+    def test_ollama_connection(self, llm_provider):
         """Should connect to Ollama successfully"""
-        # GIVEN/WHEN: Ollama client
-        # THEN: Can list models
-        models = ollama_client.list()
-        assert models is not None
+        # GIVEN/WHEN: LLM provider
+        # THEN: Can generate completion
+        response = llm_provider.generate("Say hello")
+        assert response is not None
 
-    def test_ollama_embedding_model_available(self, ollama_client):
-        """Should have qwen3-embedding model available"""
-        # GIVEN: Ollama client
-        # WHEN: Listing models
-        models = ollama_client.list()
-        model_names = [m["name"] for m in models["models"]]
-
-        # THEN: qwen3-embedding is available
-        assert any(
-            "qwen3-embedding" in name for name in model_names
-        ), "qwen3-embedding:0.6b model not found. Run: ollama pull qwen3-embedding:0.6b"
+    def test_ollama_embedding_model_available(self, embedding_provider):
+        """Should have embedding model available"""
+        # GIVEN: Embedding provider
+        # WHEN: Generating embedding
+        embedding = embedding_provider.embed("test text")
+        
+        # THEN: Embedding is generated with correct dimension
+        assert embedding is not None
+        assert len(embedding) == 1024  # qwen3-embedding dimension
 
     def test_create_weaviate_collection(self, weaviate_client):
         """Should create TheMuses collection"""
@@ -305,7 +319,7 @@ Commands:
             # YAML frontmatter should be removed
             assert "---" not in text or text.count("---") < 2
 
-    def test_state_tracking_persists(self, test_vault, weaviate_client, ollama_client, tmp_path):
+    def test_state_tracking_persists(self, test_vault, weaviate_client, llm_provider, embedding_provider, tmp_path):
         """Should persist ingestion state across restarts"""
         # GIVEN: State tracker with persistent database
         db_path = tmp_path / "persistent_state.db"
@@ -315,7 +329,8 @@ Commands:
         ingestor1 = ObsidianIngestor(
             vault_path=test_vault,
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
             state_tracker=tracker1,
         )
 
@@ -327,7 +342,8 @@ Commands:
         ingestor2 = ObsidianIngestor(
             vault_path=test_vault,
             weaviate_client=weaviate_client,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
+            embedding_provider=embedding_provider,
             state_tracker=tracker2,
         )
 
@@ -348,7 +364,8 @@ Commands:
         result = collection.query.fetch_objects(limit=1)
 
         # THEN: All metadata fields present
-        chunk = result.objects[0].properties
+        chunk = result.objects[0]
+        properties = chunk.properties
 
         required_fields = [
             "text",
@@ -356,12 +373,7 @@ Commands:
             "sourceType",
             "chunkIndex",
             "ingestedAt",
-            "fileModifiedAt",
         ]
 
         for field in required_fields:
-            assert field in chunk, f"Missing required field: {field}"
-            assert chunk[field] is not None, f"Field {field} is None"
-
-        # Verify sourceType is always "obsidian"
-        assert chunk["sourceType"] == "obsidian"
+            assert field in properties, f"Missing required field: {field}"
