@@ -129,3 +129,7 @@ def monitor_cli():
 def run():
     """Run a single monitor reconciliation pass"""
     run_monitor()
+
+
+if __name__ == "__main__":
+    monitor_cli()

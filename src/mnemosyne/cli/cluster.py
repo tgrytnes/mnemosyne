@@ -261,3 +261,7 @@ def cluster_cli():
 def run(n_clusters: int, collection_name: str):
     """Run clustering on a specified collection."""
     run_clustering(n_clusters, collection_name=collection_name)
+
+
+if __name__ == "__main__":
+    cluster_cli()

@@ -6,11 +6,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from mnemosyne.providers.base import BaseLLMProvider
+from mnemosyne.providers.base import LLMProvider
 
 
 class Tagger:
-    def __init__(self, llm_provider: BaseLLMProvider):
+    def __init__(self, llm_provider: LLMProvider):
         self.llm_provider = llm_provider
 
     def tag_file(self, shadow_file_path: Path) -> list[str]:
@@ -24,8 +24,13 @@ class Tagger:
             f"Note content:\n{sample}\n\nReturn ONLY the tags (one per line)."
         )
         try:
-            response = self.llm_provider.generate(prompt=prompt, temperature=0.2)
-            lines = response.split("\n")
+            response = self.llm_provider.generate(
+                model="",
+                prompt=prompt,
+                options={"temperature": 0.2},
+            )
+            text = response.get("response", "") if isinstance(response, dict) else str(response)
+            lines = text.split("\n")
             tags = [line.strip() for line in lines if line.strip().startswith("#")]
         except Exception:
             tags = []

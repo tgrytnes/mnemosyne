@@ -158,14 +158,14 @@ Commands:
         """Should connect to Ollama successfully"""
         # GIVEN/WHEN: LLM provider
         # THEN: Can generate completion
-        response = llm_provider.generate("Say hello")
+        response = llm_provider.generate(model="", prompt="Say hello")
         assert response is not None
 
     def test_ollama_embedding_model_available(self, embedding_provider):
         """Should have embedding model available"""
         # GIVEN: Embedding provider
         # WHEN: Generating embedding
-        embedding = embedding_provider.embed("test text")
+        embedding = embedding_provider.embed(model="", text="test text")
 
         # THEN: Embedding is generated with correct dimension
         assert embedding is not None
