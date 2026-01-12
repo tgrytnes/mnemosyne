@@ -18,6 +18,13 @@ from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.factory import create_embedding_provider, create_llm_provider
 
 from ..aletheia.email_ingest import EmailIngestConfig, EmailIngestor
+from ..aletheia.ingestion_reset import (
+    ResetOptions,
+    apply_reset_plan,
+    build_reset_environment,
+    build_reset_plan,
+    validate_reset_options,
+)
 from ..aletheia.ingestion_state import IngestionStateTracker
 from ..aletheia.ingestion_watch_hub import IngestionWatchConfig, IngestionWatchHub
 from ..aletheia.obsidian_ingestor import ObsidianIngestor
@@ -452,3 +459,74 @@ def watch(vault_path: str | None = None):
 def re_ingest(vault_path: str | None = None, force: bool = False):
     """Re-ingest entire vault with structure metadata."""
     re_ingest_vault(vault_path, force)
+
+
+@ingest_cli.command("reset")
+@click.option("--env", "env_name", type=click.Choice(["dev", "staging", "prod"]), required=True)
+@click.option("--vault", is_flag=True, help="Reset vault ingestion state and data.")
+@click.option("--email", is_flag=True, help="Reset email ingestion state and data.")
+@click.option("--pdf", is_flag=True, help="Reset PDF ingestion state and data.")
+@click.option("--weaviate", is_flag=True, help="Allow Weaviate deletions for selected targets.")
+@click.option("--postgres", is_flag=True, help="Allow Postgres table truncation.")
+@click.option(
+    "--weaviate-collection",
+    "weaviate_collections",
+    multiple=True,
+    help="Explicit Weaviate collection to delete (repeatable).",
+)
+@click.option(
+    "--postgres-table",
+    "postgres_tables",
+    multiple=True,
+    help="Postgres table to truncate (repeatable).",
+)
+@click.option("--dry-run", is_flag=True, help="Print actions without executing.")
+@click.option("--force", is_flag=True, help="Required for staging/prod resets.")
+def reset(
+    env_name: str,
+    vault: bool,
+    email: bool,
+    pdf: bool,
+    weaviate: bool,
+    postgres: bool,
+    weaviate_collections: tuple[str, ...],
+    postgres_tables: tuple[str, ...],
+    dry_run: bool,
+    force: bool,
+):
+    """Reset ingestion state/data in a controlled, environment-specific way."""
+    options = ResetOptions(
+        env=env_name,
+        vault=vault,
+        email=email,
+        pdf=pdf,
+        weaviate=weaviate,
+        postgres=postgres,
+        weaviate_collections=list(weaviate_collections),
+        postgres_tables=list(postgres_tables),
+        dry_run=dry_run,
+        force=force,
+    )
+
+    try:
+        validate_reset_options(options)
+    except ValueError as exc:
+        logger.error("%s", exc)
+        raise SystemExit(1)
+
+    env = build_reset_environment(env_name)
+    plan = build_reset_plan(options, env)
+    if not plan:
+        logger.error("No reset actions were generated.")
+        raise SystemExit(1)
+
+    click.echo("Planned reset actions:")
+    for action in plan:
+        details = f" {action.details}" if action.details else ""
+        click.echo(f"- {action.action}: {action.target}{details}")
+
+    if dry_run:
+        click.echo("Dry run enabled; no changes were made.")
+        return
+
+    apply_reset_plan(plan, env)
