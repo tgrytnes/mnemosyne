@@ -41,10 +41,8 @@ class PDFIngestor:
         self.input_dir = input_dir
         self.client = weaviate_client
         self.embedding_provider = embedding_provider
-        resolved_state_path = state_path or os.getenv(
-            "PDF_INGESTION_STATE_PATH", "/state/pdf_ingestion_state.json"
-        )
-        self.state = PDFIngestionState(Path(resolved_state_path))
+        resolved_state_path = _resolve_pdf_state_path(state_path, self.input_dir)
+        self.state = PDFIngestionState(resolved_state_path)
         if self.client is not None:
             WeaviateSchemaManager(self.client).ensure_collection_exists("TheLethe")
 
@@ -282,6 +280,18 @@ class PDFIngestor:
             return data.decode("latin-1", errors="ignore")
         except Exception:
             return ""
+
+
+def _resolve_pdf_state_path(state_path: str | Path | None, input_dir: str) -> Path:
+    if state_path:
+        return Path(state_path)
+    env_path = os.getenv("PDF_INGESTION_STATE_PATH")
+    if env_path:
+        return Path(env_path)
+    default_path = Path("/state/pdf_ingestion_state.json")
+    if default_path.parent.exists() and os.access(default_path.parent, os.W_OK):
+        return default_path
+    return Path(input_dir) / "pdf_ingestion_state.json"
 
 
 @click.command("pdf-ingest")
