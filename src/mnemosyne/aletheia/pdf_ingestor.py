@@ -14,6 +14,7 @@ from pathlib import Path
 
 import click
 
+from mnemosyne.aletheia.pdf_ingestion_state import PDFIngestionState
 from mnemosyne.alexandria.weaviate_schema import WeaviateSchemaManager
 from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.base import EmbeddingProvider
@@ -30,10 +31,18 @@ class PDFIngestor:
     Uses: PyPDF2, OCRmyPDF (if available), optional embedder callable.
     """
 
-    def __init__(self, input_dir: str, weaviate_client, embedding_provider: EmbeddingProvider):
+    def __init__(
+        self,
+        input_dir: str,
+        weaviate_client,
+        embedding_provider: EmbeddingProvider,
+        state_path: str | Path | None = None,
+    ):
         self.input_dir = input_dir
         self.client = weaviate_client
         self.embedding_provider = embedding_provider
+        resolved_state_path = _resolve_pdf_state_path(state_path, self.input_dir)
+        self.state = PDFIngestionState(resolved_state_path)
         if self.client is not None:
             WeaviateSchemaManager(self.client).ensure_collection_exists("TheLethe")
 
@@ -53,6 +62,17 @@ class PDFIngestor:
             return 0
         if path.suffix.lower() != ".pdf":
             return 0
+        try:
+            stat = path.stat()
+        except OSError:
+            return 0
+        if self.state.is_ingested(
+            str(path),
+            mtime=stat.st_mtime,
+            size=stat.st_size,
+        ):
+            logger.info("Skipping already ingested PDF: %s", path)
+            return 0
 
         collection = self.client.collections.get("TheLethe")
         try:
@@ -71,6 +91,7 @@ class PDFIngestor:
 
         chunks = self.chunk_text(cleaned, chunk_size=500)
         metadata = self.extract_metadata(path)
+        inserted = 0
         for idx, chunk in enumerate(chunks):
             try:
                 vector = self.embedding_provider.embed(model="", text=chunk)
@@ -92,6 +113,15 @@ class PDFIngestor:
                 "keywords": [],
             }
             collection.data.insert(properties=props, vector={"default": vector})
+            inserted += 1
+
+        if inserted:
+            self.state.mark_ingested(
+                str(path),
+                mtime=stat.st_mtime,
+                size=stat.st_size,
+            )
+            self.state.save()
         return len(chunks)
 
     # ---------------------- Extraction ---------------------- #
@@ -250,6 +280,18 @@ class PDFIngestor:
             return data.decode("latin-1", errors="ignore")
         except Exception:
             return ""
+
+
+def _resolve_pdf_state_path(state_path: str | Path | None, input_dir: str) -> Path:
+    if state_path:
+        return Path(state_path)
+    env_path = os.getenv("PDF_INGESTION_STATE_PATH")
+    if env_path:
+        return Path(env_path)
+    default_path = Path("/state/pdf_ingestion_state.json")
+    if default_path.parent.exists() and os.access(default_path.parent, os.W_OK):
+        return default_path
+    return Path(input_dir) / "pdf_ingestion_state.json"
 
 
 @click.command("pdf-ingest")
