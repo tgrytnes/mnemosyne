@@ -10,6 +10,7 @@ from mnemosyne.aletheia.chunking_strategy_factory import (
 )
 from mnemosyne.aletheia.hybrid_chunker import HybridChunker
 from mnemosyne.aletheia.semantic_chunker import SemanticChunker
+from mnemosyne.aletheia.semantic_cosine_chunker import SemanticCosineChunker
 from mnemosyne.aletheia.text_chunker import TextChunker
 
 
@@ -18,7 +19,9 @@ class TestChunkingStrategyFactory:
 
     def test_creates_recursive_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
         )
         config = ChunkingStrategyConfig(strategy="recursive")
 
@@ -28,7 +31,9 @@ class TestChunkingStrategyFactory:
 
     def test_creates_semantic_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
         )
         config = ChunkingStrategyConfig(strategy="semantic")
 
@@ -38,7 +43,9 @@ class TestChunkingStrategyFactory:
 
     def test_creates_hybrid_strategy(self, mocker):
         factory = ChunkingStrategyFactory(
-            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
         )
         config = ChunkingStrategyConfig(strategy="hybrid")
 
@@ -46,9 +53,23 @@ class TestChunkingStrategyFactory:
 
         assert isinstance(chunker, HybridChunker)
 
+    def test_creates_semantic_cosine_strategy(self, mocker):
+        factory = ChunkingStrategyFactory(
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
+        )
+        config = ChunkingStrategyConfig(strategy="semantic_cosine")
+
+        chunker = factory.create(config)
+
+        assert isinstance(chunker, SemanticCosineChunker)
+
     def test_invalid_strategy_raises(self, mocker):
         factory = ChunkingStrategyFactory(
-            llm_provider=mocker.MagicMock(), state_tracker=mocker.MagicMock()
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
         )
         config = ChunkingStrategyConfig(strategy="unknown")
 

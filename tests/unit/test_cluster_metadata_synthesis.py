@@ -134,3 +134,57 @@ class TestClusterMetadataSynthesizer:
         assert result.status == "failed"
         assert result.profile is None
         assert llm_provider.generate.call_count == 2
+
+    def test_strict_json_schema_enforced(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "cluster_profiles")
+        monkeypatch.setenv("ALLOW_JSON_FALLBACK", "false")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {
+            "response": json.dumps(
+                {
+                    "cluster_id": "cluster-1",
+                    "theme_summary": "Project milestones and planning",
+                    "key_entities": ["milestone"],
+                    "dominant_topics": ["planning"],
+                    "tags": ["project"],
+                    "confidence_score": 0.9,
+                    "representative_note_ids": ["note-1"],
+                }
+            )
+        }
+
+        synthesizer = ClusterMetadataSynthesizer(llm_provider)
+        cluster = ClusterData(
+            cluster_id="cluster-1",
+            representative_notes=["Note content"],
+            representative_note_ids=["note-1"],
+        )
+
+        result = synthesizer.synthesize(cluster)
+
+        assert result.status == "success"
+        _, kwargs = llm_provider.generate.call_args
+        assert kwargs["format"] == "json"
+        assert "json_schema" in kwargs["options"]
+
+    def test_strict_json_rejects_invalid_payload(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "cluster_profiles")
+        monkeypatch.setenv("ALLOW_JSON_FALLBACK", "false")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {"response": "not-json"}
+
+        synthesizer = ClusterMetadataSynthesizer(llm_provider, max_retries=0)
+        cluster = ClusterData(
+            cluster_id="cluster-1",
+            representative_notes=["Note content"],
+            representative_note_ids=[],
+        )
+
+        result = synthesizer.synthesize(cluster)
+
+        assert result.status == "failed"
+        assert isinstance(result.error, str)

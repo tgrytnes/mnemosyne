@@ -11,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from mnemosyne.alexandria.the_gates import ClusterProfile
+from mnemosyne.llm.strict_json import StrictJsonConfig, StrictJsonError
 from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
@@ -55,20 +56,37 @@ class ClusterMetadataSynthesizer:
         """Generate a ClusterProfile from cluster data."""
         prompt = self._build_prompt(cluster)
         last_error: str | None = None
+        strict_config = StrictJsonConfig.from_env()
+        strict = strict_config.is_strict("cluster_profiles")
+
+        if strict and not self.llm_provider.supports_structured_output():
+            if strict_config.allow_fallback:
+                logger.warning(
+                    "Structured outputs unavailable for cluster_profiles; "
+                    "falling back to non-strict parsing."
+                )
+            else:
+                return ClusterProfileResult(
+                    status="failed",
+                    error="LLM provider does not support structured output for cluster_profiles.",
+                )
 
         for attempt in range(self.max_retries + 1):
             try:
+                options = {"temperature": self.temperature}
+                if strict and self.llm_provider.supports_structured_output():
+                    options["json_schema"] = self._profile_schema()
                 response = self.llm_provider.generate(
                     model=self.model,
                     prompt=prompt,
                     format="json",
-                    options={"temperature": self.temperature},
+                    options=options,
                 )
                 payload = response.get("response", "")
                 if isinstance(payload, dict):
                     data = payload
                 else:
-                    data = self._safe_parse_json(payload)
+                    data = self._safe_parse_json(payload, strict, strict_config.allow_fallback)
                 profile = self._validate_profile(cluster, data)
                 return ClusterProfileResult(status="success", profile=profile)
             except Exception as exc:
@@ -78,6 +96,8 @@ class ClusterMetadataSynthesizer:
                     attempt + 1,
                     last_error,
                 )
+                if strict and isinstance(exc, StrictJsonError) and not strict_config.allow_fallback:
+                    break
 
         return ClusterProfileResult(status="failed", error=last_error)
 
@@ -125,10 +145,12 @@ class ClusterMetadataSynthesizer:
 
         return ClusterProfile.model_validate(data)
 
-    def _safe_parse_json(self, payload: str) -> dict[str, Any]:
+    def _safe_parse_json(self, payload: str, strict: bool, allow_fallback: bool) -> dict[str, Any]:
         try:
             return json.loads(payload)
         except json.JSONDecodeError:
+            if strict and not allow_fallback:
+                raise StrictJsonError("Cluster profile synthesis returned invalid JSON.")
             start = payload.find("{")
             end = payload.rfind("}")
             if start == -1 or end == -1 or end <= start:
@@ -137,6 +159,8 @@ class ClusterMetadataSynthesizer:
             try:
                 return json.loads(payload[start : end + 1])
             except json.JSONDecodeError:
+                if strict and not allow_fallback:
+                    raise StrictJsonError("Cluster profile synthesis returned malformed JSON.")
                 logger.warning("LLM returned malformed JSON; using fallback")
                 return {}
 
@@ -188,3 +212,36 @@ class ClusterMetadataSynthesizer:
         if not missing:
             return summary
         return f"{summary} Key themes: {', '.join(missing[:3])}"
+
+    @staticmethod
+    def _profile_schema() -> dict[str, object]:
+        return {
+            "name": "cluster_profile",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "cluster_id": {"type": "string"},
+                    "theme_summary": {"type": "string"},
+                    "key_entities": {"type": "array", "items": {"type": "string"}},
+                    "dominant_topics": {"type": "array", "items": {"type": "string"}},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                    "confidence_score": {"type": "number"},
+                    "representative_note_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "created_at": {"type": "string"},
+                    "metadata": {"type": "object"},
+                },
+                "required": [
+                    "cluster_id",
+                    "theme_summary",
+                    "key_entities",
+                    "dominant_topics",
+                    "tags",
+                    "confidence_score",
+                    "representative_note_ids",
+                ],
+                "additionalProperties": True,
+            },
+        }

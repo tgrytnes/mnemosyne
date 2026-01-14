@@ -32,10 +32,12 @@ def test_ingest_vault_logs_progress(mocker, caplog):
     mod_time = datetime(2025, 1, 1)
     chunk = TextChunk(text="hello", index=0, source_file="a.md")
     ingestor._prepare_chunks_for_file = mocker.MagicMock(
-        side_effect=[([chunk], mod_time), ([chunk], mod_time)]
+        side_effect=[([chunk], mod_time, "hello"), ([chunk], mod_time, "hello")]
     )
     ingestor._delete_existing_chunks = mocker.MagicMock()
-    ingestor._generate_embedding = mocker.MagicMock(return_value=[0.0, 0.1])
+    ingestor._generate_embeddings_for_chunks = mocker.MagicMock(
+        return_value=[{"embedding": [0.0, 0.1]}]
+    )
     ingestor._store_chunk = mocker.MagicMock()
 
     caplog.set_level(logging.INFO)

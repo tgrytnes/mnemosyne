@@ -14,6 +14,7 @@ from mnemosyne.providers.factory import (
 from mnemosyne.providers.fastapi import FastAPIEmbeddingProvider, FastAPILLMProvider
 from mnemosyne.providers.groq import GroqLLMProvider
 from mnemosyne.providers.ollama import OllamaEmbeddingProvider, OllamaLLMProvider
+from mnemosyne.providers.vllm import VLLMLLMProvider
 
 
 # Test LLM Provider Factory
@@ -33,6 +34,12 @@ def test_create_fastapi_llm_provider():
     config = ProviderConfig(llm_provider="fastapi")
     provider = create_llm_provider(config)
     assert isinstance(provider, FastAPILLMProvider)
+
+
+def test_create_vllm_llm_provider():
+    config = ProviderConfig(llm_provider="vllm", vllm_base_url="http://vllm.local")
+    provider = create_llm_provider(config)
+    assert isinstance(provider, VLLMLLMProvider)
 
 
 def test_llm_provider_factory_singleton():

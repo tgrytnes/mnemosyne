@@ -46,6 +46,10 @@ class EmailIngestConfig:
     semantic_request_timeout: float = 5.0
     semantic_total_timeout: float = 30.0
     section_semantic_min_length: int = 1000
+    semantic_cosine_threshold: float = 0.78
+    semantic_cosine_min_chunk_size: int = 100
+    semantic_cosine_max_chunk_size: int = 1000
+    semantic_cosine_embedding_model: str = ""
 
     @classmethod
     def from_env(cls) -> EmailIngestConfig:
@@ -74,6 +78,10 @@ class EmailIngestConfig:
             semantic_request_timeout=float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0")),
             semantic_total_timeout=float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0")),
             section_semantic_min_length=int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000")),
+            semantic_cosine_threshold=float(os.getenv("SEMANTIC_COSINE_THRESHOLD", "0.78")),
+            semantic_cosine_min_chunk_size=int(os.getenv("SEMANTIC_COSINE_MIN_CHUNK_SIZE", "100")),
+            semantic_cosine_max_chunk_size=int(os.getenv("SEMANTIC_COSINE_MAX_CHUNK_SIZE", "1000")),
+            semantic_cosine_embedding_model=os.getenv("SEMANTIC_COSINE_EMBEDDING_MODEL", ""),
         )
 
 
@@ -113,10 +121,14 @@ class EmailIngestor:
         if strategy == "recursive":
             return recursive
 
-        if self.llm_provider is None:
+        if self.llm_provider is None and strategy in {"semantic", "hybrid"}:
             raise ValueError("llm_provider is required for semantic or hybrid chunking")
+        if strategy == "semantic_cosine" and self.embedding_provider is None:
+            raise ValueError("embedding_provider is required for semantic_cosine chunking")
 
-        factory = ChunkingStrategyFactory(self.llm_provider, state_tracker=None)
+        factory = ChunkingStrategyFactory(
+            self.llm_provider, state_tracker=None, embedding_provider=self.embedding_provider
+        )
         cfg = ChunkingStrategyConfig(
             strategy=strategy,
             chunk_size=self.config.chunk_size,
@@ -128,6 +140,16 @@ class EmailIngestor:
             semantic_request_timeout=self.config.semantic_request_timeout,
             semantic_total_timeout=self.config.semantic_total_timeout,
             section_semantic_min_length=self.config.section_semantic_min_length,
+            semantic_cosine_threshold=getattr(self.config, "semantic_cosine_threshold", 0.78),
+            semantic_cosine_min_chunk_size=getattr(
+                self.config, "semantic_cosine_min_chunk_size", 100
+            ),
+            semantic_cosine_max_chunk_size=getattr(
+                self.config, "semantic_cosine_max_chunk_size", 1000
+            ),
+            semantic_cosine_embedding_model=getattr(
+                self.config, "semantic_cosine_embedding_model", ""
+            ),
         )
         return factory.create(cfg, recursive_chunker=recursive)
 

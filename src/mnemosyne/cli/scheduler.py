@@ -325,7 +325,7 @@ def run_graph_taxonomy_task():
         bootstrapper = ClusterProfileBootstrapper(
             weaviate_client=weaviate_client,
             postgres_connection=postgres_conn,
-            ollama_client=llm_provider,  # ollama_client is expected here, but we pass the provider
+            llm_provider=llm_provider,
             profile_source=graph_taxonomy_source,
             centroid_collection_name=centroid_collection_name,
             chunk_collection_name=chunk_collection_name,

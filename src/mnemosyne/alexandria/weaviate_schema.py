@@ -83,6 +83,16 @@ class TheMuses:
             "description": "Immediate parent heading title",
         },
         {
+            "name": "contextHeader",
+            "dataType": ["text"],
+            "description": "Contextual retrieval header prepended during embedding",
+        },
+        {
+            "name": "docSummary",
+            "dataType": ["text"],
+            "description": "Document-level summary prefixed during embedding",
+        },
+        {
             "name": "clusterId",
             "dataType": ["int"],
             "description": "ID of the cluster this chunk belongs to",
@@ -348,6 +358,8 @@ class WeaviateSchemaManager:
         """
         # Check if collection already exists
         if self.client.collections.exists(collection_name):
+            if collection_name == TheMuses.collection_name:
+                self._ensure_collection_properties(collection_name, TheMuses.properties)
             return
 
         # Get schema for this collection
@@ -363,6 +375,20 @@ class WeaviateSchemaManager:
             self._create_discoveries_collection()
         else:
             raise ValueError(f"Unknown collection: {collection_name}")
+
+    def _ensure_collection_properties(self, collection_name: str, properties: list[dict]) -> None:
+        collection = self.client.collections.get(collection_name)
+        existing = {prop.name for prop in collection.config.get().properties}
+        missing = [prop for prop in properties if prop["name"] not in existing]
+        for prop in missing:
+            collection.config.add_property(
+                Property(
+                    name=prop["name"],
+                    data_type=self._map_datatype(prop["dataType"][0]),
+                    description=prop.get("description", ""),
+                    tokenization=prop.get("tokenization"),
+                )
+            )
 
     def _create_themuses_collection(self) -> None:
         """Create TheMuses collection with proper schema"""

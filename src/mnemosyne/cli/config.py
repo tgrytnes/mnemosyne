@@ -34,6 +34,9 @@ def show_config():
             click.echo(f"  FastAPI Base URL: {config.fastapi_base_url}")
             click.echo(f"  FastAPI LLM Model: {config.fastapi_llm_model}")
             click.echo(f"  FastAPI Embedding Model: {config.fastapi_embedding_model}")
+        if config.llm_provider == "vllm":
+            click.echo(f"  vLLM Base URL: {config.vllm_base_url}")
+            click.echo(f"  vLLM LLM Model: {config.vllm_llm_model}")
     except Exception as e:
         click.echo(f"Error reading configuration: {e}", err=True)
 

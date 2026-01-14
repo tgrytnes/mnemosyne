@@ -219,6 +219,27 @@ class TestIngestionStateTracker:
         """Should return None for missing semantic cache entries"""
         assert tracker.get_cached_semantic_boundaries("missing-key") is None
 
+    def test_cache_doc_summary_roundtrip(self, tracker):
+        """Should store and retrieve doc summary cache entries"""
+        cache_key = "doc:hash:summary"
+        summary = "Short summary"
+
+        tracker.cache_doc_summary(
+            cache_key=cache_key,
+            summary=summary,
+            model="reasoning",
+            max_chars=200,
+            temperature=0.2,
+        )
+
+        cached = tracker.get_cached_doc_summary(cache_key)
+
+        assert cached == summary
+
+    def test_missing_doc_summary_returns_none(self, tracker):
+        """Should return None for missing doc summary cache entries"""
+        assert tracker.get_cached_doc_summary("missing-summary") is None
+
     def test_persistent_state(self, temp_db):
         """Should persist state across tracker instances"""
         # GIVEN: File ingested with first tracker

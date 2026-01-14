@@ -3,6 +3,7 @@ from mnemosyne.providers.base import EmbeddingProvider, LLMProvider
 from mnemosyne.providers.fastapi import FastAPIEmbeddingProvider, FastAPILLMProvider
 from mnemosyne.providers.groq import GroqLLMProvider
 from mnemosyne.providers.ollama import OllamaEmbeddingProvider, OllamaLLMProvider
+from mnemosyne.providers.vllm import VLLMLLMProvider
 
 
 class LLMProviderFactory:
@@ -11,6 +12,7 @@ class LLMProviderFactory:
         "ollama": OllamaLLMProvider,
         "groq": GroqLLMProvider,
         "fastapi": FastAPILLMProvider,
+        "vllm": VLLMLLMProvider,
     }
 
     @classmethod
