@@ -65,6 +65,7 @@ class IngestionConfig:
         self.chunk_size = int(os.getenv("CHUNK_SIZE", "400"))
         self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "100"))
         self.chunking_strategy = os.getenv("CHUNKING_STRATEGY", "recursive")
+        self.chunking_augmentation = os.getenv("CHUNKING_AUGMENTATION", "none")
         self.semantic_min_chunk_size = int(os.getenv("SEMANTIC_MIN_CHUNK_SIZE", "100"))
         self.semantic_max_chunk_size = int(os.getenv("SEMANTIC_MAX_CHUNK_SIZE", "1000"))
         self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
@@ -72,6 +73,22 @@ class IngestionConfig:
         self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
         self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))
         self.section_semantic_min_length = int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000"))
+        self.semantic_cosine_threshold = float(os.getenv("SEMANTIC_COSINE_THRESHOLD", "0.78"))
+        self.semantic_cosine_min_chunk_size = int(
+            os.getenv("SEMANTIC_COSINE_MIN_CHUNK_SIZE", "100")
+        )
+        self.semantic_cosine_max_chunk_size = int(
+            os.getenv("SEMANTIC_COSINE_MAX_CHUNK_SIZE", "1000")
+        )
+        self.semantic_cosine_embedding_model = os.getenv("SEMANTIC_COSINE_EMBEDDING_MODEL", "")
+        self.contextual_llm_provider = os.getenv("CONTEXTUAL_LLM_PROVIDER")
+        self.contextual_llm_model = os.getenv("CONTEXTUAL_LLM_MODEL", "")
+        self.contextual_max_doc_chars = int(os.getenv("CONTEXTUAL_MAX_DOC_CHARS", "4000"))
+        self.doc_summary_llm_model = os.getenv("DOC_SUMMARY_LLM_MODEL", "")
+        self.doc_summary_max_chars = int(os.getenv("DOC_SUMMARY_MAX_CHARS", "200"))
+        self.doc_summary_temperature = float(os.getenv("DOC_SUMMARY_TEMPERATURE", "0.2"))
+        self.late_chunk_adapter = os.getenv("LATE_CHUNK_ADAPTER", "retrieval.passage")
+        self.late_chunk_embedding_model = os.getenv("LATE_CHUNK_EMBEDDING_MODEL", "")
         self.watch_debounce = float(os.getenv("WATCH_DEBOUNCE_SECONDS", "2.0"))
 
     def validate(self) -> bool:
@@ -96,6 +113,11 @@ class IngestionConfig:
 
         if not vault.is_dir():
             raise ValueError(f"Vault path is not a directory: {self.vault_path}")
+
+        if self.chunking_augmentation.lower() not in {"none", "late", "contextual", "doc_summary"}:
+            raise ValueError(
+                "CHUNKING_AUGMENTATION must be one of: none, late, contextual, doc_summary."
+            )
 
         return True
 
@@ -126,6 +148,27 @@ def create_ingestor(
     llm_provider = create_llm_provider(provider_config)
     embedding_provider = create_embedding_provider(provider_config)
 
+    contextual_llm_provider = llm_provider
+    contextual_provider_name = provider_config.llm_provider
+    if config.contextual_llm_provider:
+        contextual_provider_config = ProviderConfig.from_env()
+        contextual_provider_config.llm_provider = config.contextual_llm_provider
+        contextual_llm_provider = create_llm_provider(contextual_provider_config)
+        contextual_provider_name = config.contextual_llm_provider
+
+    contextual_llm_model = config.contextual_llm_model
+    if (
+        config.chunking_augmentation == "contextual"
+        and not contextual_llm_model
+        and contextual_provider_name == "fastapi"
+    ):
+        contextual_llm_model = "Qwen3_8B"
+        logger.info(
+            "Defaulting contextual LLM model to %s for provider %s.",
+            contextual_llm_model,
+            contextual_provider_name,
+        )
+
     logger.info("Initializing state tracker...")
     state_tracker = IngestionStateTracker(config.state_db_path)
 
@@ -139,6 +182,7 @@ def create_ingestor(
         chunk_size=config.chunk_size,
         chunk_overlap=config.chunk_overlap,
         chunking_strategy=config.chunking_strategy,
+        chunking_augmentation=config.chunking_augmentation,
         semantic_min_chunk_size=config.semantic_min_chunk_size,
         semantic_max_chunk_size=config.semantic_max_chunk_size,
         semantic_model=config.semantic_model,
@@ -146,6 +190,18 @@ def create_ingestor(
         semantic_request_timeout=config.semantic_request_timeout,
         semantic_total_timeout=config.semantic_total_timeout,
         section_semantic_min_length=config.section_semantic_min_length,
+        semantic_cosine_threshold=config.semantic_cosine_threshold,
+        semantic_cosine_min_chunk_size=config.semantic_cosine_min_chunk_size,
+        semantic_cosine_max_chunk_size=config.semantic_cosine_max_chunk_size,
+        semantic_cosine_embedding_model=config.semantic_cosine_embedding_model,
+        contextual_llm_provider=contextual_llm_provider,
+        contextual_llm_model=contextual_llm_model,
+        contextual_max_doc_chars=config.contextual_max_doc_chars,
+        doc_summary_llm_model=config.doc_summary_llm_model,
+        doc_summary_max_chars=config.doc_summary_max_chars,
+        doc_summary_temperature=config.doc_summary_temperature,
+        late_chunk_adapter=config.late_chunk_adapter,
+        late_chunk_embedding_model=config.late_chunk_embedding_model,
     )
 
     return ingestor
@@ -175,6 +231,7 @@ def ingest_once(vault_path: str | None = None):
         logger.info(f"LLM Provider: {provider_config.llm_provider}")
         logger.info(f"Embedding Provider: {provider_config.embedding_provider}")
         logger.info(f"State DB: {config.state_db_path}")
+        logger.info(f"Chunking Augmentation: {config.chunking_augmentation}")
         logger.info("=" * 60)
 
         ingestor = create_ingestor(config, provider_config)

@@ -128,7 +128,11 @@ def test_obsidian_ingestor_skips_insert_when_embedding_none(tmp_path, caplog):
     mod_time = datetime.now(UTC)
 
     with (
-        patch.object(ingestor, "_prepare_chunks_for_file", return_value=([chunk], mod_time)),
+        patch.object(
+            ingestor,
+            "_prepare_chunks_for_file",
+            return_value=([chunk], mod_time, "note"),
+        ),
         patch.object(ingestor, "_delete_existing_chunks"),
     ):
         ingestor._generate_embedding = Mock(return_value=None)

@@ -55,6 +55,18 @@ class IngestionStateTracker:
             )
         """
         )
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS doc_summary_cache (
+                cache_key TEXT PRIMARY KEY,
+                summary TEXT NOT NULL,
+                model TEXT,
+                max_chars INTEGER,
+                temperature REAL,
+                created_at TIMESTAMP
+            )
+        """
+        )
         self.conn.commit()
 
     @staticmethod
@@ -218,6 +230,61 @@ class IngestionStateTracker:
             return None
 
         return json.loads(result["boundaries_json"])
+
+    def cache_doc_summary(
+        self,
+        cache_key: str,
+        summary: str,
+        model: str,
+        max_chars: int,
+        temperature: float,
+    ) -> None:
+        """
+        Cache doc summary for reuse.
+
+        Args:
+            cache_key: Deterministic key for text + model settings
+            summary: Summary text
+            model: LLM model used
+            max_chars: Max summary length
+            temperature: LLM temperature
+        """
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO doc_summary_cache
+            (cache_key, summary, model, max_chars, temperature, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """,
+            (
+                cache_key,
+                summary,
+                model,
+                max_chars,
+                temperature,
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        self.conn.commit()
+
+    def get_cached_doc_summary(self, cache_key: str) -> str | None:
+        """
+        Retrieve cached doc summary by cache key.
+
+        Args:
+            cache_key: Deterministic key for text + model settings
+
+        Returns:
+            Summary text if cached, otherwise None
+        """
+        result = self.conn.execute(
+            "SELECT summary FROM doc_summary_cache WHERE cache_key = ?",
+            (cache_key,),
+        ).fetchone()
+
+        if not result:
+            return None
+
+        return result["summary"]
 
     def delete_file(self, file_path: str) -> None:
         """

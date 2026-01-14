@@ -55,7 +55,7 @@ def run_scout():
     # Create embedder function
     def embedder(text: str) -> list[float]:
         """Generate embedding using the configured provider."""
-        return embedding_provider.embed(model="", text=text)
+        return embedding_provider.embed_query(model="", text=text)
 
     # Define project concept patterns
     project_positives = [

@@ -5,7 +5,6 @@ import os
 import sys
 
 import click
-import ollama
 import psycopg2
 import weaviate
 from neo4j import GraphDatabase
@@ -19,6 +18,8 @@ from mnemosyne.alexandria.weaviate_schema import (
 from mnemosyne.argus.cluster_profile_bootstrap import ClusterProfileBootstrapper
 from mnemosyne.argus.graph_taxonomy import GraphTaxonomyConfig
 from mnemosyne.argus.graph_taxonomy_pipeline import GraphTaxonomyPipeline
+from mnemosyne.config.providers import ProviderConfig
+from mnemosyne.providers.factory import create_llm_provider
 
 # Configure logging
 logging.basicConfig(
@@ -44,8 +45,6 @@ def run_graph_taxonomy():
     weaviate_host = os.getenv("WEAVIATE_HTTP_HOST", "localhost")
     weaviate_port = int(os.getenv("WEAVIATE_HTTP_PORT", "8080"))
     weaviate_grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-
     postgres_host = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
     postgres_db = os.getenv("POSTGRES_DB", "mnemosyne_dev")
@@ -81,9 +80,7 @@ def run_graph_taxonomy():
 
         logger.info("Connecting to Neo4j...")
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        ollama_client = ollama.Client(host=ollama_url)
-
-        ollama_client = ollama.Client(host=ollama_url)
+        llm_provider = create_llm_provider(ProviderConfig.from_env())
 
         # Configure graph taxonomy
         config = GraphTaxonomyConfig()
@@ -106,7 +103,7 @@ def run_graph_taxonomy():
         bootstrapper = ClusterProfileBootstrapper(
             weaviate_client=weaviate_client,
             postgres_connection=postgres_conn,
-            ollama_client=ollama_client,
+            llm_provider=llm_provider,
             profile_source=graph_taxonomy_source,
             centroid_collection_name=centroid_collection_name,
             chunk_collection_name=chunk_collection_name,

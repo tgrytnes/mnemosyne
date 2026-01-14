@@ -11,6 +11,7 @@ import pytest
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.semantic_chunker import SemanticChunker
 from mnemosyne.aletheia.text_chunker import TextChunk
+from mnemosyne.llm.strict_json import StrictJsonError
 
 
 class TestSemanticChunker:
@@ -99,3 +100,30 @@ class TestSemanticChunker:
         assert "Topic A" in chunks[0].text
         assert "Topic B" not in chunks[0].text
         assert "Topic B" in chunks[1].text
+
+    def test_strict_json_requires_schema(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
+        monkeypatch.setenv("ALLOW_JSON_FALLBACK", "false")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
+
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
+        chunker.chunk("hello world", source_file="note.md")
+
+        _, kwargs = llm_provider.generate.call_args
+        assert kwargs["format"] == "json"
+        assert "json_schema" in kwargs["options"]
+
+    def test_strict_json_rejects_invalid_payload(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
+        monkeypatch.setenv("ALLOW_JSON_FALLBACK", "false")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {"response": "not-json"}
+
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
+        with pytest.raises(StrictJsonError):
+            chunker.chunk("hello world", source_file="note.md")

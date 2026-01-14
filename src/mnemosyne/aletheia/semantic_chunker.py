@@ -10,6 +10,7 @@ import re
 
 from mnemosyne.aletheia.ingestion_state import IngestionStateTracker
 from mnemosyne.aletheia.text_chunker import TextChunk, TextChunker
+from mnemosyne.llm.strict_json import StrictJsonConfig, StrictJsonError
 from mnemosyne.providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,9 @@ class SemanticChunker:
             try:
                 boundaries = self._identify_boundaries(text)
                 self._cache_boundaries(cache_key, boundaries)
+            except StrictJsonError as exc:
+                logger.error("Semantic chunking strict JSON failed: %s", exc)
+                raise
             except Exception as exc:
                 logger.warning("Semantic chunking failed, falling back: %s", exc)
                 return self.fallback_chunker.chunk(text, source_file)
@@ -144,16 +148,34 @@ class SemanticChunker:
         return boundaries
 
     def _request_boundary_json(self, text: str) -> list[int] | None:
+        strict_config = StrictJsonConfig.from_env()
+        strict = strict_config.is_strict("semantic_chunking")
+        if strict and not self.llm_provider.supports_structured_output():
+            if strict_config.allow_fallback:
+                logger.warning(
+                    "Structured outputs unavailable for semantic_chunking; "
+                    "falling back to non-strict parsing."
+                )
+            else:
+                raise StrictJsonError(
+                    "LLM provider does not support structured output for semantic_chunking."
+                )
+
         prompt = (
             "Return semantic chunk boundaries as JSON in the form "
             '{"boundaries": [index, ...]}. Indices are character offsets '
             "into the original text. Respond with JSON only.\n\n"
             f"Text:\n{text}\n"
         )
+        options = {"temperature": self.temperature}
+        if strict and self.llm_provider.supports_structured_output():
+            options["json_schema"] = self._boundary_schema()
+
         response = self.llm_provider.generate(
             model=self.model,
             prompt=prompt,
-            options={"temperature": self.temperature},
+            format="json" if strict else None,
+            options=options,
         )
         raw = response.get("response", "")
         if not raw:
@@ -161,11 +183,27 @@ class SemanticChunker:
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
+            if strict and not strict_config.allow_fallback:
+                raise StrictJsonError("Semantic chunking returned invalid JSON.")
             return None
         boundaries = data.get("boundaries")
         if not isinstance(boundaries, list):
+            if strict and not strict_config.allow_fallback:
+                raise StrictJsonError("Semantic chunking JSON missing boundaries list.")
             return None
         return [int(b) for b in boundaries if isinstance(b, (int, float))]
+
+    @staticmethod
+    def _boundary_schema() -> dict[str, object]:
+        return {
+            "name": "semantic_boundaries",
+            "schema": {
+                "type": "object",
+                "properties": {"boundaries": {"type": "array", "items": {"type": "integer"}}},
+                "required": ["boundaries"],
+                "additionalProperties": False,
+            },
+        }
 
     def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
         sentences = re.split(r"(?<=[.!?])\s+", text.strip())

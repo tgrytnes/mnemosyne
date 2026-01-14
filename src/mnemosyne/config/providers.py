@@ -39,6 +39,17 @@ class ProviderConfig:
     fastapi_embedding_model: str = field(
         default_factory=lambda: os.getenv("FASTAPI_EMBEDDING_MODEL", "nomic-embed-text")
     )
+    query_embedding_adapter: str = field(
+        default_factory=lambda: os.getenv("QUERY_EMBEDDING_ADAPTER", "retrieval.query")
+    )
+
+    # vLLM settings
+    vllm_base_url: str = field(
+        default_factory=lambda: os.getenv("VLLM_BASE_URL", "http://localhost:8001")
+    )
+    vllm_api_key: str | None = field(default_factory=lambda: os.getenv("VLLM_API_KEY"))
+    vllm_llm_model: str = field(default_factory=lambda: os.getenv("VLLM_LLM_MODEL", ""))
+    vllm_timeout: float = field(default_factory=lambda: float(os.getenv("VLLM_TIMEOUT", "30.0")))
 
     def __post_init__(self):
         if self.llm_provider is None:
