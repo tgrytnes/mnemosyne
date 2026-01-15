@@ -10,6 +10,7 @@ from mnemosyne.aletheia.email_ingest import EmailIngestConfig
 def test_email_ingest_config_defaults_to_semantic(monkeypatch, tmp_path):
     monkeypatch.setenv("SOURCE_DIR", str(tmp_path))
     monkeypatch.delenv("CHUNKING_STRATEGY", raising=False)
+    monkeypatch.delenv("EMAIL_TSV", raising=False)
 
     config = EmailIngestConfig.from_env()
 
@@ -19,6 +20,7 @@ def test_email_ingest_config_defaults_to_semantic(monkeypatch, tmp_path):
 def test_email_ingest_config_accepts_override(monkeypatch, tmp_path):
     monkeypatch.setenv("SOURCE_DIR", str(tmp_path))
     monkeypatch.setenv("CHUNKING_STRATEGY", "recursive")
+    monkeypatch.delenv("EMAIL_TSV", raising=False)
 
     config = EmailIngestConfig.from_env()
 
