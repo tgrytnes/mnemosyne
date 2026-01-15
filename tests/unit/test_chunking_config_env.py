@@ -19,14 +19,16 @@ class TestChunkingConfigEnv:
         monkeypatch.setenv("CHUNKING_STRATEGY", "hybrid")
 
         mock_weaviate = mocker.MagicMock()
-        mock_ollama = mocker.MagicMock()
+        mock_llm_provider = mocker.MagicMock()
+        mock_embedding_provider = mocker.MagicMock()
 
-        monkeypatch.setattr(
-            "mnemosyne.cli.ingest.weaviate.connect_to_local",
-            lambda *args, **kwargs: mock_weaviate,
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_llm_provider",
+            return_value=mock_llm_provider,
         )
-        monkeypatch.setattr(
-            "mnemosyne.cli.ingest.ollama.Client", lambda *args, **kwargs: mock_ollama
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_embedding_provider",
+            return_value=mock_embedding_provider,
         )
         monkeypatch.setattr(
             "mnemosyne.aletheia.obsidian_ingestor.WeaviateSchemaManager.ensure_collection_exists",
@@ -34,7 +36,8 @@ class TestChunkingConfigEnv:
         )
 
         config = IngestionConfig()
-        ingestor = create_ingestor(config)
+        provider_config = ProviderConfig(llm_provider="ollama", embedding_provider="ollama")
+        ingestor = create_ingestor(config, provider_config, weaviate_client=mock_weaviate)
 
         assert isinstance(ingestor.chunker, HybridChunker)
 
@@ -44,14 +47,16 @@ class TestChunkingConfigEnv:
         monkeypatch.delenv("CHUNKING_STRATEGY", raising=False)
 
         mock_weaviate = mocker.MagicMock()
-        mock_ollama = mocker.MagicMock()
+        mock_llm_provider = mocker.MagicMock()
+        mock_embedding_provider = mocker.MagicMock()
 
-        monkeypatch.setattr(
-            "mnemosyne.cli.ingest.weaviate.connect_to_local",
-            lambda *args, **kwargs: mock_weaviate,
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_llm_provider",
+            return_value=mock_llm_provider,
         )
-        monkeypatch.setattr(
-            "mnemosyne.cli.ingest.ollama.Client", lambda *args, **kwargs: mock_ollama
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_embedding_provider",
+            return_value=mock_embedding_provider,
         )
         monkeypatch.setattr(
             "mnemosyne.aletheia.obsidian_ingestor.WeaviateSchemaManager.ensure_collection_exists",
@@ -59,11 +64,12 @@ class TestChunkingConfigEnv:
         )
 
         config = IngestionConfig()
-        ingestor = create_ingestor(config)
+        provider_config = ProviderConfig(llm_provider="ollama", embedding_provider="ollama")
+        ingestor = create_ingestor(config, provider_config, weaviate_client=mock_weaviate)
 
         assert isinstance(ingestor.chunker, TextChunker)
 
-    def test_contextual_defaults_to_small_model_for_fastapi(self, monkeypatch, tmp_path):
+    def test_contextual_defaults_to_small_model_for_fastapi(self, monkeypatch, tmp_path, mocker):
         """Should use a smaller contextual model by default for fastapi."""
         monkeypatch.setenv("OBSIDIAN_VAULT_PATH", str(tmp_path))
         monkeypatch.setenv("CHUNKING_AUGMENTATION", "contextual")
@@ -71,6 +77,17 @@ class TestChunkingConfigEnv:
         monkeypatch.delenv("CONTEXTUAL_LLM_PROVIDER", raising=False)
 
         mock_weaviate = MagicMock()
+        mock_llm_provider = mocker.MagicMock()
+        mock_embedding_provider = mocker.MagicMock()
+
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_llm_provider",
+            return_value=mock_llm_provider,
+        )
+        mocker.patch(
+            "mnemosyne.cli.ingest.create_embedding_provider",
+            return_value=mock_embedding_provider,
+        )
         monkeypatch.setattr(
             "mnemosyne.aletheia.obsidian_ingestor.WeaviateSchemaManager.ensure_collection_exists",
             lambda *args, **kwargs: None,
