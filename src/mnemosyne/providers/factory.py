@@ -2,6 +2,7 @@ from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.base import EmbeddingProvider, LLMProvider
 from mnemosyne.providers.fastapi import FastAPIEmbeddingProvider, FastAPILLMProvider
 from mnemosyne.providers.groq import GroqLLMProvider
+from mnemosyne.providers.lmstudio import LMStudioEmbeddingProvider, LMStudioLLMProvider
 from mnemosyne.providers.ollama import OllamaEmbeddingProvider, OllamaLLMProvider
 from mnemosyne.providers.vllm import VLLMLLMProvider
 
@@ -13,6 +14,7 @@ class LLMProviderFactory:
         "groq": GroqLLMProvider,
         "fastapi": FastAPILLMProvider,
         "vllm": VLLMLLMProvider,
+        "lmstudio": LMStudioLLMProvider,
     }
 
     @classmethod
@@ -31,6 +33,7 @@ class EmbeddingProviderFactory:
     _provider_classes: dict[str, type[EmbeddingProvider]] = {
         "ollama": OllamaEmbeddingProvider,
         "fastapi": FastAPIEmbeddingProvider,
+        "lmstudio": LMStudioEmbeddingProvider,
     }
 
     @classmethod

@@ -51,6 +51,19 @@ class ProviderConfig:
     vllm_llm_model: str = field(default_factory=lambda: os.getenv("VLLM_LLM_MODEL", ""))
     vllm_timeout: float = field(default_factory=lambda: float(os.getenv("VLLM_TIMEOUT", "30.0")))
 
+    # LM Studio settings
+    lmstudio_base_url: str = field(
+        default_factory=lambda: os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234")
+    )
+    lmstudio_api_key: str | None = field(default_factory=lambda: os.getenv("LMSTUDIO_API_KEY"))
+    lmstudio_llm_model: str = field(default_factory=lambda: os.getenv("LMSTUDIO_LLM_MODEL", ""))
+    lmstudio_embedding_model: str = field(
+        default_factory=lambda: os.getenv("LMSTUDIO_EMBEDDING_MODEL", "")
+    )
+    lmstudio_timeout: float = field(
+        default_factory=lambda: float(os.getenv("LMSTUDIO_TIMEOUT", "30.0"))
+    )
+
     def __post_init__(self):
         if self.llm_provider is None:
             if self.llm_profile == "local":
