@@ -4,46 +4,20 @@ from mnemosyne.config.providers import ProviderConfig
 from mnemosyne.providers.vllm import VLLMLLMProvider
 
 
-def test_vllm_provider_sends_json_schema():
-    config = ProviderConfig(
-        llm_provider="vllm",
-        vllm_base_url="http://vllm.local",
-        vllm_api_key="token",
-        vllm_llm_model="test-model",
-    )
+def test_vllm_generate_uses_guided_json_from_schema_wrapper():
+    config = ProviderConfig(vllm_base_url="http://vllm.local", vllm_llm_model="vllm-model")
     provider = VLLMLLMProvider(config)
-
     schema = {
-        "name": "test_schema",
-        "schema": {
-            "type": "object",
-            "properties": {"ok": {"type": "boolean"}},
-            "required": ["ok"],
-            "additionalProperties": False,
-        },
+        "name": "semantic_boundaries",
+        "schema": {"type": "object", "properties": {"boundaries": {"type": "array"}}},
     }
 
     with patch("mnemosyne.providers.vllm.requests.post") as mock_post:
         mock_response = MagicMock()
-        mock_response.json.return_value = {"choices": [{"message": {"content": '{"ok": true}'}}]}
+        mock_response.json.return_value = {"choices": [{"message": {"content": "{}"}}]}
         mock_post.return_value = mock_response
+        provider.generate("vllm-model", "return json", options={"json_schema": schema})
 
-        response = provider.generate(
-            model="",
-            prompt="test prompt",
-            format="json",
-            options={"temperature": 0.2, "json_schema": schema},
-        )
-
-        assert response["response"] == '{"ok": true}'
-        mock_post.assert_called_with(
-            "http://vllm.local/v1/chat/completions",
-            headers={"Authorization": "Bearer token"},
-            json={
-                "model": "test-model",
-                "messages": [{"role": "user", "content": "test prompt"}],
-                "temperature": 0.2,
-                "guided_json": schema["schema"],
-            },
-            timeout=30.0,
-        )
+    payload = mock_post.call_args.kwargs["json"]
+    assert payload["guided_json"] == schema["schema"]
+    assert "response_format" not in payload

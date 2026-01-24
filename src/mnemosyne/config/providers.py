@@ -51,6 +51,16 @@ class ProviderConfig:
     vllm_llm_model: str = field(default_factory=lambda: os.getenv("VLLM_LLM_MODEL", ""))
     vllm_timeout: float = field(default_factory=lambda: float(os.getenv("VLLM_TIMEOUT", "30.0")))
 
+    # TabbyAPI settings
+    tabbyapi_base_url: str = field(
+        default_factory=lambda: os.getenv("TABBYAPI_BASE_URL", "http://localhost:8080")
+    )
+    tabbyapi_api_key: str | None = field(default_factory=lambda: os.getenv("TABBYAPI_API_KEY"))
+    tabbyapi_llm_model: str = field(default_factory=lambda: os.getenv("TABBYAPI_LLM_MODEL", ""))
+    tabbyapi_timeout: float = field(
+        default_factory=lambda: float(os.getenv("TABBYAPI_TIMEOUT", "30.0"))
+    )
+
     # LM Studio settings
     lmstudio_base_url: str = field(
         default_factory=lambda: os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234")
