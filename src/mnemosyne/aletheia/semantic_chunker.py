@@ -34,6 +34,8 @@ class SemanticChunker:
         temperature: float = 0.1,  # Lower temperature for more consistent boundary detection
         request_timeout: float = 10.0,  # Longer timeout for larger model
         total_timeout: float = 60.0,
+        json_max_chars: int | None = 12000,
+        json_max_tokens: int | None = 512,
     ):
         self.llm_provider = llm_provider
         self.state_tracker = state_tracker
@@ -44,6 +46,8 @@ class SemanticChunker:
         self.temperature = temperature
         self.request_timeout = request_timeout
         self.total_timeout = total_timeout
+        self.json_max_chars = json_max_chars if json_max_chars and json_max_chars > 0 else None
+        self.json_max_tokens = json_max_tokens if json_max_tokens and json_max_tokens > 0 else None
 
     def chunk(self, text: str, source_file: str, structure=None) -> list[TextChunk]:
         """
@@ -148,6 +152,14 @@ class SemanticChunker:
         return boundaries
 
     def _request_boundary_json(self, text: str) -> list[int] | None:
+        if self.json_max_chars and len(text) > self.json_max_chars:
+            logger.warning(
+                "Skipping JSON boundary request (text %d chars exceeds limit %d).",
+                len(text),
+                self.json_max_chars,
+            )
+            return None
+
         strict_config = StrictJsonConfig.from_env()
         strict = strict_config.is_strict("semantic_chunking")
         if strict and not self.llm_provider.supports_structured_output():
@@ -168,6 +180,8 @@ class SemanticChunker:
             f"Text:\n{text}\n"
         )
         options = {"temperature": self.temperature}
+        if self.json_max_tokens:
+            options["max_tokens"] = self.json_max_tokens
         if strict and self.llm_provider.supports_structured_output():
             options["json_schema"] = self._boundary_schema()
 
