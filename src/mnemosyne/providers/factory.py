@@ -4,6 +4,7 @@ from mnemosyne.providers.fastapi import FastAPIEmbeddingProvider, FastAPILLMProv
 from mnemosyne.providers.groq import GroqLLMProvider
 from mnemosyne.providers.lmstudio import LMStudioEmbeddingProvider, LMStudioLLMProvider
 from mnemosyne.providers.ollama import OllamaEmbeddingProvider, OllamaLLMProvider
+from mnemosyne.providers.tabbyapi import TabbyAPILLMProvider
 from mnemosyne.providers.vllm import VLLMLLMProvider
 
 
@@ -15,6 +16,7 @@ class LLMProviderFactory:
         "fastapi": FastAPILLMProvider,
         "vllm": VLLMLLMProvider,
         "lmstudio": LMStudioLLMProvider,
+        "tabbyapi": TabbyAPILLMProvider,
     }
 
     @classmethod

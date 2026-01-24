@@ -158,6 +158,7 @@ make services-down
 - **[Linear Integration](docs/LINEAR_INTEGRATION.md)** - Project management sync
 - **[System Architecture](user-stories/SYSTEM_ARCHITECTURE.md)** - Detailed architecture
 - **[User Stories](user-stories/STORY_INDEX.md)** - All 18 stories indexed
+- **[TabbyAPI Setup](docs/TABBYAPI_SETUP.md)** - Configure TabbyAPI for strict JSON
 
 ## Technology Stack
 

@@ -14,6 +14,7 @@ from mnemosyne.providers.factory import (
 from mnemosyne.providers.fastapi import FastAPIEmbeddingProvider, FastAPILLMProvider
 from mnemosyne.providers.groq import GroqLLMProvider
 from mnemosyne.providers.ollama import OllamaEmbeddingProvider, OllamaLLMProvider
+from mnemosyne.providers.tabbyapi import TabbyAPILLMProvider
 from mnemosyne.providers.vllm import VLLMLLMProvider
 
 
@@ -40,6 +41,12 @@ def test_create_vllm_llm_provider():
     config = ProviderConfig(llm_provider="vllm", vllm_base_url="http://vllm.local")
     provider = create_llm_provider(config)
     assert isinstance(provider, VLLMLLMProvider)
+
+
+def test_create_tabbyapi_llm_provider():
+    config = ProviderConfig(llm_provider="tabbyapi", tabbyapi_base_url="http://tabby.local")
+    provider = create_llm_provider(config)
+    assert isinstance(provider, TabbyAPILLMProvider)
 
 
 def test_llm_provider_factory_singleton():
