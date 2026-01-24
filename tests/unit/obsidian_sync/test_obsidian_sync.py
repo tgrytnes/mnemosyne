@@ -549,7 +549,8 @@ class TestConflictDetection:
 
         # File was modified at 14:45 (after SQL update)
         file_path = mock_obsidian_vault / "Projects" / "test.md"
-        file_path.write_text("""---
+        file_path.write_text(
+            """---
 id: 42
 title: Test
 discovered_by: test
@@ -562,7 +563,8 @@ updated_at: 2026-01-01T14:00:00+00:00
 ---
 
 # Test
-""")
+"""
+        )
         file_path.touch()  # Set mtime to now
 
         sync_manager = ObsidianSyncManager(mock_db_conn, str(mock_obsidian_vault))
@@ -590,7 +592,8 @@ updated_at: 2026-01-01T14:00:00+00:00
         last_synced = datetime(2026, 1, 1, 14, 0, 0, tzinfo=UTC)
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
-        file_path.write_text("""---
+        file_path.write_text(
+            """---
 id: 42
 title: Test
 discovered_by: test
@@ -603,7 +606,8 @@ updated_at: 2026-01-01T14:00:00+00:00
 ---
 
 # Test
-""")
+"""
+        )
         # Set file mtime to before SQL update
         file_path.touch()
         import os
@@ -629,7 +633,8 @@ updated_at: 2026-01-01T14:00:00+00:00
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
-        file_path.write_text("""---
+        file_path.write_text(
+            """---
 id: 42
 title: Test
 discovered_by: test
@@ -643,7 +648,8 @@ importance: 3
 ---
 
 # Test
-""")
+"""
+        )
 
         # Mock conflict
         conflict = {
@@ -699,7 +705,8 @@ importance: 3
         )
 
         file_path = mock_obsidian_vault / "Projects" / "test.md"
-        file_path.write_text("""---
+        file_path.write_text(
+            """---
 id: 42
 title: Test
 discovered_by: test
@@ -713,7 +720,8 @@ importance: 5
 ---
 
 # Test
-""")
+"""
+        )
 
         conflict = {
             "type": "both_modified",

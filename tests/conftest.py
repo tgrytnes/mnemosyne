@@ -70,7 +70,8 @@ def temp_vault(tmp_path: Path) -> Generator[Path, None, None]:
     vault.mkdir()
 
     # Create sample notes
-    (vault / "note1.md").write_text("""---
+    (vault / "note1.md").write_text(
+        """---
 tags: [test, sample]
 ---
 # Test Note 1
@@ -79,21 +80,26 @@ This is a test note with [[note2]] link and #tag.
 
 ## Section
 Some content here.
-""")
+"""
+    )
 
-    (vault / "note2.md").write_text("""# Test Note 2
+    (vault / "note2.md").write_text(
+        """# Test Note 2
 
 This note is linked from [[note1]].
 
 It contains different content for testing chunking.
-""")
+"""
+    )
 
     # Create nested structure
     (vault / "subfolder").mkdir()
-    (vault / "subfolder" / "nested_note.md").write_text("""# Nested Note
+    (vault / "subfolder" / "nested_note.md").write_text(
+        """# Nested Note
 
 This tests directory structure handling.
-""")
+"""
+    )
 
     yield vault
 
@@ -120,7 +126,8 @@ def fake_vault_path() -> Path:
 def sample_markdown_file(tmp_path: Path) -> Path:
     """Create a sample markdown file for testing"""
     file_path = tmp_path / "sample.md"
-    file_path.write_text("""---
+    file_path.write_text(
+        """---
 title: Sample Document
 tags: [project, deadline]
 created: 2024-01-01
@@ -141,7 +148,8 @@ This is a sample document for testing.
 - Week 3: Testing
 
 This document has multiple sections for chunking tests.
-""")
+"""
+    )
     return file_path
 
 
@@ -302,7 +310,8 @@ def ananke_test_db(postgres_connection):
 
     # Create projects table
     # Schema includes migration 016 enhancements (importance, urgency, work_estimate, obsidian sync)
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS projects (
             id SERIAL PRIMARY KEY,
             title TEXT NOT NULL,
@@ -325,14 +334,16 @@ def ananke_test_db(postgres_connection):
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
-    """)
+    """
+    )
     cursor.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_discovery_id ON projects(discovery_id)"
     )
 
     # Create gatekeeper audit table
     # Schema includes migration 014 enhancements (action_type, updates_json, user_initiated)
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS gatekeeper_audit (
             id SERIAL PRIMARY KEY,
             approval_id TEXT NOT NULL,
@@ -345,15 +356,18 @@ def ananke_test_db(postgres_connection):
             updates_json TEXT,
             user_initiated BOOLEAN DEFAULT FALSE
         )
-    """)
+    """
+    )
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS gatekeeper_rollback_tokens (
             project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
             token TEXT NOT NULL,
             requested_at TIMESTAMP NOT NULL
         )
-    """)
+    """
+    )
 
     postgres_connection.commit()
 

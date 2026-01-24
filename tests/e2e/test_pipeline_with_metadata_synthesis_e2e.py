@@ -465,7 +465,8 @@ Proper resting periods between folds allow gluten to relax for easier rolling an
 
             # TOPIC 1: Python Programming (highly coherent)
             for i in range(3):
-                (vault_path / f"python_{i}.md").write_text(f"""# Python Programming {i}
+                (vault_path / f"python_{i}.md").write_text(
+                    f"""# Python Programming {i}
 
 ## Functions and Classes
 Python functions use def keyword.
@@ -481,11 +482,13 @@ Sets contain unique elements.
 NumPy for numerical computing.
 Pandas for data analysis.
 Matplotlib for visualization.
-""")
+"""
+                )
 
             # TOPIC 2: Mediterranean Food (highly coherent)
             for i in range(3):
-                (vault_path / f"mediterranean_{i}.md").write_text(f"""# Mediterranean Cuisine {i}
+                (vault_path / f"mediterranean_{i}.md").write_text(
+                    f"""# Mediterranean Cuisine {i}
 
 ## Greek Dishes
 Greek salad with feta and olives.
@@ -501,7 +504,8 @@ Pan con tomate is simple and delicious.
 Hummus and falafel are chickpea-based.
 Tabbouleh salad uses parsley and bulgur.
 Shawarma wraps spiced meat.
-""")
+"""
+                )
 
             # Ingest
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
@@ -620,11 +624,13 @@ Shawarma wraps spiced meat.
             vault_path.mkdir()
 
             # Coherent content (ML topic)
-            (vault_path / "ml_coherent.md").write_text("""# Machine Learning
+            (vault_path / "ml_coherent.md").write_text(
+                """# Machine Learning
 Neural networks and deep learning.
 Supervised and unsupervised learning.
 Model training and evaluation.
-""")
+"""
+            )
 
             # Scattered random notes (will form low-quality cluster)
             (vault_path / "random_1.md").write_text("# Todo\nBuy milk. Call dentist. Fix bug.")
@@ -636,11 +642,13 @@ Model training and evaluation.
             )
 
             # Another coherent topic (cooking)
-            (vault_path / "cooking_coherent.md").write_text("""# Recipes
+            (vault_path / "cooking_coherent.md").write_text(
+                """# Recipes
 Italian pasta and pizza.
 French sauces and pastries.
 Asian stir-fry techniques.
-""")
+"""
+            )
 
             # Ingest and cluster
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))

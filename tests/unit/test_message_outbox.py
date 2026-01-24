@@ -40,7 +40,8 @@ def outbox_db(temp_db):
     conn.row_factory = sqlite3.Row
 
     # Create schema (this will be moved to migration later)
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE message_outbox (
             id INTEGER PRIMARY KEY,
             message_id TEXT NOT NULL UNIQUE,
@@ -61,7 +62,8 @@ def outbox_db(temp_db):
             telegram_message_id INTEGER,
             next_attempt_at TIMESTAMP
         )
-    """)
+    """
+    )
 
     conn.execute("CREATE INDEX idx_outbox_status ON message_outbox(status)")
     conn.execute("CREATE INDEX idx_outbox_type ON message_outbox(message_type)")

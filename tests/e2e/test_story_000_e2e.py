@@ -90,7 +90,8 @@ class TestStory000EndToEnd:
 
         # Create test document with frontmatter and wiki-links
         doc1 = vault / "test_note.md"
-        doc1.write_text("""---
+        doc1.write_text(
+            """---
 title: Test Note
 tags: [testing, obsidian]
 created: 2025-01-01
@@ -107,11 +108,13 @@ Content with a link to [[Another Note]].
 ## Section Two
 
 More content here.
-""")
+"""
+        )
 
         # Create document with HTML and emoji markers
         doc2 = vault / "advanced_note.md"
-        doc2.write_text("""# Advanced Note
+        doc2.write_text(
+            """# Advanced Note
 
 Some content with <strong>HTML tags</strong> that should be removed.
 
@@ -124,13 +127,17 @@ HTML block content
 </div>
 
 Regular content continues here.
-""")
+"""
+        )
 
         # Create simple document for chunking test
         doc3 = vault / "long_note.md"
-        doc3.write_text("""# Long Document
+        doc3.write_text(
+            """# Long Document
 
-""" + "This is a long document with repeated content. " * 50)
+"""
+            + "This is a long document with repeated content. " * 50
+        )
 
         return vault
 

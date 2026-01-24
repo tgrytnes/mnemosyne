@@ -67,7 +67,8 @@ class TestObsidianIngestionIntegration:
         vault_path.mkdir()
 
         # Create test markdown files
-        (vault_path / "note1.md").write_text("""---
+        (vault_path / "note1.md").write_text(
+            """---
 title: Python Testing
 tags: [python, testing]
 ---
@@ -84,9 +85,11 @@ Key points:
 - Write tests first (TDD)
 - Use real services in integration tests
 - Aim for high coverage
-""")
+"""
+        )
 
-        (vault_path / "note2.md").write_text("""
+        (vault_path / "note2.md").write_text(
+            """
 # Machine Learning Basics
 
 Machine learning is a subset of artificial intelligence.
@@ -97,10 +100,12 @@ Common algorithms:
 3. Neural networks
 
 📌 Important: Always validate your models!
-""")
+"""
+        )
 
         (vault_path / "subdir").mkdir()
-        (vault_path / "subdir" / "note3.md").write_text("""
+        (vault_path / "subdir" / "note3.md").write_text(
+            """
 # Docker Containers
 
 Docker enables consistent development environments.
@@ -109,7 +114,8 @@ Commands:
 - docker build
 - docker run
 - docker compose
-""")
+"""
+        )
 
         return str(vault_path)
 

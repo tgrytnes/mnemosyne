@@ -46,7 +46,8 @@ class ProposalQueue:
 
     def _ensure_table(self) -> None:
         with self._conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS proposal_queue (
                     id SERIAL PRIMARY KEY,
                     proposal_id TEXT NOT NULL UNIQUE,
@@ -61,7 +62,8 @@ class ProposalQueue:
                     created_at TIMESTAMPTZ NOT NULL,
                     updated_at TIMESTAMPTZ
                 )
-                """)
+                """
+            )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_proposal_status ON proposal_queue(status)"
             )
@@ -158,7 +160,8 @@ class MonitorStateStore:
 
     def _ensure_table(self) -> None:
         with self._conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS monitor_state (
                     discovery_id TEXT PRIMARY KEY,
                     asked_at TIMESTAMPTZ,
@@ -168,7 +171,8 @@ class MonitorStateStore:
                     snoozed_until TIMESTAMPTZ,
                     archived_at TIMESTAMPTZ
                 )
-                """)
+                """
+            )
         self._conn.commit()
 
     def get_state(self, discovery_id: str) -> dict[str, Any] | None:
@@ -277,7 +281,8 @@ class PostgresProjectRepository:
 
     def _ensure_table(self) -> None:
         with self._conn.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS projects (
                     id SERIAL PRIMARY KEY,
                     title TEXT NOT NULL,
@@ -300,11 +305,14 @@ class PostgresProjectRepository:
                     created_at TIMESTAMP DEFAULT NOW(),
                     updated_at TIMESTAMP DEFAULT NOW()
                 )
-                """)
-            cursor.execute("""
+                """
+            )
+            cursor.execute(
+                """
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_discovery_id
                 ON projects(discovery_id)
-                """)
+                """
+            )
         self._conn.commit()
 
     def exists_by_discovery_id(self, discovery_id: str) -> bool:

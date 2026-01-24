@@ -26,14 +26,16 @@ def test_ingestor_ingests_single_file(weaviate_client, test_config, tmp_path):
     vault.mkdir()
 
     file_path = vault / "note.md"
-    file_path.write_text("""---
+    file_path.write_text(
+        """---
 title: Test Note
 ---
 
 # Test Note
 
 This note references [[alpha_notes]] and includes ![[image.png]].
-""")
+"""
+    )
 
     # Use provider system
     provider_config = ProviderConfig(
