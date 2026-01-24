@@ -72,6 +72,8 @@ class IngestionConfig:
         self.semantic_temperature = float(os.getenv("SEMANTIC_LLM_TEMP", "0.2"))
         self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
         self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))
+        self.semantic_json_max_chars = int(os.getenv("SEMANTIC_JSON_MAX_CHARS", "12000"))
+        self.semantic_json_max_tokens = int(os.getenv("SEMANTIC_JSON_MAX_TOKENS", "512"))
         self.section_semantic_min_length = int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000"))
         self.semantic_cosine_threshold = float(os.getenv("SEMANTIC_COSINE_THRESHOLD", "0.78"))
         self.semantic_cosine_min_chunk_size = int(
@@ -189,6 +191,8 @@ def create_ingestor(
         semantic_temperature=config.semantic_temperature,
         semantic_request_timeout=config.semantic_request_timeout,
         semantic_total_timeout=config.semantic_total_timeout,
+        semantic_json_max_chars=config.semantic_json_max_chars,
+        semantic_json_max_tokens=config.semantic_json_max_tokens,
         section_semantic_min_length=config.section_semantic_min_length,
         semantic_cosine_threshold=config.semantic_cosine_threshold,
         semantic_cosine_min_chunk_size=config.semantic_cosine_min_chunk_size,

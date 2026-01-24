@@ -45,6 +45,8 @@ class EmailIngestConfig:
     semantic_temperature: float = 0.2
     semantic_request_timeout: float = 5.0
     semantic_total_timeout: float = 30.0
+    semantic_json_max_chars: int = 12000
+    semantic_json_max_tokens: int = 512
     section_semantic_min_length: int = 1000
     semantic_cosine_threshold: float = 0.78
     semantic_cosine_min_chunk_size: int = 100
@@ -77,6 +79,8 @@ class EmailIngestConfig:
             semantic_temperature=float(os.getenv("SEMANTIC_TEMPERATURE", "0.2")),
             semantic_request_timeout=float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0")),
             semantic_total_timeout=float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0")),
+            semantic_json_max_chars=int(os.getenv("SEMANTIC_JSON_MAX_CHARS", "12000")),
+            semantic_json_max_tokens=int(os.getenv("SEMANTIC_JSON_MAX_TOKENS", "512")),
             section_semantic_min_length=int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000")),
             semantic_cosine_threshold=float(os.getenv("SEMANTIC_COSINE_THRESHOLD", "0.78")),
             semantic_cosine_min_chunk_size=int(os.getenv("SEMANTIC_COSINE_MIN_CHUNK_SIZE", "100")),
@@ -139,6 +143,8 @@ class EmailIngestor:
             semantic_temperature=self.config.semantic_temperature,
             semantic_request_timeout=self.config.semantic_request_timeout,
             semantic_total_timeout=self.config.semantic_total_timeout,
+            semantic_json_max_chars=self.config.semantic_json_max_chars,
+            semantic_json_max_tokens=self.config.semantic_json_max_tokens,
             section_semantic_min_length=self.config.section_semantic_min_length,
             semantic_cosine_threshold=getattr(self.config, "semantic_cosine_threshold", 0.78),
             semantic_cosine_min_chunk_size=getattr(

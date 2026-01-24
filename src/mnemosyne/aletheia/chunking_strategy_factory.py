@@ -24,6 +24,8 @@ class ChunkingStrategyConfig:
     semantic_temperature: float = 0.2
     semantic_request_timeout: float = 5.0
     semantic_total_timeout: float = 30.0
+    semantic_json_max_chars: int = 12000
+    semantic_json_max_tokens: int = 512
     section_semantic_min_length: int = 1000
     semantic_cosine_threshold: float = 0.78
     semantic_cosine_min_chunk_size: int = 100
@@ -67,6 +69,8 @@ class ChunkingStrategyFactory:
             temperature=config.semantic_temperature,
             request_timeout=config.semantic_request_timeout,
             total_timeout=config.semantic_total_timeout,
+            json_max_chars=config.semantic_json_max_chars,
+            json_max_tokens=config.semantic_json_max_tokens,
         )
 
         if strategy == "semantic":
