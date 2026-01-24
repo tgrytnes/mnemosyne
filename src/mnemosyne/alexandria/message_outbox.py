@@ -175,8 +175,7 @@ class MessageOutbox:
         """Create message_outbox table and indexes if they don't exist."""
         cursor = self.db.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS message_outbox (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 message_id TEXT NOT NULL UNIQUE,
@@ -204,8 +203,7 @@ class MessageOutbox:
                 )),
                 CHECK (attempts >= 0)
             )
-        """
-        )
+        """)
 
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_message_outbox_message_id ON message_outbox(message_id)"
@@ -213,29 +211,23 @@ class MessageOutbox:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_message_outbox_status ON message_outbox(status)"
         )
-        cursor.execute(
-            """CREATE INDEX IF NOT EXISTS idx_message_outbox_agent
-            ON message_outbox(originating_agent)"""
-        )
+        cursor.execute("""CREATE INDEX IF NOT EXISTS idx_message_outbox_agent
+            ON message_outbox(originating_agent)""")
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_message_outbox_context ON message_outbox(context_id)"
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_message_outbox_created ON message_outbox(created_at)"
         )
-        cursor.execute(
-            """CREATE INDEX IF NOT EXISTS idx_message_outbox_response_routing
-            ON message_outbox(context_id, expects_response, status)"""
-        )
+        cursor.execute("""CREATE INDEX IF NOT EXISTS idx_message_outbox_response_routing
+            ON message_outbox(context_id, expects_response, status)""")
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_message_outbox_chat ON message_outbox(chat_id)"
         )
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_message_outbox_next_attempt
             ON message_outbox(next_attempt_at)
-            """
-        )
+            """)
 
         self._ensure_column("chat_id", "TEXT")
         self._ensure_column("telegram_message_id", "INTEGER")

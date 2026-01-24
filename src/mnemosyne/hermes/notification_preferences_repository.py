@@ -14,8 +14,7 @@ class NotificationPreferencesRepository:
 
     def ensure_table(self) -> None:
         cursor = self.connection.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS notification_preferences (
                 user_id TEXT PRIMARY KEY,
                 enabled BOOLEAN NOT NULL,
@@ -35,8 +34,7 @@ class NotificationPreferencesRepository:
                 digest_time INTEGER NOT NULL,
                 updated_at TIMESTAMP DEFAULT NOW()
             )
-            """
-        )
+            """)
         self.connection.commit()
 
     def save(self, preferences: NotificationPreferences) -> None:

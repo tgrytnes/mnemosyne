@@ -71,16 +71,14 @@ class ProjectManagerAgent:
 
         with self.db_conn.cursor() as cursor:
             # Get all projects that need enrichment
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT
                     id, title, status, importance, urgency, deadline,
                     work_estimate, created_at
                 FROM projects
                 WHERE status IN ('candidate', 'active')
                 ORDER BY created_at DESC
-            """
-            )
+            """)
             projects = cursor.fetchall()
 
         for row in projects:
@@ -720,15 +718,13 @@ Just a heads up! 👍"""
 
         with self.db_conn.cursor() as cursor:
             # Get projects with deadlines and work estimates
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT id, work_estimate, deadline, importance, urgency
                 FROM projects
                 WHERE deadline IS NOT NULL
                 AND work_estimate IS NOT NULL
                 AND status = 'active'
-            """
-            )
+            """)
             projects = cursor.fetchall()
 
         for row in projects:

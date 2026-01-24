@@ -28,8 +28,7 @@ class ClusterSyncStateRepository:
 
     def ensure_table(self) -> None:
         cursor = self.connection.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS cluster_sync_state (
                 cluster_id TEXT PRIMARY KEY,
                 last_sync_timestamp TIMESTAMP NOT NULL,
@@ -39,8 +38,7 @@ class ClusterSyncStateRepository:
                 last_error TEXT,
                 next_sync_scheduled TIMESTAMP
             )
-        """
-        )
+        """)
         self.connection.commit()
 
     def upsert(self, state: ClusterSyncState) -> None:
@@ -109,8 +107,7 @@ class ClusterSyncStateRepository:
 
     def list_all(self) -> list[ClusterSyncState]:
         cursor = self.connection.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
                 cluster_id,
                 last_sync_timestamp,
@@ -121,8 +118,7 @@ class ClusterSyncStateRepository:
                 next_sync_scheduled
             FROM cluster_sync_state
             ORDER BY cluster_id
-        """
-        )
+        """)
         rows = cursor.fetchall()
         return [
             ClusterSyncState(

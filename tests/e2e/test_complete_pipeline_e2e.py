@@ -351,8 +351,7 @@ Behavioral economics examines psychological factors in economic decisions.
             vault_path.mkdir()
 
             # Create a highly structured document
-            (vault_path / "structured_doc.md").write_text(
-                """# Main Title
+            (vault_path / "structured_doc.md").write_text("""# Main Title
 
 ## Section 1: Introduction
 This is the introduction section with some context.
@@ -377,8 +376,7 @@ Quality metrics exceeded expectations.
 ## Section 4: Conclusion
 This work demonstrates effective methods.
 Future work will expand the scope.
-"""
-            )
+""")
 
             results = {}
 
@@ -493,8 +491,7 @@ Future work will expand the scope.
 
             # Initial content (expanded to generate 2+ chunks for clustering)
             test_file = vault_path / "test_note.md"
-            test_file.write_text(
-                """# Machine Learning Fundamentals
+            test_file.write_text("""# Machine Learning Fundamentals
 
 ## Neural Network Basics
 Neural networks are powerful computational tools inspired by biological neurons.
@@ -513,8 +510,7 @@ Early stopping monitors validation performance to avoid overtraining.
 Convolutional neural networks excel at image processing tasks.
 Recurrent networks handle sequential data like time series.
 Transformers revolutionized natural language processing with attention mechanisms.
-"""
-            )
+""")
 
             # STAGE 1: Initial ingestion
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
@@ -547,8 +543,7 @@ Transformers revolutionized natural language processing with attention mechanism
 
             # STAGE 3: Modify file (major change - ensure multiple chunks)
             time.sleep(1)  # Ensure different mtime
-            test_file.write_text(
-                """# Italian Cooking Guide
+            test_file.write_text("""# Italian Cooking Guide
 
 ## Pasta Techniques
 Making fresh pasta requires practice and patience.
@@ -566,8 +561,7 @@ Timing is critical to avoid scrambled eggs.
 High-protein flour creates better gluten structure for pizza.
 Cold fermentation develops flavor over 24-48 hours.
 Stretch the dough gently to preserve air bubbles.
-"""
-            )
+""")
 
             # STAGE 4: Re-ingest (incremental)
             stats_v2 = ingestor.ingest_vault()
@@ -634,8 +628,7 @@ Stretch the dough gently to preserve air bubbles.
             vault_path.mkdir()
 
             # Create diverse content for quality analysis
-            (vault_path / "technical.md").write_text(
-                """# Technical Documentation
+            (vault_path / "technical.md").write_text("""# Technical Documentation
 
 ## System Architecture
 The system uses microservices architecture.
@@ -648,11 +641,9 @@ Weaviate provides vector search.
 ## API Endpoints
 REST API follows OpenAPI specification.
 GraphQL alternative for complex queries.
-"""
-            )
+""")
 
-            (vault_path / "creative.md").write_text(
-                """# Creative Writing
+            (vault_path / "creative.md").write_text("""# Creative Writing
 
 ## Short Story
 The moon hung low over the city.
@@ -662,8 +653,7 @@ Sarah walked through empty streets.
 Whispers in the wind,
 Shadows dance at night,
 Stars guide the way.
-"""
-            )
+""")
 
             # Ingest
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
@@ -755,8 +745,7 @@ Stars guide the way.
             vault_path = Path(tmp_dir) / "vault"
             vault_path.mkdir()
 
-            (vault_path / "knowledge_base.md").write_text(
-                """# Knowledge Management
+            (vault_path / "knowledge_base.md").write_text("""# Knowledge Management
 
 ## Personal Notes
 My daily journal and thoughts.
@@ -777,8 +766,7 @@ GraphQL schema for complex queries.
 ## Project Ideas
 Brainstorming future projects.
 Innovation and experimentation.
-"""
-            )
+""")
 
             # Ingest
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))
@@ -860,8 +848,7 @@ Innovation and experimentation.
             vault_path.mkdir()
 
             # Create 3 topically distinct documents (expanded for better semantic separation)
-            (vault_path / "ml_doc1.md").write_text(
-                """# Machine Learning Fundamentals
+            (vault_path / "ml_doc1.md").write_text("""# Machine Learning Fundamentals
 
 ## Neural Network Architecture
 Neural networks use backpropagation algorithms to learn from data.
@@ -874,11 +861,9 @@ Supervised learning requires labeled datasets for model training.
 Cross-validation techniques assess model generalization performance.
 Regularization methods prevent overfitting to training data.
 Learning rate schedules improve convergence during gradient descent.
-"""
-            )
+""")
 
-            (vault_path / "ml_doc2.md").write_text(
-                """# Deep Learning Applications
+            (vault_path / "ml_doc2.md").write_text("""# Deep Learning Applications
 
 ## Computer Vision
 Convolutional neural networks process images through learned filters.
@@ -891,11 +876,9 @@ Recurrent neural networks handle sequential text data effectively.
 Transformers revolutionized NLP with attention mechanisms and parallelization.
 BERT and GPT models demonstrate the power of large-scale pre-training.
 Word embeddings capture semantic relationships between terms.
-"""
-            )
+""")
 
-            (vault_path / "cooking_doc1.md").write_text(
-                """# Italian Cuisine Masterclass
+            (vault_path / "cooking_doc1.md").write_text("""# Italian Cuisine Masterclass
 
 ## Pasta Making
 Traditional pasta carbonara uses eggs, guanciale, and pecorino romano.
@@ -908,11 +891,9 @@ Pizza margherita showcases the perfect balance of dough, sauce, and cheese.
 Neapolitan pizza requires high-temperature wood-fired ovens.
 Risotto demands patience, constant stirring, and gradual broth addition.
 Arborio rice releases starch for creamy risotto consistency.
-"""
-            )
+""")
 
-            (vault_path / "cooking_doc2.md").write_text(
-                """# Artisan Baking Techniques
+            (vault_path / "cooking_doc2.md").write_text("""# Artisan Baking Techniques
 
 ## Bread Fundamentals
 Bread dough development requires proper kneading and gluten formation.
@@ -925,11 +906,9 @@ Sourdough starter cultivation creates natural leavening cultures.
 Baking temperature and steam affect crust formation and color.
 Whole grain flours add nutritional value and rustic character.
 Cold fermentation enhances bread flavor through extended rising times.
-"""
-            )
+""")
 
-            (vault_path / "history_doc.md").write_text(
-                """# Ancient Roman Civilization
+            (vault_path / "history_doc.md").write_text("""# Ancient Roman Civilization
 
 ## Imperial Expansion
 The Roman Empire spanned three continents at its height.
@@ -942,8 +921,7 @@ Latin language influenced modern Romance languages profoundly.
 Roman law established legal principles still used today.
 Ancient architecture inspired neoclassical design movements.
 Roman engineering achievements include aqueducts and road networks.
-"""
-            )
+""")
 
             # Ingest
             state_tracker = IngestionStateTracker(str(vault_path / "state.db"))

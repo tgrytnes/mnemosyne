@@ -31,8 +31,7 @@ class PMIntentQueue:
 
     def _ensure_schema(self) -> None:
         with self._db.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS pm_intent_queue (
                     id SERIAL PRIMARY KEY,
                     message_id TEXT NOT NULL UNIQUE,
@@ -45,8 +44,7 @@ class PMIntentQueue:
                     created_at TIMESTAMP DEFAULT NOW(),
                     handled_at TIMESTAMP
                 )
-                """
-            )
+                """)
             cur.execute(
                 "CREATE INDEX IF NOT EXISTS idx_pm_intent_status ON pm_intent_queue(status)"
             )
