@@ -17,8 +17,7 @@ class ClusterProfileRepository:
 
     def ensure_table(self) -> None:
         cursor = self.connection.cursor()
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS cluster_profiles (
                 id SERIAL PRIMARY KEY,
                 cluster_id TEXT NOT NULL,
@@ -32,8 +31,7 @@ class ClusterProfileRepository:
                 created_at TIMESTAMP,
                 metadata JSONB
             )
-        """
-        )
+        """)
         cursor.execute(
             "ALTER TABLE cluster_profiles ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'muses'"
         )
@@ -43,12 +41,10 @@ class ClusterProfileRepository:
             "ALTER TABLE cluster_profiles DROP CONSTRAINT IF EXISTS cluster_profiles_cluster_id_key"
         )
         cursor.execute("DROP INDEX IF EXISTS idx_cluster_profiles_cluster_id")
-        cursor.execute(
-            """
+        cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_cluster_profiles_cluster_id_source
             ON cluster_profiles(cluster_id, source)
-            """
-        )
+            """)
         self.connection.commit()
 
     def save(self, profile: ClusterProfile, source: str | None = None) -> None:

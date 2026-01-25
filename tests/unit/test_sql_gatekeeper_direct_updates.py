@@ -136,8 +136,7 @@ def gatekeeper_db(temp_db):
     conn.row_factory = sqlite3.Row
 
     # Create projects table (simplified from The Ananke schema)
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE projects (
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
@@ -156,12 +155,10 @@ def gatekeeper_db(temp_db):
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """
-    )
+    """)
 
     # Create enhanced gatekeeper_audit table
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gatekeeper_audit (
             id INTEGER PRIMARY KEY,
             approval_id TEXT,
@@ -173,8 +170,7 @@ def gatekeeper_db(temp_db):
             decided_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             decided_by TEXT DEFAULT 'telegram_user'
         )
-    """
-    )
+    """)
 
     conn.execute("CREATE INDEX idx_gatekeeper_audit_approval ON gatekeeper_audit(approval_id)")
     conn.execute("CREATE INDEX idx_gatekeeper_audit_project ON gatekeeper_audit(project_id)")

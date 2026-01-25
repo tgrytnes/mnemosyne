@@ -50,8 +50,7 @@ class QueryCacheStore:
         self._ensure_table()
 
     def _ensure_table(self) -> None:
-        self._conn.execute(
-            """
+        self._conn.execute("""
             CREATE TABLE IF NOT EXISTS query_cache (
                 id INTEGER PRIMARY KEY,
                 query_text TEXT NOT NULL,
@@ -63,8 +62,7 @@ class QueryCacheStore:
                 last_accessed TIMESTAMP,
                 access_count INTEGER DEFAULT 0
             )
-        """
-        )
+        """)
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_query_hash ON query_cache(query_hash)")
         self._conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_last_accessed ON query_cache(last_accessed)"

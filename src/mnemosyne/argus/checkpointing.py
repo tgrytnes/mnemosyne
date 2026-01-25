@@ -47,8 +47,7 @@ class CheckpointStore:
         self._ensure_table()
 
     def _ensure_table(self) -> None:
-        self._conn.execute(
-            f"""
+        self._conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {self.table_name} (
                 checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 query_id TEXT NOT NULL,
@@ -56,8 +55,7 @@ class CheckpointStore:
                 state_json TEXT NOT NULL,
                 updated_at TIMESTAMP NOT NULL
             )
-        """
-        )
+        """)
         self._conn.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{self.table_name}_query_id "
             f"ON {self.table_name} (query_id)"
@@ -93,8 +91,7 @@ class CheckpointStore:
         return ResearchState.model_validate(data)
 
     def list_checkpoints(self) -> list[CheckpointInfo]:
-        rows = self._conn.execute(
-            f"""
+        rows = self._conn.execute(f"""
             SELECT query_id, current_node, updated_at
             FROM (
                 SELECT query_id, current_node, updated_at,
@@ -106,8 +103,7 @@ class CheckpointStore:
             )
             WHERE rn = 1
             ORDER BY updated_at DESC
-        """
-        ).fetchall()
+        """).fetchall()
         return [
             CheckpointInfo(
                 query_id=row["query_id"],

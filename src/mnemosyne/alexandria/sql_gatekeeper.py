@@ -377,14 +377,11 @@ class SQLProjectGatekeeper:
 
     def _ensure_schema(self) -> None:
         with self._db.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_discovery_id
                 ON projects(discovery_id)
-                """
-            )
-            cur.execute(
-                """
+                """)
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS gatekeeper_audit (
                     id SERIAL PRIMARY KEY,
                     approval_id TEXT,
@@ -397,21 +394,16 @@ class SQLProjectGatekeeper:
                     decided_by TEXT DEFAULT 'gatekeeper',
                     reason TEXT
                 )
-                """
-            )
-            cur.execute(
-                """
+                """)
+            cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_gatekeeper_audit_action
                 ON gatekeeper_audit(action_type)
-                """
-            )
-            cur.execute(
-                """
+                """)
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS gatekeeper_rollback_tokens (
                     project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
                     token TEXT NOT NULL,
                     requested_at TIMESTAMP NOT NULL
                 )
-                """
-            )
+                """)
         self._db.commit()
