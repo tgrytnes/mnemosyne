@@ -49,11 +49,11 @@ class SemanticChunker:
         self.request_timeout = request_timeout
         self.total_timeout = total_timeout
         self.json_max_chars = json_max_chars if json_max_chars and json_max_chars > 0 else None
-        self.json_max_tokens = (
-            json_max_tokens if json_max_tokens and json_max_tokens > 0 else None
-        )
+        self.json_max_tokens = json_max_tokens if json_max_tokens and json_max_tokens > 0 else None
         self.json_max_prompt_tokens = (
-            json_max_prompt_tokens if json_max_prompt_tokens and json_max_prompt_tokens > 0 else None
+            json_max_prompt_tokens
+            if json_max_prompt_tokens and json_max_prompt_tokens > 0
+            else None
         )
         self._last_json_skip_reason: str | None = None
 
@@ -117,7 +117,6 @@ class SemanticChunker:
         # fall back to deterministic chunking instead.
         return self._boundaries_from_fallback(text, source_file)
 
-
     def _request_boundary_json(self, text: str) -> list[int] | None:
         self._last_json_skip_reason = None
         blocks = self._build_blocks(text)
@@ -152,9 +151,7 @@ class SemanticChunker:
             group_end = int(group_blocks[-1]["end"])
             group_text = text[group_start:group_end]
             local_blocks = self._normalize_blocks(group_blocks, group_start)
-            group_boundaries = self._request_boundary_json_single(
-                group_text, local_blocks
-            )
+            group_boundaries = self._request_boundary_json_single(group_text, local_blocks)
             if group_boundaries is None:
                 return None
             if group_start > 0:
@@ -258,9 +255,7 @@ class SemanticChunker:
                 preview = f"{compact[:max_preview_chars].rstrip()}..."
             else:
                 preview = compact
-            lines.append(
-                f"[{idx}] ({block['type']}, {len(str(block['text']))} chars) {preview}"
-            )
+            lines.append(f"[{idx}] ({block['type']}, {len(str(block['text']))} chars) {preview}")
         return "\n".join(lines)
 
     def _build_prompt(self, block_list: str, block_count: int, text_len: int) -> str:
@@ -268,15 +263,17 @@ class SemanticChunker:
         max_boundaries = max(0, min(block_count - 1, target_chunks - 1))
         return (
             "You are splitting a document into coherent chunks using the numbered blocks below.\n"
-            "Return JSON only in the form {\"boundaries\": [block_index, ...]}.\n"
+            'Return JSON only in the form {"boundaries": [block_index, ...]}.\n'
             "Each block_index is the index of a block where a new chunk should start.\n"
             "Rules:\n"
             f"- Block indices must be integers in the range 1..{block_count - 1}.\n"
             "- Indices must be sorted and unique.\n"
             f"- Use at most {max_boundaries} boundaries.\n"
             f"- Aim for about {target_chunks} chunks overall.\n"
-            f"- Keep chunk sizes between {self.min_chunk_size} and {self.max_chunk_size} characters when possible.\n"
-            "- Prefer boundaries at topic shifts or section changes; avoid splitting inside tables or code blocks.\n\n"
+            f"- Keep chunk sizes between {self.min_chunk_size} and "
+            f"{self.max_chunk_size} characters when possible.\n"
+            "- Prefer boundaries at topic shifts or section changes; avoid splitting inside "
+            "tables or code blocks.\n\n"
             "Blocks:\n"
             f"{block_list}\n"
         )
@@ -304,9 +301,7 @@ class SemanticChunker:
         return groups
 
     @staticmethod
-    def _normalize_blocks(
-        blocks: list[dict[str, object]], offset: int
-    ) -> list[dict[str, object]]:
+    def _normalize_blocks(blocks: list[dict[str, object]], offset: int) -> list[dict[str, object]]:
         normalized: list[dict[str, object]] = []
         for block in blocks:
             normalized.append(
