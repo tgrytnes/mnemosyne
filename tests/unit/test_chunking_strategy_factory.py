@@ -10,7 +10,9 @@ from mnemosyne.aletheia.chunking_strategy_factory import (
 )
 from mnemosyne.aletheia.hybrid_chunker import HybridChunker
 from mnemosyne.aletheia.semantic_chunker import SemanticChunker
+from mnemosyne.aletheia.semantic_consensus_chunker import SemanticConsensusChunker
 from mnemosyne.aletheia.semantic_cosine_chunker import SemanticCosineChunker
+from mnemosyne.aletheia.semantic_cosine_merge_chunker import SemanticCosineMergeChunker
 from mnemosyne.aletheia.text_chunker import TextChunker
 
 
@@ -64,6 +66,30 @@ class TestChunkingStrategyFactory:
         chunker = factory.create(config)
 
         assert isinstance(chunker, SemanticCosineChunker)
+
+    def test_creates_semantic_merge_strategy(self, mocker):
+        factory = ChunkingStrategyFactory(
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
+        )
+        config = ChunkingStrategyConfig(strategy="semantic_merge")
+
+        chunker = factory.create(config)
+
+        assert isinstance(chunker, SemanticCosineMergeChunker)
+
+    def test_creates_semantic_consensus_strategy(self, mocker):
+        factory = ChunkingStrategyFactory(
+            llm_provider=mocker.MagicMock(),
+            state_tracker=mocker.MagicMock(),
+            embedding_provider=mocker.MagicMock(),
+        )
+        config = ChunkingStrategyConfig(strategy="semantic_consensus")
+
+        chunker = factory.create(config)
+
+        assert isinstance(chunker, SemanticConsensusChunker)
 
     def test_invalid_strategy_raises(self, mocker):
         factory = ChunkingStrategyFactory(

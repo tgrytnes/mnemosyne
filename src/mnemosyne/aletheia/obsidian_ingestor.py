@@ -48,7 +48,7 @@ class ObsidianIngestor:
         state_tracker: IngestionStateTracker | None = None,
         chunk_size: int = 400,
         chunk_overlap: int = 100,
-        chunking_strategy: str = "recursive",
+        chunking_strategy: str = "semantic_consensus",
         chunking_augmentation: str = "none",
         semantic_min_chunk_size: int = 100,
         semantic_max_chunk_size: int = 1000,
@@ -56,11 +56,17 @@ class ObsidianIngestor:
         semantic_temperature: float = 0.2,
         semantic_request_timeout: float = 5.0,
         semantic_total_timeout: float = 30.0,
+        semantic_json_max_chars: int = 12000,
+        semantic_json_max_tokens: int = 512,
+        semantic_json_max_prompt_tokens: int = 16000,
         section_semantic_min_length: int = 1000,
         semantic_cosine_threshold: float = 0.78,
+        semantic_merge_similarity_threshold: float = 0.85,
+        semantic_consensus_tolerance: int = 20,
         semantic_cosine_min_chunk_size: int = 100,
         semantic_cosine_max_chunk_size: int = 1000,
         semantic_cosine_embedding_model: str = "",
+        semantic_merge_max_embed_chars: int = 2000,
         contextual_llm_provider: LLMProvider | None = None,
         contextual_llm_model: str = "",
         contextual_max_doc_chars: int = 4000,
@@ -109,7 +115,7 @@ class ObsidianIngestor:
             state_tracker=self.state_tracker,
             embedding_provider=embedding_provider,
         )
-        semantic_model = semantic_model or os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
+        semantic_model = semantic_model or os.getenv("SEMANTIC_LLM_MODEL", "glm-4.6v-flash")
         strategy_config = ChunkingStrategyConfig(
             strategy=chunking_strategy,
             chunk_size=chunk_size,
@@ -120,11 +126,17 @@ class ObsidianIngestor:
             semantic_temperature=semantic_temperature,
             semantic_request_timeout=semantic_request_timeout,
             semantic_total_timeout=semantic_total_timeout,
+            semantic_json_max_chars=semantic_json_max_chars,
+            semantic_json_max_tokens=semantic_json_max_tokens,
+            semantic_json_max_prompt_tokens=semantic_json_max_prompt_tokens,
             section_semantic_min_length=section_semantic_min_length,
             semantic_cosine_threshold=semantic_cosine_threshold,
+            semantic_merge_similarity_threshold=semantic_merge_similarity_threshold,
+            semantic_consensus_tolerance=semantic_consensus_tolerance,
             semantic_cosine_min_chunk_size=semantic_cosine_min_chunk_size,
             semantic_cosine_max_chunk_size=semantic_cosine_max_chunk_size,
             semantic_cosine_embedding_model=semantic_cosine_embedding_model,
+            semantic_merge_max_embed_chars=semantic_merge_max_embed_chars,
         )
         self.chunker = strategy_factory.create(
             strategy_config, recursive_chunker=self.recursive_chunker

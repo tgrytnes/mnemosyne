@@ -13,7 +13,7 @@ Story 000 provides automatic ingestion of Obsidian vault content into TheMuses (
 - ✅ **Automatic Monitoring**: Watches vault for file changes (detected within 1-2 seconds)
 - ✅ **Incremental Updates**: Only re-processes modified files
 - ✅ **Markdown Cleaning**: Removes Obsidian syntax (wiki-links, frontmatter, embeds)
-- ✅ **Smart Chunking**: 400-character chunks with 100-char overlap
+- ✅ **Smart Chunking**: `semantic_consensus` (semantic + recursive consensus) by default
 - ✅ **Vector Embeddings**: Uses Ollama qwen3-embedding:0.6b (1024 dimensions)
 - ✅ **State Persistence**: Tracks ingestion state across restarts
 
@@ -63,8 +63,17 @@ export OLLAMA_BASE_URL="http://localhost:11434"
 export INGESTION_STATE_DB="ingestion_state.db"
 export CHUNK_SIZE="400"
 export CHUNK_OVERLAP="100"
+export CHUNKING_STRATEGY="semantic_consensus"
+export SEMANTIC_LLM_MODEL="glm-4.6v-flash"
 export WATCH_DEBOUNCE_SECONDS="2.0"
 ```
+
+### Model Choice (Semantic Chunking)
+
+`glm-4.6v-flash` is recommended because it matches the best boundary quality
+from larger models while using substantially fewer resources. Larger models
+(e.g., gpt-oss-20b) can slightly improve separation scores but tend to cut
+more often mid-sentence and cost more to run.
 
 ### Configuration File (Optional)
 

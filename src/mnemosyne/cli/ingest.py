@@ -64,16 +64,25 @@ class IngestionConfig:
         self.state_db_path = os.getenv("INGESTION_STATE_DB", "ingestion_state.db")
         self.chunk_size = int(os.getenv("CHUNK_SIZE", "400"))
         self.chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "100"))
-        self.chunking_strategy = os.getenv("CHUNKING_STRATEGY", "recursive")
+        self.chunking_strategy = os.getenv("CHUNKING_STRATEGY", "semantic_consensus")
         self.chunking_augmentation = os.getenv("CHUNKING_AUGMENTATION", "none")
         self.semantic_min_chunk_size = int(os.getenv("SEMANTIC_MIN_CHUNK_SIZE", "100"))
         self.semantic_max_chunk_size = int(os.getenv("SEMANTIC_MAX_CHUNK_SIZE", "1000"))
-        self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
+        self.semantic_model = os.getenv("SEMANTIC_LLM_MODEL", "glm-4.6v-flash")
         self.semantic_temperature = float(os.getenv("SEMANTIC_LLM_TEMP", "0.2"))
         self.semantic_request_timeout = float(os.getenv("SEMANTIC_REQUEST_TIMEOUT", "5.0"))
         self.semantic_total_timeout = float(os.getenv("SEMANTIC_TOTAL_TIMEOUT", "30.0"))
+        self.semantic_json_max_chars = int(os.getenv("SEMANTIC_JSON_MAX_CHARS", "12000"))
+        self.semantic_json_max_tokens = int(os.getenv("SEMANTIC_JSON_MAX_TOKENS", "512"))
+        self.semantic_json_max_prompt_tokens = int(
+            os.getenv("SEMANTIC_JSON_MAX_PROMPT_TOKENS", "16000")
+        )
         self.section_semantic_min_length = int(os.getenv("SECTION_SEMANTIC_MIN_LENGTH", "1000"))
         self.semantic_cosine_threshold = float(os.getenv("SEMANTIC_COSINE_THRESHOLD", "0.78"))
+        self.semantic_merge_similarity_threshold = float(
+            os.getenv("SEMANTIC_MERGE_SIMILARITY_THRESHOLD", "0.85")
+        )
+        self.semantic_consensus_tolerance = int(os.getenv("SEMANTIC_CONSENSUS_TOLERANCE", "20"))
         self.semantic_cosine_min_chunk_size = int(
             os.getenv("SEMANTIC_COSINE_MIN_CHUNK_SIZE", "100")
         )
@@ -81,6 +90,9 @@ class IngestionConfig:
             os.getenv("SEMANTIC_COSINE_MAX_CHUNK_SIZE", "1000")
         )
         self.semantic_cosine_embedding_model = os.getenv("SEMANTIC_COSINE_EMBEDDING_MODEL", "")
+        self.semantic_merge_max_embed_chars = int(
+            os.getenv("SEMANTIC_MERGE_MAX_EMBED_CHARS", "2000")
+        )
         self.contextual_llm_provider = os.getenv("CONTEXTUAL_LLM_PROVIDER")
         self.contextual_llm_model = os.getenv("CONTEXTUAL_LLM_MODEL", "")
         self.contextual_max_doc_chars = int(os.getenv("CONTEXTUAL_MAX_DOC_CHARS", "4000"))
@@ -189,11 +201,17 @@ def create_ingestor(
         semantic_temperature=config.semantic_temperature,
         semantic_request_timeout=config.semantic_request_timeout,
         semantic_total_timeout=config.semantic_total_timeout,
+        semantic_json_max_chars=config.semantic_json_max_chars,
+        semantic_json_max_tokens=config.semantic_json_max_tokens,
+        semantic_json_max_prompt_tokens=config.semantic_json_max_prompt_tokens,
         section_semantic_min_length=config.section_semantic_min_length,
         semantic_cosine_threshold=config.semantic_cosine_threshold,
+        semantic_merge_similarity_threshold=config.semantic_merge_similarity_threshold,
+        semantic_consensus_tolerance=config.semantic_consensus_tolerance,
         semantic_cosine_min_chunk_size=config.semantic_cosine_min_chunk_size,
         semantic_cosine_max_chunk_size=config.semantic_cosine_max_chunk_size,
         semantic_cosine_embedding_model=config.semantic_cosine_embedding_model,
+        semantic_merge_max_embed_chars=config.semantic_merge_max_embed_chars,
         contextual_llm_provider=contextual_llm_provider,
         contextual_llm_model=contextual_llm_model,
         contextual_max_doc_chars=config.contextual_max_doc_chars,
