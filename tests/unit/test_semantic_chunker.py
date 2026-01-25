@@ -124,3 +124,35 @@ class TestSemanticChunker:
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
         with pytest.raises(StrictJsonError):
             chunker.chunk("hello\n\nworld", source_file="note.md")
+            chunker.chunk("hello\n\nworld", source_file="note.md")
+
+    def test_strict_json_chunks_when_text_exceeds_max_chars(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [1]})}
+
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1, json_max_chars=10)
+        text = "Alpha\n\nBeta\n\nGamma"
+
+        chunks = chunker.chunk(text, source_file="note.md")
+
+        assert chunks
+        _, kwargs = llm_provider.generate.call_args
+        assert kwargs["format"] == "json"
+        assert "json_schema" in kwargs["options"]
+
+    def test_strict_json_includes_max_tokens_option(self, mocker, monkeypatch):
+        monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
+        monkeypatch.setenv("ALLOW_JSON_FALLBACK", "false")
+
+        llm_provider = mocker.MagicMock()
+        llm_provider.supports_structured_output.return_value = True
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": []})}
+
+        chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1, json_max_tokens=64)
+        chunker.chunk("hello\n\nworld\n\nagain", source_file="note.md")
+
+        _, kwargs = llm_provider.generate.call_args
+        assert kwargs["options"]["max_tokens"] <= 64
