@@ -63,6 +63,19 @@ class SemanticConsensusChunker:
         recursive_boundaries = self._extract_boundaries(text, recursive_chunks)
         consensus = self._consensus_boundaries(semantic_boundaries, recursive_boundaries)
 
+        heading_boundaries: list[int] = []
+        if structure is not None:
+            heading_boundaries = self._heading_boundaries(structure, fallback_structure, len(text))
+
+        if heading_boundaries:
+            if consensus:
+                combined = sorted(set(consensus).union(heading_boundaries))
+            else:
+                combined = sorted(set(semantic_boundaries).union(heading_boundaries))
+            return self._chunks_from_boundaries(
+                text, source_file, combined, structure, fallback_structure
+            )
+
         if not consensus:
             return semantic_chunks
 
@@ -95,6 +108,14 @@ class SemanticConsensusChunker:
             if any(abs(boundary - other) <= self.boundary_tolerance for other in secondary):
                 result.append(boundary)
         return sorted(set(result))
+
+    @staticmethod
+    def _heading_boundaries(structure, fallback_structure, text_len: int) -> list[int]:
+        active_structure = fallback_structure or structure
+        if active_structure is None:
+            return []
+        candidates = list(getattr(active_structure, "heading_map", {}).keys())
+        return sorted({pos for pos in candidates if 0 < pos < text_len})
 
     def _chunks_from_boundaries(
         self,
