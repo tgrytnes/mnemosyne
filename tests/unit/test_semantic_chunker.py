@@ -28,10 +28,10 @@ class TestSemanticChunker:
     def test_splits_text_at_llm_boundaries(self, mocker):
         """Should split text using boundaries returned by the LLM"""
         llm_provider = mocker.MagicMock()
-        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [1]})}
 
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
-        text = "hello world"
+        text = "hello\n\nworld"
 
         chunks = chunker.chunk(text, source_file="note.md")
 
@@ -78,20 +78,17 @@ class TestSemanticChunker:
             fallback_chunker=fallback_chunker,
             min_chunk_size=1,
         )
-        chunks = chunker.chunk("content", source_file="note.md")
+        chunks = chunker.chunk("content\n\nmore", source_file="note.md")
 
         assert len(chunks) == 1
         assert chunks[0].text == "fallback"
-        fallback_chunker.chunk.assert_called_once_with("content", "note.md")
+        fallback_chunker.chunk.assert_called_once_with("content\n\nmore", "note.md")
 
     def test_preserves_topic_boundaries(self, mocker):
         """Should split at topic change to avoid mixing topics"""
         llm_provider = mocker.MagicMock()
         text = "Topic A: Alpha details.\nTopic A: More alpha.\n\nTopic B: Beta details."
-        boundary_index = text.index("Topic B")
-        llm_provider.generate.return_value = {
-            "response": json.dumps({"boundaries": [boundary_index]})
-        }
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [1]})}
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
 
         chunks = chunker.chunk(text, source_file="note.md")
@@ -110,7 +107,7 @@ class TestSemanticChunker:
         llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [5]})}
 
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
-        chunker.chunk("hello world", source_file="note.md")
+        chunker.chunk("hello\n\nworld", source_file="note.md")
 
         _, kwargs = llm_provider.generate.call_args
         assert kwargs["format"] == "json"
@@ -126,29 +123,25 @@ class TestSemanticChunker:
 
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1)
         with pytest.raises(StrictJsonError):
-            chunker.chunk("hello world", source_file="note.md")
+            chunker.chunk("hello\n\nworld", source_file="note.md")
+            chunker.chunk("hello\n\nworld", source_file="note.md")
 
-    def test_strict_json_skips_when_text_exceeds_max_chars(self, mocker, monkeypatch):
+    def test_strict_json_chunks_when_text_exceeds_max_chars(self, mocker, monkeypatch):
         monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
 
         llm_provider = mocker.MagicMock()
         llm_provider.supports_structured_output.return_value = True
-
-        def fake_generate(*args, **kwargs):
-            assert kwargs.get("format") != "json"
-            options = kwargs.get("options") or {}
-            assert "json_schema" not in options
-            return {"response": "yes"}
-
-        llm_provider.generate.side_effect = fake_generate
+        llm_provider.generate.return_value = {"response": json.dumps({"boundaries": [1]})}
 
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1, json_max_chars=10)
-        text = "Sentence one. Sentence two."
+        text = "Alpha\n\nBeta\n\nGamma"
 
         chunks = chunker.chunk(text, source_file="note.md")
 
         assert chunks
-        assert len(chunks) == 1
+        _, kwargs = llm_provider.generate.call_args
+        assert kwargs["format"] == "json"
+        assert "json_schema" in kwargs["options"]
 
     def test_strict_json_includes_max_tokens_option(self, mocker, monkeypatch):
         monkeypatch.setenv("STRICT_JSON_STEPS", "semantic_chunking")
@@ -159,7 +152,7 @@ class TestSemanticChunker:
         llm_provider.generate.return_value = {"response": json.dumps({"boundaries": []})}
 
         chunker = SemanticChunker(llm_provider=llm_provider, min_chunk_size=1, json_max_tokens=64)
-        chunker.chunk("hello world. second sentence.", source_file="note.md")
+        chunker.chunk("hello\n\nworld\n\nagain", source_file="note.md")
 
         _, kwargs = llm_provider.generate.call_args
-        assert kwargs["options"]["max_tokens"] == 64
+        assert kwargs["options"]["max_tokens"] <= 64

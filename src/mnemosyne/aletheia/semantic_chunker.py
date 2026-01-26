@@ -5,6 +5,7 @@ Semantic chunking using LLM boundary detection.
 import hashlib
 import json
 import logging
+import math
 import os
 import re
 
@@ -21,7 +22,7 @@ class SemanticChunker:
     Split text into chunks using LLM-detected topic boundaries.
     """
 
-    BOUNDARY_VERSION = "incremental-v2"
+    BOUNDARY_VERSION = "blocks-v3"
 
     def __init__(
         self,
@@ -36,18 +37,25 @@ class SemanticChunker:
         total_timeout: float = 60.0,
         json_max_chars: int | None = 12000,
         json_max_tokens: int | None = 512,
+        json_max_prompt_tokens: int | None = 16000,
     ):
         self.llm_provider = llm_provider
         self.state_tracker = state_tracker
         self.fallback_chunker = fallback_chunker or TextChunker()
         self.min_chunk_size = min_chunk_size
         self.max_chunk_size = max_chunk_size
-        self.model = model or os.getenv("SEMANTIC_LLM_MODEL", "gemma3:1b")
+        self.model = model or os.getenv("SEMANTIC_LLM_MODEL", "glm-4.6v-flash")
         self.temperature = temperature
         self.request_timeout = request_timeout
         self.total_timeout = total_timeout
         self.json_max_chars = json_max_chars if json_max_chars and json_max_chars > 0 else None
         self.json_max_tokens = json_max_tokens if json_max_tokens and json_max_tokens > 0 else None
+        self.json_max_prompt_tokens = (
+            json_max_prompt_tokens
+            if json_max_prompt_tokens and json_max_prompt_tokens > 0
+            else None
+        )
+        self._last_json_skip_reason: str | None = None
 
     def chunk(self, text: str, source_file: str, structure=None) -> list[TextChunk]:
         """
@@ -64,7 +72,7 @@ class SemanticChunker:
 
         if boundaries is None:
             try:
-                boundaries = self._identify_boundaries(text)
+                boundaries = self._identify_boundaries(text, source_file)
                 self._cache_boundaries(cache_key, boundaries)
             except StrictJsonError as exc:
                 logger.error("Semantic chunking strict JSON failed: %s", exc)
@@ -98,67 +106,68 @@ class SemanticChunker:
             max_chunk_size=self.max_chunk_size,
         )
 
-    def _identify_boundaries(self, text: str) -> list[int]:
+    def _identify_boundaries(self, text: str, source_file: str) -> list[int]:
         boundaries = self._request_boundary_json(text)
         if boundaries is not None:
             return boundaries
+        if self._last_json_skip_reason == "too_large":
+            return self._boundaries_from_fallback(text, source_file)
 
-        sentences = self._split_sentences(text)
-        if len(sentences) <= 1:
-            return []
-
-        boundaries: list[int] = []
-        current_text = sentences[0]["text"]
-        prev_end = sentences[0]["end"]
-
-        for sentence in sentences[1:]:
-            start_index = sentence["start"]
-
-            if self._has_paragraph_break(text, prev_end, start_index):
-                boundaries.append(start_index)
-                current_text = sentence["text"]
-                prev_end = sentence["end"]
-                continue
-
-            if len(current_text) + len(sentence["text"]) > self.max_chunk_size:
-                boundaries.append(start_index)
-                current_text = sentence["text"]
-                prev_end = sentence["end"]
-                continue
-
-            prompt = (
-                "Do these belong to the same topic as the current chunk?\n"
-                "Answer only yes or no.\n\n"
-                f"Current chunk:\n{current_text[-800:]}\n\n"
-                f"Next sentence:\n{sentence['text']}\n\n"
-                "Answer:"
-            )
-
-            response = self.llm_provider.generate(
-                model=self.model,
-                prompt=prompt,
-                options={"temperature": self.temperature},
-            )
-
-            answer = response.get("response", "").strip().lower()
-            if answer.startswith("no"):
-                boundaries.append(start_index)
-                current_text = sentence["text"]
-            else:
-                current_text = f"{current_text} {sentence['text']}"
-
-            prev_end = sentence["end"]
-
-        return boundaries
+        # If JSON failed for any other reason, avoid the per-sentence LLM loop and
+        # fall back to deterministic chunking instead.
+        return self._boundaries_from_fallback(text, source_file)
 
     def _request_boundary_json(self, text: str) -> list[int] | None:
-        if self.json_max_chars and len(text) > self.json_max_chars:
-            logger.warning(
-                "Skipping JSON boundary request (text %d chars exceeds limit %d).",
-                len(text),
-                self.json_max_chars,
+        self._last_json_skip_reason = None
+        blocks = self._build_blocks(text)
+        if len(blocks) <= 1:
+            return []
+        if len(blocks) > 200 or (self.json_max_chars and len(text) > self.json_max_chars):
+            return self._request_boundary_json_chunked(text, blocks)
+
+        block_list = self._format_blocks(blocks)
+        if self.json_max_prompt_tokens:
+            prompt_tokens = self._estimate_prompt_tokens(
+                self._build_prompt(block_list, len(blocks), len(text))
             )
+            if prompt_tokens > self.json_max_prompt_tokens:
+                return self._request_boundary_json_chunked(text, blocks)
+
+        return self._request_boundary_json_single(text, blocks, block_list=block_list)
+
+    def _request_boundary_json_chunked(
+        self, text: str, blocks: list[dict[str, object]]
+    ) -> list[int] | None:
+        self._last_json_skip_reason = "too_large"
+        max_chars = self.json_max_chars or 12000
+        groups = self._group_blocks_by_size(blocks, max_chars)
+        if not groups:
             return None
+
+        boundaries: list[int] = []
+        for start_idx, end_idx in groups:
+            group_blocks = blocks[start_idx:end_idx]
+            group_start = int(group_blocks[0]["start"])
+            group_end = int(group_blocks[-1]["end"])
+            group_text = text[group_start:group_end]
+            local_blocks = self._normalize_blocks(group_blocks, group_start)
+            group_boundaries = self._request_boundary_json_single(group_text, local_blocks)
+            if group_boundaries is None:
+                return None
+            if group_start > 0:
+                boundaries.append(group_start)
+            boundaries.extend([group_start + b for b in group_boundaries])
+
+        return sorted(set(boundaries))
+
+    def _request_boundary_json_single(
+        self,
+        text: str,
+        blocks: list[dict[str, object]],
+        block_list: str | None = None,
+    ) -> list[int] | None:
+        target_chunks = self._estimate_target_chunks(len(text), len(blocks))
+        max_boundaries = max(0, min(len(blocks) - 1, target_chunks - 1))
 
         strict_config = StrictJsonConfig.from_env()
         strict = strict_config.is_strict("semantic_chunking")
@@ -173,15 +182,12 @@ class SemanticChunker:
                     "LLM provider does not support structured output for semantic_chunking."
                 )
 
-        prompt = (
-            "Return semantic chunk boundaries as JSON in the form "
-            '{"boundaries": [index, ...]}. Indices are character offsets '
-            "into the original text. Respond with JSON only.\n\n"
-            f"Text:\n{text}\n"
-        )
+        block_list = block_list or self._format_blocks(blocks)
+        prompt = self._build_prompt(block_list, len(blocks), len(text))
         options = {"temperature": self.temperature}
         if self.json_max_tokens:
-            options["max_tokens"] = self.json_max_tokens
+            estimated_tokens = max(64, max_boundaries * 12 + 32)
+            options["max_tokens"] = min(self.json_max_tokens, estimated_tokens)
         if strict and self.llm_provider.supports_structured_output():
             options["json_schema"] = self._boundary_schema()
 
@@ -205,7 +211,25 @@ class SemanticChunker:
             if strict and not strict_config.allow_fallback:
                 raise StrictJsonError("Semantic chunking JSON missing boundaries list.")
             return None
-        return [int(b) for b in boundaries if isinstance(b, (int, float))]
+        normalized: list[int] = []
+        for b in boundaries:
+            if not isinstance(b, (int, float)):
+                continue
+            idx = int(b)
+            if 0 < idx < len(blocks):
+                normalized.append(idx)
+
+        normalized = sorted(set(normalized))
+        if max_boundaries and len(normalized) > max_boundaries:
+            if strict and not strict_config.allow_fallback:
+                raise StrictJsonError("Semantic chunking returned too many boundaries.")
+            return None
+        if not normalized and max_boundaries > 0:
+            if strict and not strict_config.allow_fallback:
+                return []
+            return None
+
+        return [int(blocks[idx]["start"]) for idx in normalized]
 
     @staticmethod
     def _boundary_schema() -> dict[str, object]:
@@ -218,6 +242,199 @@ class SemanticChunker:
                 "additionalProperties": False,
             },
         }
+
+    def _estimate_target_chunks(self, text_len: int, block_count: int) -> int:
+        if text_len <= self.max_chunk_size:
+            approx = math.ceil(text_len / max(self.min_chunk_size, 1))
+            return max(1, min(block_count, approx))
+        approx = math.ceil(text_len / self.max_chunk_size)
+        approx = max(1, min(approx, block_count))
+        return min(approx, 12)
+
+    def _format_blocks(self, blocks: list[dict[str, object]], max_preview_chars: int = 240) -> str:
+        lines: list[str] = []
+        for idx, block in enumerate(blocks):
+            raw = str(block["text"]).strip()
+            compact = re.sub(r"\\s+", " ", raw)
+            if len(compact) > max_preview_chars:
+                preview = f"{compact[:max_preview_chars].rstrip()}..."
+            else:
+                preview = compact
+            lines.append(f"[{idx}] ({block['type']}, {len(str(block['text']))} chars) {preview}")
+        return "\n".join(lines)
+
+    def _build_prompt(self, block_list: str, block_count: int, text_len: int) -> str:
+        target_chunks = self._estimate_target_chunks(text_len, block_count)
+        max_boundaries = max(0, min(block_count - 1, target_chunks - 1))
+        return (
+            "You are splitting a document into coherent chunks using the numbered blocks below.\n"
+            'Return JSON only in the form {"boundaries": [block_index, ...]}.\n'
+            "Each block_index is the index of a block where a new chunk should start.\n"
+            "Rules:\n"
+            f"- Block indices must be integers in the range 1..{block_count - 1}.\n"
+            "- Indices must be sorted and unique.\n"
+            f"- Use at most {max_boundaries} boundaries.\n"
+            f"- Aim for about {target_chunks} chunks overall.\n"
+            f"- Keep chunk sizes between {self.min_chunk_size} and "
+            f"{self.max_chunk_size} characters when possible.\n"
+            "- Prefer boundaries at topic shifts or section changes; avoid splitting inside "
+            "tables or code blocks.\n\n"
+            "Blocks:\n"
+            f"{block_list}\n"
+        )
+
+    @staticmethod
+    def _estimate_prompt_tokens(prompt: str) -> int:
+        # Approximate token count; avoids extra deps.
+        return max(1, len(prompt) // 4)
+
+    def _group_blocks_by_size(
+        self, blocks: list[dict[str, object]], max_chars: int
+    ) -> list[tuple[int, int]]:
+        groups: list[tuple[int, int]] = []
+        start_idx = 0
+        current_len = 0
+        for idx, block in enumerate(blocks):
+            block_len = int(block["end"]) - int(block["start"])
+            if current_len and current_len + block_len > max_chars:
+                groups.append((start_idx, idx))
+                start_idx = idx
+                current_len = 0
+            current_len += block_len
+        if start_idx < len(blocks):
+            groups.append((start_idx, len(blocks)))
+        return groups
+
+    @staticmethod
+    def _normalize_blocks(blocks: list[dict[str, object]], offset: int) -> list[dict[str, object]]:
+        normalized: list[dict[str, object]] = []
+        for block in blocks:
+            normalized.append(
+                {
+                    "start": int(block["start"]) - offset,
+                    "end": int(block["end"]) - offset,
+                    "text": block["text"],
+                    "type": block.get("type", "paragraph"),
+                }
+            )
+        return normalized
+
+    def _boundaries_from_fallback(self, text: str, source_file: str) -> list[int]:
+        blocks = self._build_blocks(text)
+        if len(blocks) > 1:
+            return [int(block["start"]) for block in blocks[1:]]
+        fallback_chunks = self.fallback_chunker.chunk(text, source_file)
+        if len(fallback_chunks) <= 1:
+            return []
+        boundaries: list[int] = []
+        cursor = 0
+        for idx, chunk in enumerate(fallback_chunks):
+            start = text.find(chunk.text, cursor)
+            if start == -1:
+                start = text.find(chunk.text)
+            if start == -1:
+                start = cursor
+            if idx > 0:
+                boundaries.append(start)
+            cursor = max(cursor, start + len(chunk.text))
+        return boundaries
+
+    def _build_blocks(self, text: str) -> list[dict[str, object]]:
+        lines = text.splitlines(keepends=True)
+        blocks: list[dict[str, object]] = []
+        current_lines: list[str] = []
+        current_type: str | None = None
+        block_start = 0
+        in_code_fence = False
+        cursor = 0
+
+        def flush() -> None:
+            nonlocal current_lines, current_type, block_start
+            if not current_lines:
+                return
+            block_text = "".join(current_lines)
+            blocks.append(
+                {
+                    "start": block_start,
+                    "end": block_start + len(block_text),
+                    "text": block_text,
+                    "type": current_type or "paragraph",
+                }
+            )
+            current_lines = []
+            current_type = None
+
+        for line in lines:
+            line_start = cursor
+            cursor += len(line)
+            stripped = line.strip()
+
+            if in_code_fence:
+                current_lines.append(line)
+                if stripped.startswith("```"):
+                    in_code_fence = False
+                    flush()
+                continue
+
+            if stripped.startswith("```"):
+                flush()
+                in_code_fence = True
+                current_type = "code"
+                block_start = line_start
+                current_lines = [line]
+                continue
+
+            if not stripped:
+                flush()
+                continue
+
+            if self._is_table_line(line):
+                if current_type not in (None, "table"):
+                    flush()
+                if current_type is None:
+                    current_type = "table"
+                    block_start = line_start
+                current_lines.append(line)
+                continue
+
+            if self._is_list_line(line):
+                if current_type not in (None, "list"):
+                    flush()
+                if current_type is None:
+                    current_type = "list"
+                    block_start = line_start
+                current_lines.append(line)
+                continue
+
+            if current_type not in (None, "paragraph"):
+                flush()
+            if current_type is None:
+                current_type = "paragraph"
+                block_start = line_start
+            current_lines.append(line)
+
+        flush()
+        return blocks
+
+    @staticmethod
+    def _is_table_line(line: str) -> bool:
+        stripped = line.strip()
+        if not stripped or "|" not in stripped:
+            return False
+        if stripped.startswith("|") or stripped.endswith("|"):
+            return True
+        if re.match(r"^[\\s|:-]+$", stripped):
+            return True
+        return False
+
+    @staticmethod
+    def _is_list_line(line: str) -> bool:
+        stripped = line.lstrip()
+        if not stripped:
+            return False
+        if stripped.startswith(("-", "*", "+")) and len(stripped) > 1:
+            return stripped[1].isspace()
+        return bool(re.match(r"^\\d+[.)]\\s+", stripped))
 
     def _split_sentences(self, text: str) -> list[dict[str, int | str]]:
         sentences = re.split(r"(?<=[.!?])\s+", text.strip())

@@ -38,17 +38,18 @@ class VLLMLLMProvider(LLMProvider):
         guided_json = None
         if options and "response_format" in options:
             response_format = options["response_format"]
-        elif options and "json_schema" in options:
-            guided_json = options["json_schema"]
-            if isinstance(guided_json, dict) and "schema" in guided_json:
-                guided_json = guided_json["schema"]
         elif format == "json":
             response_format = {"type": "json_object"}
 
-        if guided_json is not None:
-            payload["guided_json"] = guided_json
-        elif response_format:
+        if response_format is None and options and "json_schema" in options:
+            guided_json = options["json_schema"]
+            if isinstance(guided_json, dict) and "schema" in guided_json:
+                guided_json = guided_json["schema"]
+
+        if response_format:
             payload["response_format"] = response_format
+        elif guided_json is not None:
+            payload["guided_json"] = guided_json
 
         headers: dict[str, str] = {}
         if self.config.vllm_api_key:
