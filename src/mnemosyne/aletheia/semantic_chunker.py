@@ -224,6 +224,10 @@ class SemanticChunker:
             if strict and not strict_config.allow_fallback:
                 raise StrictJsonError("Semantic chunking returned too many boundaries.")
             return None
+        if not normalized and max_boundaries > 0:
+            if strict and not strict_config.allow_fallback:
+                return []
+            return None
 
         return [int(blocks[idx]["start"]) for idx in normalized]
 
@@ -241,7 +245,8 @@ class SemanticChunker:
 
     def _estimate_target_chunks(self, text_len: int, block_count: int) -> int:
         if text_len <= self.max_chunk_size:
-            return 1
+            approx = math.ceil(text_len / max(self.min_chunk_size, 1))
+            return max(1, min(block_count, approx))
         approx = math.ceil(text_len / self.max_chunk_size)
         approx = max(1, min(approx, block_count))
         return min(approx, 12)
@@ -315,6 +320,9 @@ class SemanticChunker:
         return normalized
 
     def _boundaries_from_fallback(self, text: str, source_file: str) -> list[int]:
+        blocks = self._build_blocks(text)
+        if len(blocks) > 1:
+            return [int(block["start"]) for block in blocks[1:]]
         fallback_chunks = self.fallback_chunker.chunk(text, source_file)
         if len(fallback_chunks) <= 1:
             return []

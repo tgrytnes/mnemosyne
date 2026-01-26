@@ -55,7 +55,7 @@ class SemanticConsensusChunker:
         if not consensus:
             return semantic_chunks
 
-        return self._chunks_from_boundaries(text, source_file, consensus)
+        return self._chunks_from_boundaries(text, source_file, consensus, structure)
 
     def _recursive_chunks(self, text: str, source_file: str, structure=None) -> list[TextChunk]:
         if structure is not None:
@@ -84,22 +84,30 @@ class SemanticConsensusChunker:
         return sorted(set(result))
 
     def _chunks_from_boundaries(
-        self, text: str, source_file: str, boundaries: list[int]
+        self, text: str, source_file: str, boundaries: list[int], structure=None
     ) -> list[TextChunk]:
         positions = [0] + sorted({b for b in boundaries if 0 < b < len(text)}) + [len(text)]
-        segments = [text[start:end].strip() for start, end in zip(positions, positions[1:])]
-        segments = [segment for segment in segments if segment]
+        segments: list[dict[str, object]] = []
+        for start, end in zip(positions, positions[1:]):
+            segment = text[start:end]
+            stripped = segment.strip()
+            if not stripped:
+                continue
+            leading = len(segment) - len(segment.lstrip())
+            segments.append({"text": stripped, "start": start + leading})
 
-        merged: list[str] = []
-        current = ""
+        merged: list[dict[str, object]] = []
+        current: dict[str, object] | None = None
         for segment in segments:
-            if not current:
+            segment_text = str(segment["text"])
+            if current is None:
                 current = segment
                 continue
-            if len(current) < self.min_chunk_size or len(segment) < self.min_chunk_size:
-                combined_len = len(current) + len(segment)
+            current_text = str(current["text"])
+            if len(current_text) < self.min_chunk_size or len(segment_text) < self.min_chunk_size:
+                combined_len = len(current_text) + len(segment_text)
                 if combined_len <= self.max_chunk_size:
-                    current += segment
+                    current["text"] = current_text + segment_text
                 else:
                     merged.append(current)
                     current = segment
@@ -107,21 +115,68 @@ class SemanticConsensusChunker:
                 merged.append(current)
                 current = segment
 
-        if current:
+        if current is not None:
             merged.append(current)
 
         chunks: list[TextChunk] = []
         index = 0
         for segment in merged:
-            if len(segment) > self.max_chunk_size:
-                fallback_chunks = self.recursive_chunker.chunk(segment, source_file)
+            segment_text = str(segment["text"])
+            segment_start = int(segment["start"])
+            if len(segment_text) > self.max_chunk_size:
+                fallback_chunks = self.recursive_chunker.chunk(segment_text, source_file)
+                cursor = 0
                 for fallback in fallback_chunks:
+                    rel_start = segment_text.find(fallback.text, cursor)
+                    if rel_start == -1:
+                        rel_start = segment_text.find(fallback.text)
+                    if rel_start == -1:
+                        rel_start = cursor
                     chunks.append(
-                        TextChunk(text=fallback.text, index=index, source_file=source_file)
+                        self._build_chunk(
+                            fallback.text,
+                            index,
+                            source_file,
+                            structure,
+                            segment_start + rel_start,
+                        )
                     )
                     index += 1
+                    cursor = max(cursor, rel_start + len(fallback.text))
             else:
-                chunks.append(TextChunk(text=segment, index=index, source_file=source_file))
+                chunks.append(
+                    self._build_chunk(segment_text, index, source_file, structure, segment_start)
+                )
                 index += 1
 
         return chunks
+
+    @staticmethod
+    def _build_chunk(
+        text: str,
+        index: int,
+        source_file: str,
+        structure,
+        start_pos: int,
+    ) -> TextChunk:
+        if structure is None:
+            return TextChunk(text=text, index=index, source_file=source_file)
+
+        heading = structure.get_heading_at_pos(start_pos)
+        if heading and heading.level > 0:
+            heading_path = structure.get_heading_path(heading)
+            heading_level = heading.level
+            section_title = heading.title
+        else:
+            heading_path = ""
+            heading_level = 0
+            section_title = ""
+
+        return TextChunk(
+            text=text,
+            index=index,
+            source_file=source_file,
+            heading_path=heading_path,
+            heading_level=heading_level,
+            section_title=section_title,
+        )

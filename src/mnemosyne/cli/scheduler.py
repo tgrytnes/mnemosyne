@@ -576,7 +576,8 @@ def run_pm_pressure_update_task() -> None:
 
 def _fetch_projects_for_obsidian_sync(db_conn) -> list[dict[str, object]]:
     with db_conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT id, title, description, discovered_by, discovery_id,
                    cluster_ids, confidence_score, status, importance, urgency,
                    deadline, work_estimate, pressure_score, verified_by_user,
@@ -584,7 +585,8 @@ def _fetch_projects_for_obsidian_sync(db_conn) -> list[dict[str, object]]:
                    last_synced_to_obsidian, last_synced_from_obsidian
             FROM projects
             ORDER BY created_at ASC
-            """)
+            """
+        )
         rows = cur.fetchall() or []
 
     projects = []

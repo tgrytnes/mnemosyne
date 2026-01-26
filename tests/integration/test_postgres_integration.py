@@ -126,13 +126,15 @@ class TestProjectsTable:
         cursor.connection.commit()
 
         # Query for approaching deadlines (within 3 days)
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT title FROM projects
             WHERE status = 'active'
               AND deadline IS NOT NULL
               AND deadline BETWEEN NOW() AND NOW() + INTERVAL '3 days'
             ORDER BY deadline
-            """)
+            """
+        )
 
         results = cursor.fetchall()
         assert len(results) == 1

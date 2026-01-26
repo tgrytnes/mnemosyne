@@ -33,15 +33,18 @@ class IngestionStateTracker:
 
     def _create_table(self) -> None:
         """Create ingested_files table if it doesn't exist"""
-        self.conn.execute("""
+        self.conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS ingested_files (
                 file_path TEXT PRIMARY KEY,
                 last_modified TIMESTAMP,
                 ingested_at TIMESTAMP,
                 chunk_count INTEGER
             )
-        """)
-        self.conn.execute("""
+        """
+        )
+        self.conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS semantic_chunk_cache (
                 cache_key TEXT PRIMARY KEY,
                 boundaries_json TEXT NOT NULL,
@@ -50,8 +53,10 @@ class IngestionStateTracker:
                 max_chunk_size INTEGER,
                 created_at TIMESTAMP
             )
-        """)
-        self.conn.execute("""
+        """
+        )
+        self.conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS doc_summary_cache (
                 cache_key TEXT PRIMARY KEY,
                 summary TEXT NOT NULL,
@@ -60,7 +65,8 @@ class IngestionStateTracker:
                 temperature REAL,
                 created_at TIMESTAMP
             )
-        """)
+        """
+        )
         self.conn.commit()
 
     @staticmethod
