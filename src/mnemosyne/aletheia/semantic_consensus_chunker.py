@@ -43,6 +43,9 @@ class SemanticConsensusChunker:
 
         recursive_chunks = self._recursive_chunks(text, source_file, structure)
 
+        if structure is not None and semantic_chunks:
+            semantic_chunks = self._apply_structure_metadata(text, semantic_chunks, structure)
+
         if not semantic_chunks:
             return recursive_chunks
         if not recursive_chunks:
@@ -180,3 +183,38 @@ class SemanticConsensusChunker:
             heading_level=heading_level,
             section_title=section_title,
         )
+
+    def _apply_structure_metadata(
+        self, text: str, chunks: list[TextChunk], structure
+    ) -> list[TextChunk]:
+        cursor = 0
+        updated: list[TextChunk] = []
+        for chunk in chunks:
+            start = text.find(chunk.text, cursor)
+            if start == -1:
+                start = text.find(chunk.text)
+            if start == -1:
+                start = cursor
+            heading = structure.get_heading_at_pos(start)
+            if heading and heading.level > 0:
+                heading_path = structure.get_heading_path(heading)
+                heading_level = heading.level
+                section_title = heading.title
+            else:
+                heading_path = ""
+                heading_level = 0
+                section_title = ""
+
+            updated.append(
+                TextChunk(
+                    text=chunk.text,
+                    index=chunk.index,
+                    source_file=chunk.source_file,
+                    heading_path=heading_path,
+                    heading_level=heading_level,
+                    section_title=section_title,
+                )
+            )
+            cursor = max(cursor, start + len(chunk.text))
+
+        return updated
