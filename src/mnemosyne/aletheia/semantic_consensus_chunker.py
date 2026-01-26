@@ -43,8 +43,16 @@ class SemanticConsensusChunker:
 
         recursive_chunks = self._recursive_chunks(text, source_file, structure)
 
+        fallback_structure = None
+        if structure is not None:
+            from mnemosyne.aletheia.structure_extractor import StructureExtractor
+
+            fallback_structure = StructureExtractor().extract_structure(text)
+
         if structure is not None and semantic_chunks:
-            semantic_chunks = self._apply_structure_metadata(text, semantic_chunks, structure)
+            semantic_chunks = self._apply_structure_metadata(
+                text, semantic_chunks, structure, fallback_structure
+            )
 
         if not semantic_chunks:
             return recursive_chunks
@@ -58,7 +66,9 @@ class SemanticConsensusChunker:
         if not consensus:
             return semantic_chunks
 
-        return self._chunks_from_boundaries(text, source_file, consensus, structure)
+        return self._chunks_from_boundaries(
+            text, source_file, consensus, structure, fallback_structure
+        )
 
     def _recursive_chunks(self, text: str, source_file: str, structure=None) -> list[TextChunk]:
         if structure is not None:
@@ -87,7 +97,12 @@ class SemanticConsensusChunker:
         return sorted(set(result))
 
     def _chunks_from_boundaries(
-        self, text: str, source_file: str, boundaries: list[int], structure=None
+        self,
+        text: str,
+        source_file: str,
+        boundaries: list[int],
+        structure=None,
+        fallback_structure=None,
     ) -> list[TextChunk]:
         positions = [0] + sorted({b for b in boundaries if 0 < b < len(text)}) + [len(text)]
         segments: list[dict[str, object]] = []
@@ -141,6 +156,7 @@ class SemanticConsensusChunker:
                             index,
                             source_file,
                             structure,
+                            fallback_structure,
                             segment_start + rel_start,
                         )
                     )
@@ -148,7 +164,14 @@ class SemanticConsensusChunker:
                     cursor = max(cursor, rel_start + len(fallback.text))
             else:
                 chunks.append(
-                    self._build_chunk(segment_text, index, source_file, structure, segment_start)
+                    self._build_chunk(
+                        segment_text,
+                        index,
+                        source_file,
+                        structure,
+                        fallback_structure,
+                        segment_start,
+                    )
                 )
                 index += 1
 
@@ -160,12 +183,15 @@ class SemanticConsensusChunker:
         index: int,
         source_file: str,
         structure,
+        fallback_structure,
         start_pos: int,
     ) -> TextChunk:
         if structure is None:
             return TextChunk(text=text, index=index, source_file=source_file)
 
         heading = structure.get_heading_at_pos(start_pos)
+        if (heading is None or heading.level <= 0) and fallback_structure is not None:
+            heading = fallback_structure.get_heading_at_pos(start_pos)
         if heading and heading.level > 0:
             heading_path = structure.get_heading_path(heading)
             heading_level = heading.level
@@ -185,7 +211,7 @@ class SemanticConsensusChunker:
         )
 
     def _apply_structure_metadata(
-        self, text: str, chunks: list[TextChunk], structure
+        self, text: str, chunks: list[TextChunk], structure, fallback_structure
     ) -> list[TextChunk]:
         cursor = 0
         updated: list[TextChunk] = []
@@ -196,6 +222,8 @@ class SemanticConsensusChunker:
             if start == -1:
                 start = cursor
             heading = structure.get_heading_at_pos(start)
+            if (heading is None or heading.level <= 0) and fallback_structure is not None:
+                heading = fallback_structure.get_heading_at_pos(start)
             if heading and heading.level > 0:
                 heading_path = structure.get_heading_path(heading)
                 heading_level = heading.level
