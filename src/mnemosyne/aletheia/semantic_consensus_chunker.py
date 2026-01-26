@@ -66,6 +66,7 @@ class SemanticConsensusChunker:
         heading_boundaries: list[int] = []
         if structure is not None:
             heading_boundaries = self._heading_boundaries(structure, fallback_structure, len(text))
+        heading_boundary_set = set(heading_boundaries)
 
         if heading_boundaries:
             if consensus:
@@ -73,14 +74,14 @@ class SemanticConsensusChunker:
             else:
                 combined = sorted(set(semantic_boundaries).union(heading_boundaries))
             return self._chunks_from_boundaries(
-                text, source_file, combined, structure, fallback_structure
+                text, source_file, combined, structure, fallback_structure, heading_boundary_set
             )
 
         if not consensus:
             return semantic_chunks
 
         return self._chunks_from_boundaries(
-            text, source_file, consensus, structure, fallback_structure
+            text, source_file, consensus, structure, fallback_structure, heading_boundary_set
         )
 
     def _recursive_chunks(self, text: str, source_file: str, structure=None) -> list[TextChunk]:
@@ -124,7 +125,9 @@ class SemanticConsensusChunker:
         boundaries: list[int],
         structure=None,
         fallback_structure=None,
+        heading_boundaries: set[int] | None = None,
     ) -> list[TextChunk]:
+        heading_boundaries = heading_boundaries or set()
         positions = [0] + sorted({b for b in boundaries if 0 < b < len(text)}) + [len(text)]
         segments: list[dict[str, object]] = []
         for start, end in zip(positions, positions[1:]):
@@ -133,7 +136,13 @@ class SemanticConsensusChunker:
             if not stripped:
                 continue
             leading = len(segment) - len(segment.lstrip())
-            segments.append({"text": stripped, "start": start + leading})
+            segments.append(
+                {
+                    "text": stripped,
+                    "start": start + leading,
+                    "is_heading": start in heading_boundaries,
+                }
+            )
 
         merged: list[dict[str, object]] = []
         current: dict[str, object] | None = None
@@ -143,6 +152,10 @@ class SemanticConsensusChunker:
                 current = segment
                 continue
             current_text = str(current["text"])
+            if bool(current.get("is_heading")) or bool(segment.get("is_heading")):
+                merged.append(current)
+                current = segment
+                continue
             if len(current_text) < self.min_chunk_size or len(segment_text) < self.min_chunk_size:
                 combined_len = len(current_text) + len(segment_text)
                 if combined_len <= self.max_chunk_size:
