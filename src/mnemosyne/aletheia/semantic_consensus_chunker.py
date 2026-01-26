@@ -189,11 +189,9 @@ class SemanticConsensusChunker:
         if structure is None:
             return TextChunk(text=text, index=index, source_file=source_file)
 
-        heading = structure.get_heading_at_pos(start_pos)
-        if (heading is None or heading.level <= 0) and fallback_structure is not None:
-            heading = fallback_structure.get_heading_at_pos(start_pos)
+        heading, heading_source = _resolve_heading(start_pos, structure, fallback_structure)
         if heading and heading.level > 0:
-            heading_path = structure.get_heading_path(heading)
+            heading_path = heading_source.get_heading_path(heading)
             heading_level = heading.level
             section_title = heading.title
         else:
@@ -221,11 +219,9 @@ class SemanticConsensusChunker:
                 start = text.find(chunk.text)
             if start == -1:
                 start = cursor
-            heading = structure.get_heading_at_pos(start)
-            if (heading is None or heading.level <= 0) and fallback_structure is not None:
-                heading = fallback_structure.get_heading_at_pos(start)
+            heading, heading_source = _resolve_heading(start, structure, fallback_structure)
             if heading and heading.level > 0:
-                heading_path = structure.get_heading_path(heading)
+                heading_path = heading_source.get_heading_path(heading)
                 heading_level = heading.level
                 section_title = heading.title
             else:
@@ -246,3 +242,14 @@ class SemanticConsensusChunker:
             cursor = max(cursor, start + len(chunk.text))
 
         return updated
+
+
+def _resolve_heading(start_pos: int, structure, fallback_structure):
+    heading = structure.get_heading_at_pos(start_pos)
+    if heading and heading.level > 0:
+        return heading, structure
+    if fallback_structure is not None:
+        fallback_heading = fallback_structure.get_heading_at_pos(start_pos)
+        if fallback_heading and fallback_heading.level > 0:
+            return fallback_heading, fallback_structure
+    return None, structure
